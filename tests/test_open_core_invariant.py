@@ -9,8 +9,25 @@ def test_public_repo_product_only():
     assert not (root / "memory_gateway").exists()
     assert not (root / "panella" / "eval").exists()
     assert not any(root.glob("*COMPLETION-REPORT*"))
-    http_routes = "".join(p.read_text() for p in (root / "panella" / "http" / "routes").glob("*.py"))
-    assert "/v1/approvals/" not in http_routes
+    # WP-B2a: the HTTP approval surface SHIPS — but ONLY through the shared approval trust chain
+    # (panella.approval_service). This is a STRONGER invariant than the pre-B2a "no approvals
+    # routes": the surface exists, yet the route module must never call the auth-less raw queue
+    # mutators directly and must never let a caller assert their own approver identity.
+    approvals = (root / "panella" / "http" / "routes" / "approvals.py").read_text()
+    assert "approval_service" in approvals  # routes delegate to the shared, gated trust chain
+    assert "X-Approval-Token" in approvals  # the local_cli token is header-only (never query/path)
+    for raw in (
+        "mcp_approve_or_redrive(",
+        "update_approval_status(",
+        "finalize_approved_candidate(",
+        "list_pending_approvals(",
+    ):
+        assert raw not in approvals, f"approvals route must not call the auth-less raw helper {raw}"
+    # The route must never accept/stamp an approver identity as a kwarg — it is derived only inside
+    # the service from the verified transport (the docstring may NAME these fields; a `field=` assign
+    # would be the real leak).
+    assert "approved_by=" not in approvals
+    assert "approved_via=" not in approvals
 
 
 def test_real_box_assets_are_not_stubs():

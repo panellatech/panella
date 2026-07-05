@@ -18,17 +18,18 @@ from panella._default_adapter import default_adapter
 from panella.http.auth import AuthMiddleware, RateLimiter, resolve_bearer
 from panella.http.config import MemoryHttpConfig, load_config
 from panella.http.errors import ApiError, api_error_handler, error_payload, unhandled_error_handler
-from panella.http.routes import audit, delete, health, principal, search, stats, write
+from panella.http.routes import approvals, audit, delete, health, principal, search, stats, write
 from panella.http.tokens import TokenStore, normalize_principal_id
 from panella.principal import root_principal
 from panella.store_probe import startup_self_check
 
 logger = logging.getLogger(__name__)
 
-# Routes the coherence gate refuses while incoherent (§1.5.3): the memory surface + the
-# break-glass token mint (an elevation minted against a wrong-identity box is worthless and
+# Routes the coherence gate refuses while incoherent (§1.5.3): the memory surface, the approval
+# surface (approving finalizes a durable write — never do that on an incoherent box, WP-B2a), and
+# the break-glass token mint (an elevation minted against a wrong-identity box is worthless and
 # confusing). /v1/health stays reachable so Doctor sees a live-but-refusing process.
-_GATED_PREFIX = "/v1/memory/"
+_GATED_PREFIXES = ("/v1/memory/", "/v1/approvals/")
 _GATED_EXACT = frozenset({"/v1/principal/break-glass"})
 
 
@@ -46,7 +47,7 @@ class ServingGateMiddleware:
     async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
         if scope["type"] == "http":
             path = str(scope.get("path", ""))
-            if path.startswith(_GATED_PREFIX) or path in _GATED_EXACT:
+            if any(path.startswith(prefix) for prefix in _GATED_PREFIXES) or path in _GATED_EXACT:
                 state = scope.get("app").state if scope.get("app") else None
                 if not getattr(state, "memory_serving", False):
                     reason = str(getattr(state, "memory_serving_reason", "startup self-check pending"))
@@ -127,6 +128,10 @@ def create_app(config: Any = None, *, memory_adapter: Any | None = None) -> Fast
     app.include_router(audit.router)
     app.include_router(principal.router)
     app.include_router(stats.router)
+    # WP-B2a — HTTP approval surface. Always registered; each route resolves the deployment's
+    # approval transport per request (build_transport_if_approvable) → 404 on a non-local_cli box,
+    # so a telegram/foreign box exposes no HTTP approval surface. Serving-gated above.
+    app.include_router(approvals.router)
     app.openapi = lambda: _openapi(app)  # type: ignore[method-assign]
 
     # Slice-S P3b — the network MCP surface. Opt-in (default OFF): when PANELLA_MCP_ENABLED is unset

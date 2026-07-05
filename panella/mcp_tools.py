@@ -34,14 +34,9 @@ from typing import Any
 import mcp.types as mcp_types
 from mcp.server import Server
 
-from panella.approval_finalizer import finalize_approved_candidate
+from panella import approval_service
 from panella.approval_transport import ApprovalTransport, build_transport
 from panella.client import QuotaExceeded
-from panella.client_raw import (
-    list_pending_approvals,
-    mcp_approve_or_redrive,
-    update_approval_status,
-)
 from panella.governance import Governance
 from panella.write_hygiene import sanitize_network_write_metadata
 
@@ -377,37 +372,22 @@ async def _handle_submit(ctx: McpToolContext, arguments: dict[str, Any]) -> list
     )
 
 
-def _verify_operator(ctx: McpToolContext, credential: Any) -> str | None:
-    """Verify a presented credential through the configured transport → canonical approver id, or
-    None (fail-closed) when the credential is missing/invalid. Proves operator token possession."""
-    if not isinstance(credential, str) or not credential:
-        return None
-    assert ctx.transport is not None  # guarded by _approval_registered
-    return ctx.transport.verify_presser(credential)
-
-
-def _authorized_approver(ctx: McpToolContext, canonical: str) -> bool:
-    """Is the canonical presser in the deployment's authorized approver set? Empty set (keystone
-    INERT) → always False, so nothing is ever approved/rejected on an unconfigured box."""
-    assert ctx.governance is not None
-    return canonical in set(ctx.governance.approval.authorized_approvers)
-
-
 async def _handle_list_pending(ctx: McpToolContext, arguments: dict[str, Any]) -> list[mcp_types.TextContent]:
-    canonical = _verify_operator(ctx, arguments.get("credential"))
-    if canonical is None:
-        return _error_payload("approval credential rejected", code="approval_refused")
-    # Listing leaks candidate content, so gate it behind the SAME authorization as approve/reject
-    # (an authorized approver, not merely a token holder) — uniform queue authorization, and on an
-    # INERT box (empty approver set) nothing queue-related is exposed until approvers are configured.
-    if not _authorized_approver(ctx, canonical):
-        return _error_payload("presser is not an authorized approver", code="approval_refused")
-    limit = arguments.get("limit", 20)
-    if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
-        limit = 20
+    # Shared trust chain (panella.approval_service): verify presser → authorized-approver gate →
+    # bounded read. Listing leaks candidate content, so it needs the SAME authz as approve/reject.
     loop = asyncio.get_running_loop()
     try:
-        rows = await loop.run_in_executor(None, lambda: list_pending_approvals(ctx.outbox_db_path, limit=limit))
+        rows = await loop.run_in_executor(
+            None,
+            lambda: approval_service.list_pending(
+                ctx.outbox_db_path, ctx.transport, ctx.governance, arguments.get("credential"),
+                limit=arguments.get("limit", 20),
+            ),
+        )
+    except approval_service.ApprovalAuthError as exc:
+        # Bad credential OR not an authorized approver — one refusal, no oracle (INERT box with an
+        # empty approver set exposes nothing queue-related until approvers are configured).
+        return _error_payload(str(exc), code="approval_refused")
     except Exception as exc:  # noqa: BLE001
         logger.exception("list_pending_approvals failed")
         return _error_payload(f"list failed: {exc}", code="internal_error")
@@ -418,55 +398,37 @@ async def _handle_approve(ctx: McpToolContext, arguments: dict[str, Any]) -> lis
     approval_id = arguments.get("approval_id")
     if not isinstance(approval_id, int) or isinstance(approval_id, bool):
         return _error_payload("approval_id (int) is required", code="invalid_arguments")
-    canonical = _verify_operator(ctx, arguments.get("credential"))
-    if canonical is None:
-        return _error_payload("approval credential rejected", code="approval_refused")
-    if not _authorized_approver(ctx, canonical):
-        # Keystone: an empty approver set lands here → refused (INERT preserved end-to-end).
-        return _error_payload("presser is not an authorized approver", code="approval_refused")
-    assert ctx.transport is not None and ctx.governance is not None
-    via = ctx.transport.stamp_provenance()
-    approvers = set(ctx.governance.approval.authorized_approvers)
-
-    finalize_kwargs: dict[str, Any] = {}
-    if ctx.finalizer_adapter_factory is not None:
-        finalize_kwargs["adapter_factory"] = ctx.finalizer_adapter_factory
-
-    def _approve_and_finalize() -> tuple[str, str | None]:
-        # Stamp a fresh candidate OR authorize a redrive of a stuck (already-approved, unfinalized)
-        # one — one transaction, status/provenance/finalizer-claim guarded — then run finalize under
-        # the SAME provenance the finalizer re-verifies. Returns (mode, durable_id).
-        mode = mcp_approve_or_redrive(ctx.outbox_db_path, approval_id, approved_via=via, approved_by=canonical)
-        durable_id = finalize_approved_candidate(
-            approval_id,
-            authorized_approvers=approvers,
-            expected_approved_via=via,
-            db_path=ctx.outbox_db_path,
-            **finalize_kwargs,
-        )
-        return mode, durable_id
-
+    # Shared trust chain: verify presser → authorized-approver gate → stamp/redrive → finalize under
+    # the SAME provenance the finalizer independently re-verifies. approved_via/approved_by are
+    # derived ONLY from the configured transport, never from the caller.
     loop = asyncio.get_running_loop()
     try:
-        mode, durable_id = await loop.run_in_executor(None, _approve_and_finalize)
-    except ValueError as exc:
+        outcome = await loop.run_in_executor(
+            None,
+            lambda: approval_service.approve(
+                ctx.outbox_db_path, ctx.transport, ctx.governance, arguments.get("credential"), approval_id,
+                finalizer_adapter_factory=ctx.finalizer_adapter_factory,
+            ),
+        )
+    except approval_service.ApprovalAuthError as exc:
+        # Bad credential OR not an authorized approver (keystone: empty approver set lands here).
+        return _error_payload(str(exc), code="approval_refused")
+    except approval_service.ApprovalStateError as exc:
         # Missing row / not an awaiting-or-retriable candidate (decided/foreign/claimed) → refused.
         return _error_payload(str(exc), code="approval_refused")
+    except approval_service.ApprovalNotFinalized:
+        # Stamped (or re-driven) but finalize did NOT complete — recoverable; the operator retries and
+        # re-enters the redrive path (the only recovery on a self-host box with no background sweep).
+        return _error_payload(
+            f"approval {approval_id} is approved but not yet durable (finalize did not complete — likely a "
+            "transient store issue); retry approve_candidate to redrive it",
+            code="not_finalized",
+        )
     except Exception as exc:  # noqa: BLE001
         logger.exception("MCP approve_candidate failed id=%s", approval_id)
         return _error_payload(f"approval failed: {exc}", code="internal_error")
-    if durable_id is not None:
-        return _ok_payload(
-            {"approved": True, "finalized": True, "durable_id": durable_id, "retried": mode == "redrive"}
-        )
-    # Stamped (or re-driven) but finalize did NOT complete — e.g. a transient store outage marked the
-    # row finalizer_state='failed'. This is NOT a clean success: report it as recoverable so the
-    # operator retries. A retry re-enters the redrive path above and re-runs finalize (the only
-    # recovery on a self-host box with no background redrive sweep).
-    return _error_payload(
-        f"approval {approval_id} is approved but not yet durable (finalize did not complete — likely a "
-        "transient store issue); retry approve_candidate to redrive it",
-        code="not_finalized",
+    return _ok_payload(
+        {"approved": True, "finalized": True, "durable_id": outcome.durable_id, "retried": outcome.retried}
     )
 
 
@@ -474,24 +436,22 @@ async def _handle_reject(ctx: McpToolContext, arguments: dict[str, Any]) -> list
     approval_id = arguments.get("approval_id")
     if not isinstance(approval_id, int) or isinstance(approval_id, bool):
         return _error_payload("approval_id (int) is required", code="invalid_arguments")
-    canonical = _verify_operator(ctx, arguments.get("credential"))
-    if canonical is None:
-        return _error_payload("approval credential rejected", code="approval_refused")
-    if not _authorized_approver(ctx, canonical):
-        return _error_payload("presser is not an authorized approver", code="approval_refused")
+    # Shared trust chain: verify presser → authorized-approver gate → non-terminal reject stamp.
     loop = asyncio.get_running_loop()
     try:
-        changed = await loop.run_in_executor(
-            None, lambda: update_approval_status(ctx.outbox_db_path, approval_id, "rejected", decided_by=canonical)
+        await loop.run_in_executor(
+            None,
+            lambda: approval_service.reject(
+                ctx.outbox_db_path, ctx.transport, ctx.governance, arguments.get("credential"), approval_id
+            ),
         )
+    except approval_service.ApprovalAuthError as exc:
+        return _error_payload(str(exc), code="approval_refused")
+    except approval_service.ApprovalStateError as exc:
+        # No pending row changed (missing id, or already approved/rejected/finalized) — do NOT report
+        # a rejection that did not happen.
+        return _error_payload(str(exc), code="approval_refused")
     except Exception as exc:  # noqa: BLE001
         logger.exception("MCP reject_candidate failed id=%s", approval_id)
         return _error_payload(f"reject failed: {exc}", code="internal_error")
-    if not changed:
-        # No pending row was rejected (missing id, or already approved/rejected/finalized) — do NOT
-        # report a rejection that did not happen.
-        return _error_payload(
-            f"approval {approval_id} is not a pending candidate (missing or already decided)",
-            code="approval_refused",
-        )
     return _ok_payload({"rejected": True, "approval_id": approval_id})

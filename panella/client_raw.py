@@ -475,6 +475,20 @@ def list_pending_approvals(
     return out
 
 
+def count_pending_approvals(db_path: str | Path) -> int:
+    """Count awaiting-decision candidates (``pending`` + ``pending_approval``) — the bare integer
+    behind the console badge (WP-B2a ``GET /v1/approvals/count``). Zero ids, zero content. Shares
+    the pending-status set with ``list_pending_approvals`` so the badge count and the list can never
+    disagree on what "pending" means."""
+    db_path = Path(db_path)
+    with sqlite3.connect(db_path) as conn:
+        _ensure_outbox_schema(conn)
+        row = conn.execute(
+            "SELECT COUNT(*) FROM approval_queue WHERE status IN ('pending', 'pending_approval')"
+        ).fetchone()
+    return int(row[0]) if row else 0
+
+
 def update_approval_status(
     db_path: str | Path,
     approval_id: int,

@@ -26,5 +26,7 @@ docker compose up --wait
 
 See [docs/SELF_HOST.md](docs/SELF_HOST.md) for configuration and the Docker topology.
 
-Deferred surfaces are intentionally absent from this public product repo: private gateway, eval
-package, and HTTP approval routes.
+The HTTP approval API (`/v1/approvals`) ships with a double-factor trust chain: the owner bearer is
+routing admission only, and a `local_cli` approval token (header-only) is the approver identity that
+the finalizer independently re-verifies. Deferred surfaces intentionally absent from this public
+product repo: the private gateway and the eval package.
