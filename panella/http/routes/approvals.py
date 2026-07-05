@@ -35,7 +35,7 @@ from panella.approval_service import (
 from panella.http.auth import principal as principal_dep
 from panella.http.errors import ApiError
 from panella.http.routes.common import audit_http
-from panella.principal import Principal
+from panella.principal import Principal, root_principal
 
 router = APIRouter()
 PrincipalDep = Annotated[Principal, Depends(principal_dep)]
@@ -90,6 +90,16 @@ def _resolve_transport(request: Request):
     return transport, governance
 
 
+def _require_owner(principal: Principal) -> None:
+    """Approval routes are the OWNER's surface — like ``/mcp``. A merely-valid bearer is NOT enough:
+    require the governance root principal, so a low-privilege / foreign-tenant bearer cannot borrow
+    the approval surface even if the local_cli approval token leaks (defense in depth; mirrors the
+    ``/mcp`` ``_authenticate_mcp_owner`` gate). The bearer is still routing-admission only — it never
+    stamps ``approved_by`` — but it must be the owner to reach these routes at all."""
+    if principal.id != root_principal().id:
+        raise ApiError("forbidden", "approval routes require the owner (root) principal", 403)
+
+
 @router.get("/v1/approvals/pending", response_model=PendingApprovalsResponse)
 def list_pending_route(
     request: Request,
@@ -97,6 +107,7 @@ def list_pending_route(
     x_approval_token: ApprovalTokenHeader = None,
     limit: int = 20,
 ) -> PendingApprovalsResponse:
+    _require_owner(principal)
     transport, governance = _resolve_transport(request)
     try:
         rows = approval_service.list_pending(
@@ -119,8 +130,8 @@ def count_route(request: Request, principal: PrincipalDep) -> ApprovalCountRespo
     # integer for a badge. Still gated on the box having an HTTP approval surface at all: a
     # non-local_cli box (e.g. telegram) 404s here too, so the whole /v1/approvals/ surface is
     # absent/consistent. Serving-gated by ServingGateMiddleware like the rest of /v1/approvals/.
+    _require_owner(principal)
     _resolve_transport(request)
-    _ = principal
     return ApprovalCountResponse(pending_count=approval_service.count_pending(request.app.state.config.outbox_db_path))
 
 
@@ -131,6 +142,7 @@ def approve_route(
     principal: PrincipalDep,
     x_approval_token: ApprovalTokenHeader = None,
 ) -> ApproveResponse:
+    _require_owner(principal)
     transport, governance = _resolve_transport(request)
     try:
         outcome = approval_service.approve(
@@ -177,6 +189,7 @@ def reject_route(
     principal: PrincipalDep,
     x_approval_token: ApprovalTokenHeader = None,
 ) -> RejectResponse:
+    _require_owner(principal)
     transport, governance = _resolve_transport(request)
     try:
         approval_service.reject(

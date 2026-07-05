@@ -327,3 +327,24 @@ def test_state_refusal_is_audited(local):
             "SELECT COUNT(*) FROM audit_log WHERE op='approvals_approve' AND details_json LIKE '%state_refused%'"
         ).fetchone()
     assert count >= 1
+
+
+# --- GH bot P1: approval routes require the OWNER bearer, not merely a valid one -------------------
+
+def test_non_owner_bearer_refused(local):
+    # A valid but NON-owner bearer + a valid approval token must STILL be refused: approval routes are
+    # the owner's surface (like /mcp). The operator approval token alone is not enough to reach them.
+    agent_bearer = local.app.state.token_store.mint(
+        principal_id="agent:probe@t_owner_personal", label="agent-probe", tenant_scope=("t_owner_personal",)
+    )
+    hdr = {"Authorization": f"Bearer {agent_bearer}", "X-Approval-Token": local.token}
+    with TestClient(local.app) as c:
+        r_list = c.get("/v1/approvals/pending", headers=hdr)
+        r_appr = c.post(f"/v1/approvals/{local.approval_id}/approve", headers=hdr)
+        r_rej = c.post(f"/v1/approvals/{local.approval_id}/reject", headers=hdr)
+        r_count = c.get("/v1/approvals/count", headers={"Authorization": f"Bearer {agent_bearer}"})
+    assert r_list.status_code == 403
+    assert r_appr.status_code == 403
+    assert r_rej.status_code == 403
+    assert r_count.status_code == 403
+    assert local.adapter.rows == []  # nothing approved by a non-owner
