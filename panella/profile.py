@@ -17,6 +17,11 @@ DEFAULT_AGENTS_DIR = ROOT / "config" / "agents"
 WINGS_PATH = ROOT / "config" / "wings.yaml"
 VALID_RETRIEVAL_MODES = {"legacy", "hybrid"}
 VALID_OBSERVABILITY_LEVELS = {"minimal", "standard", "verbose"}
+RENDER_CONFIG_COMMAND = "panella-render-config --out"
+
+
+class AgentProfileConfigError(ValueError):
+    """Raised when rendered agent profile config is missing or invalid."""
 
 
 def _resolved_agents_dir() -> Path:
@@ -34,6 +39,33 @@ def _resolved_wings_path() -> Path:
     if config_dir:
         return config_dir / "wings.yaml"
     return WINGS_PATH
+
+
+def _render_target_for_agents_dir(agents_dir: Path) -> Path:
+    return agents_dir.parent if agents_dir.name == "agents" else agents_dir
+
+
+def _render_command_for_agents_dir(agents_dir: Path) -> str:
+    out_dir = _render_target_for_agents_dir(agents_dir)
+    return f"`{RENDER_CONFIG_COMMAND} {out_dir}` and set PANELLA_CONFIG_DIR={out_dir}"
+
+
+def available_profile_names(*, agents_dir: Path | None = None) -> tuple[str, ...]:
+    resolved = agents_dir if agents_dir is not None else _resolved_agents_dir()
+    if not resolved.exists() or not resolved.is_dir():
+        return ()
+    return tuple(sorted(path.stem for path in resolved.glob("*.yaml") if path.is_file()))
+
+
+def ensure_rendered_profiles(*, agents_dir: Path | None = None) -> None:
+    resolved = agents_dir if agents_dir is not None else _resolved_agents_dir()
+    if available_profile_names(agents_dir=resolved):
+        return
+    raise AgentProfileConfigError(
+        "config not rendered: run "
+        f"{_render_command_for_agents_dir(resolved)} "
+        f"(expected rendered profiles in {resolved})"
+    )
 
 
 @dataclass(frozen=True)
@@ -101,9 +133,14 @@ class AgentProfile:
         # in-repo config tree — NOT a hardcoded repo-relative path (Slice-S P2 packaging seam).
         agents_dir = agents_dir if agents_dir is not None else _resolved_agents_dir()
         wings_path = wings_path if wings_path is not None else _resolved_wings_path()
+        ensure_rendered_profiles(agents_dir=agents_dir)
         path = agents_dir / f"{name}.yaml"
         if not path.exists():
-            raise ValueError(f"agent profile not found: {path}")
+            valid = ", ".join(available_profile_names(agents_dir=agents_dir)) or "<none>"
+            raise AgentProfileConfigError(
+                f"agent profile {name!r} not found in {agents_dir} "
+                f"(valid: {valid}); run {_render_command_for_agents_dir(agents_dir)}"
+            )
         # Memoize parse+validate keyed on BOTH the profile YAML mtime AND the
         # wings.yaml mtime: load() is called per HTTP request (route + token
         # resolution) and profiles are static at runtime, so re-reading+re-parsing

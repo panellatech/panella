@@ -1,0 +1,84 @@
+from __future__ import annotations
+
+import pytest
+
+from panella.config_render import render_distribution_config
+from panella.governance import current_governance, reset_governance_cache
+from panella.http.app import PanellaBootConfigError, create_app
+
+
+@pytest.fixture(autouse=True)
+def _reset_governance():
+    reset_governance_cache()
+    yield
+    reset_governance_cache()
+
+
+def _render_profiles(tmp_path, monkeypatch):
+    config_dir = tmp_path / "dist-config"
+    monkeypatch.setenv("PANELLA_CONFIG_DIR", str(config_dir))
+    render_distribution_config(current_governance(), config_dir)
+    return config_dir
+
+
+def test_create_app_fails_loud_when_config_dir_unrendered(tmp_path, monkeypatch):
+    monkeypatch.setenv("PANELLA_CONFIG_DIR", str(tmp_path / "empty-config"))
+    with pytest.raises(PanellaBootConfigError, match="config not rendered: run `panella-render-config --out"):
+        create_app({"store_path": tmp_path / "store.db"})
+
+
+def test_create_app_fails_loud_when_http_profile_missing(tmp_path, monkeypatch):
+    _render_profiles(tmp_path, monkeypatch)
+    with pytest.raises(PanellaBootConfigError) as exc_info:
+        create_app({"profile_name": "missing-profile", "store_path": tmp_path / "store.db"})
+    message = str(exc_info.value)
+    assert "missing-profile" in message
+    assert "valid:" in message
+    assert "panella-render-config --out" in message
+
+
+def test_create_app_fails_loud_when_mcp_profile_missing(tmp_path, monkeypatch):
+    _render_profiles(tmp_path, monkeypatch)
+    with pytest.raises(PanellaBootConfigError) as exc_info:
+        create_app(
+            {
+                "profile_name": "serving",
+                "mcp_enabled": True,
+                "mcp_profile": "missing-mcp",
+                "store_path": tmp_path / "store.db",
+            }
+        )
+    message = str(exc_info.value)
+    assert "missing-mcp" in message
+    assert "valid:" in message
+    assert "panella-render-config --out" in message
+
+
+def test_create_app_fails_loud_when_governance_overlay_missing(tmp_path, monkeypatch):
+    missing = tmp_path / "missing-governance.yaml"
+    monkeypatch.setenv("PANELLA_GOVERNANCE_OVERLAY", str(missing))
+    with pytest.raises(PanellaBootConfigError) as exc_info:
+        create_app({"store_path": tmp_path / "store.db"})
+    message = str(exc_info.value)
+    assert "governance config error" in message
+    assert str(missing) in message
+
+
+def test_create_app_fails_loud_when_governance_overlay_invalid(tmp_path, monkeypatch):
+    invalid = tmp_path / "invalid-governance.yaml"
+    invalid.write_text("- not\n- a\n- mapping\n", encoding="utf-8")
+    monkeypatch.setenv("PANELLA_GOVERNANCE_OVERLAY", str(invalid))
+    with pytest.raises(PanellaBootConfigError) as exc_info:
+        create_app({"store_path": tmp_path / "store.db"})
+    message = str(exc_info.value)
+    assert "governance config error" in message
+    assert str(invalid) in message
+
+
+def test_create_app_passes_after_rendered_config(tmp_path, monkeypatch):
+    _render_profiles(tmp_path, monkeypatch)
+    app = create_app(
+        {"profile_name": "serving", "store_path": tmp_path / "store.db"},
+        memory_adapter=object(),
+    )
+    assert app.state.config.profile_name == "serving"

@@ -24,6 +24,9 @@ echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
 docker compose up --wait
 ```
 
+For a copy-paste path from fresh box to first approved, recalled memory, see
+[docs/QUICKSTART.md](docs/QUICKSTART.md).
+
 See [docs/SELF_HOST.md](docs/SELF_HOST.md) for configuration and the Docker topology.
 
 Deferred surfaces are intentionally absent from this public product repo: private gateway, eval

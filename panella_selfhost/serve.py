@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8001
@@ -55,10 +56,16 @@ def main(argv: list[str] | None = None) -> int:
     # Imported here so `panella-http --help` stays a pure-argparse path (usable in a clean
     # `uvx` env for entry-point verification without booting the server stack).
     import uvicorn
+    from panella.http.app import PanellaBootConfigError, create_app
+
+    try:
+        app = create_app()
+    except PanellaBootConfigError as exc:
+        print(f"panella-http: {exc}", file=sys.stderr)
+        return 2
 
     uvicorn.run(
-        "panella.http.app:create_app",
-        factory=True,
+        app,
         host=args.host,
         port=args.port,
         log_level=args.log_level,

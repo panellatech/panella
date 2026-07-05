@@ -7,3 +7,6 @@ __pycache__/
 .ruff_cache/
 data/
 .env
+.panella/
+.wp3-evidence/
+dist-config/

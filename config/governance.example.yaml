@@ -1,0 +1,116 @@
+# Full Panella governance overlay template.
+#
+# Copy this file to a local, uncommitted path and edit it for your box. The shipped
+# default is inert-closed for approvals: no candidate can finalize until you add an
+# authorized approver and provision the matching local_cli token file.
+
+# Schema version for the governance document. Safe default: 1. Security impact:
+# strict parsing catches malformed future/old configs instead of silently serving.
+schema_version: 1
+
+# identity controls the owner/root identity stamped onto principals, tenants,
+# rendered profiles, and finalized memories. Safe default: generic self-host
+# identities below. Security impact: changing these values changes the durable
+# tenant/wing boundary; do it before first real use, not after data exists.
+identity:
+  # root_principal is the operator principal that owner bearer tokens should bind
+  # to. Safe default: human:owner. Security impact: this principal has root scope.
+  root_principal:
+    # id is the canonical root operator id. Safe default: human:owner. Security
+    # impact: bearer tokens minted for this id can access the owner MCP surface.
+    id: "human:owner"
+    # subject_id is the root subject used for audit/principal records. Safe
+    # default: u_owner. Security impact: changing it forks audit identity.
+    subject_id: "u_owner"
+    # roles are attached to the root principal. Safe default: root_operator.
+    # Security impact: root roles should stay narrow and operator-only.
+    roles: ["root_operator"]
+  # default_tenant_id is the tenant served by generic self-host profiles. Safe
+  # default: t_owner_personal. Security impact: this is the tenant isolation key.
+  default_tenant_id: "t_owner_personal"
+  # default_subject_id is stamped on agent/default principals. Safe default:
+  # u_owner. Security impact: keep it stable for audit continuity.
+  default_subject_id: "u_owner"
+  # tenant_id_prefix is accepted for non-default tenants. Safe default: t_.
+  # Security impact: malformed tenant ids are rejected at profile load.
+  tenant_id_prefix: "t_"
+  # content_owner_label is a human-readable owner label used in finalized memory
+  # text/metadata. Safe default: Owner. Security impact: do not put private names
+  # in public config; this value can enter durable content.
+  content_owner_label: "Owner"
+  # owner_slug is the prefix used for owner memory types. Safe default: owner.
+  # Security impact: changing it changes allowed memory_type names.
+  owner_slug: "owner"
+  # owner_wing is the wing rendered into profiles and wings.yaml. Safe default:
+  # owner. Security impact: this is the top-level read/write allowlist boundary.
+  owner_wing: "owner"
+
+# approval controls who may finalize queued memory candidates. Safe default in the
+# shipped base is authorized_approvers: [] (approves nothing). Security impact:
+# adding an approver ARMS the finalizer; anyone with the matching credential can
+# approve candidates through the shipped MCP approval tool.
+approval:
+  # authorized_approvers are canonical approver ids returned by the transport.
+  # Safe default: [] inert-closed. Security impact: local_cli:owner is the local
+  # operator identity produced after the token_file credential is verified.
+  authorized_approvers: ["local_cli:owner"]
+  # transport selects the approval credential verifier. Safe default: local_cli
+  # for self-host. Security impact: only known transports load; typos fail loud.
+  transport:
+    # kind names the transport implementation. Safe default: local_cli. Security
+    # impact: local_cli requires possession of the local token file contents.
+    kind: "local_cli"
+    # config is passed to the selected transport. Safe default: local token file
+    # with mode 0600. Security impact: a missing, empty, or loose-permission token
+    # file refuses every approval.
+    config:
+      # token_file stores the operator-only approval credential. Safe default:
+      # ~/.panella/approval.token. Security impact: NEVER place this token in an
+      # agent/MCP client config; it is only presented by the operator at approval.
+      token_file: "~/.panella/approval.token"
+      # token_mode is the maximum accepted file mode. Safe default: 0600.
+      # Security impact: group/world-readable token files fail closed.
+      token_mode: "0600"
+
+# paths binds runtime state and rendered config locations. Safe defaults below are
+# local self-host paths. Security impact: wrong paths can point a box at the wrong
+# store or the wrong rendered profile identity, so boot fails loud where possible.
+paths:
+  # store_path is the SQLite store path probed at startup for coherence. Safe
+  # default: ~/.panella/sqlite_vec.db. Security impact: an identity-pinned box
+  # refuses to serve if this expected store is missing or incoherent.
+  store_path: "~/.panella/sqlite_vec.db"
+  # embeddings_env points at optional model/provider env settings. Safe default:
+  # ~/.panella/openai.env. Security impact: treat it as secret-bearing if used.
+  embeddings_env: "~/.panella/openai.env"
+  # config_dir points at rendered agents/ and wings.yaml. Safe default in the
+  # shipped base is null (repo config); packaged/self-host boxes should render to
+  # a real directory and set PANELLA_CONFIG_DIR to the same path. Security impact:
+  # wrong rendered config means wrong profile authority, so serving refuses.
+  config_dir: "./dist-config"
+
+# model_router.extract is the provider chain used by extraction jobs. Safe default:
+# OpenAI through OPENAI_API_KEY, matching the shipped base. Security impact: this
+# controls which external model/provider may receive extraction inputs.
+model_router:
+  # extract is an ordered list of extraction routes. Safe default: one route.
+  # Security impact: adding providers expands the trusted model surface.
+  extract:
+    # name labels this route. Safe default: T0. Security impact: labels are
+    # operational metadata, not secrets.
+    - name: T0
+      # primary is the first provider tried for this route. Safe default: OpenAI.
+      # Security impact: credential_ref must point at an operator-managed secret.
+      primary:
+        # provider selects the model backend. Safe default: openai. Security
+        # impact: provider choice determines where extraction payloads go.
+        provider: openai
+        # auth_mode selects how the provider credential is read. Safe default:
+        # api_key. Security impact: avoid embedding raw keys in this YAML.
+        auth_mode: api_key
+        # model names the extraction model. Safe default: gpt-4o-mini. Security
+        # impact: model changes can alter extraction behavior and cost.
+        model: gpt-4o-mini
+        # credential_ref is the env var holding the provider credential. Safe
+        # default: OPENAI_API_KEY. Security impact: keep the env var secret.
+        credential_ref: OPENAI_API_KEY
