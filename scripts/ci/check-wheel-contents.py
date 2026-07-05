@@ -73,6 +73,9 @@ def check_sdist(path: Path) -> None:
     root = next(iter(roots))
     metadata_files = {
         f"{root}/LICENSE",
+        # NOTICE ships in the sdist for Apache-2.0 attribution compliance (hatchling includes it
+        # like LICENSE); tolerate it as a metadata file.
+        f"{root}/NOTICE",
         f"{root}/PKG-INFO",
         f"{root}/README.md",
         f"{root}/pyproject.toml",
