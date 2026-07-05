@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import json
+import re
 import subprocess
 import sys
 from collections.abc import Iterable
+from pathlib import Path
 
 
 ALLOWED_MARKERS = (
@@ -72,7 +75,33 @@ def is_incompatible_license(license_name: str) -> bool:
     return contains_any(normalized(license_name), INCOMPATIBLE_MARKERS)
 
 
+def _requirement_names(path: Path) -> set[str]:
+    """Normalized package names (lowercase, ``_``->``-``) from a pip-freeze / requirements file, so
+    the license scan evaluates ONLY panella's shipped runtime tree — NOT the scanner tooling
+    (pip-licenses + its own deps) that must live in the same env to run at all. Mirrors the
+    isolation pip-audit already gets from its frozen ``-r`` list."""
+    names: set[str] = set()
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        token = re.split(r"[<>=!~;\[ @]", line, maxsplit=1)[0].strip()
+        if token:
+            names.add(token.lower().replace("_", "-"))
+    return names
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--requirements",
+        type=Path,
+        default=None,
+        help="Evaluate ONLY the packages listed here (the shipped runtime tree); skip scanner tooling.",
+    )
+    args = parser.parse_args()
+    allowed = _requirement_names(args.requirements) if args.requirements else None
+
     table_args = [
         "pip-licenses",
         "--from=mixed",
@@ -99,7 +128,9 @@ def main() -> int:
     for package in packages:
         name = str(package.get("Name", "")).strip()
         license_name = str(package.get("License", "")).strip()
-        name_key = name.lower()
+        name_key = name.lower().replace("_", "-")
+        if allowed is not None and name_key not in allowed:
+            continue  # scanner tooling / not part of panella's shipped runtime tree
         if is_permissive_license(license_name):
             continue
         if name_key in REVIEWED_COMPATIBLE and not is_incompatible_license(license_name):
