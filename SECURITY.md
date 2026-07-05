@@ -37,9 +37,12 @@ approval boundary — do not do it.
 
 ### MCP network surface: opt-in, owner-only, DNS-rebind protected
 
-The network MCP surface (`/mcp`) is **off by default**. It is enabled only when
-`PANELLA_MCP_ENABLED` is set, and even then it is defense-in-depth gated
-(`panella/http/app.py`):
+The network MCP surface (`/mcp`) is **off by default in the library** — it mounts only when
+`PANELLA_MCP_ENABLED` is set. The **shipped Docker image, however, enables it**
+(`PANELLA_MCP_ENABLED=1`, see the `Dockerfile` / `docs/SELF_HOST.md`), so a compose/image
+deployment has `/mcp` live (read-only `mcp-read`) on the facade port out of the box, while a
+from-source library run does not until you set it. Wherever it is mounted it is defense-in-depth
+gated (`panella/http/app.py`):
 
 - **Owner (root) principal required.** A merely-valid bearer token is necessary but not
   sufficient — the `/mcp` gate authorizes the token as the governance **root** principal
@@ -49,12 +52,15 @@ The network MCP surface (`/mcp`) is **off by default**. It is enabled only when
   before any auth work, rejecting a foreign Host up front. It is loopback-only unless the
   operator explicitly sets `PANELLA_MCP_ALLOWED_HOSTS`.
 - **Per-token rate limiting** on the MCP path.
-- **Read by default.** The shipped MCP profile is read-only (`mcp-read`). Write/approval tools
-  are advertised only after an operator flips `PANELLA_MCP_PROFILE=mcp-write`, provisions the
-  `0600` approval token, and configures approvers in the overlay. Submitted writes are
-  candidates-only by construction — the MCP surface can never produce a direct durable write,
-  and the finalizer's inert-closed default (empty approver set) still refuses every finalize
-  until approvers are configured.
+- **Read by default for WRITES; approval tools are advertised but execution-gated.** The shipped
+  `mcp-read` profile does not advertise `memory.submit_candidate` — `mcp-write` adds it. But under
+  the default `local_cli` approval transport the operator approval tools
+  (`memory.list_pending_approvals` / `approve_candidate` / `reject_candidate`) are advertised
+  whenever that transport exists, i.e. **even under `mcp-read`**. Advertisement is not capability:
+  the `0600` approval token plus the configured approver set gate **execution**, not visibility —
+  without them an approve call is refused, and the finalizer's inert-closed default (empty approver
+  set) refuses every finalize until approvers are configured. Submitted writes are candidates-only
+  by construction — the MCP surface can never produce a direct durable write.
 
 ### Serving self-check: refuse rather than serve blind
 
