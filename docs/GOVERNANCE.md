@@ -10,10 +10,10 @@ misconfiguration is a loud refusal, never a silent open door.
 
 ## Where governance lives
 
-Governance is a config, not code. The generic base ships in `config/governance.yaml`. A
-deployment layers its own identity, approval, and path values on top via an **overlay** file
-pointed to by the `PANELLA_GOVERNANCE_OVERLAY` environment variable
-(`panella/governance.py`). The overlay is deep-merged over the base — overlay wins per key,
+Governance is a config, not code. The generic base is a package default the loader reads from
+`panella/governance.yaml` (`DEFAULT_GOVERNANCE_PATH` in `panella/governance.py`) — you do **not**
+edit it in place. A deployment layers its own identity, approval, and path values on top via an
+**overlay** file pointed to by the `PANELLA_GOVERNANCE_OVERLAY` environment variable. The overlay is deep-merged over the base — overlay wins per key,
 nested mappings merge, scalars and lists are replaced wholesale.
 
 The overlay lives *outside* the repo so a code deploy never overwrites it and a fresh

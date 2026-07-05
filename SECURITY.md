@@ -77,8 +77,9 @@ coherently refuses to serve at all. A genuinely fresh box acknowledges emptiness
 
 ### Fail-closed defaults everywhere
 
-The governance model is default-deny throughout (see `docs/GOVERNANCE.md`): an unset/missing
-overlay pointer crashes rather than serving generic, an unknown approval transport is a
+The governance model is default-deny throughout (see `docs/GOVERNANCE.md`): a *set-but-missing*
+overlay pointer crashes rather than silently serving generic (an *unset* pointer runs the shipped
+generic base by design — a fresh box, not a wrong-deploy), an unknown approval transport is a
 load-time error, an empty approver set approves nothing, and a provenance mismatch is refused.
 Tenant isolation is enforced at the client boundary and fails closed on any ambiguous
 attribution.
