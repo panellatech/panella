@@ -1,0 +1,27 @@
+Panella
+Copyright (c) The Panella Maintainers
+
+This product is licensed under the Apache License, Version 2.0 (the "License").
+You may obtain a copy of the License in the accompanying LICENSE file or at
+http://www.apache.org/licenses/LICENSE-2.0
+
+------------------------------------------------------------------------------
+Third-party attributions
+------------------------------------------------------------------------------
+
+Panella's self-host box builds on the following upstream dependency, which it
+ships and runs as the memory store backend:
+
+  mcp-memory-service (version 10.31.2)
+  Pinned in the Dockerfile as "mcp-memory-service[sqlite]==10.31.2".
+  Licensed under the Apache License, Version 2.0.
+
+  Panella runs this component near-stock: the "store" image installs it with the
+  [sqlite] extra (local ONNX embeddings, no external API key) and serves it over
+  HTTP. Panella pins the exact version whose HTTP contract its facade adapter is
+  tested against; the pin is upgraded only together with a re-pinned OpenAPI
+  fixture.
+
+This NOTICE file is for informational purposes only and does not modify the
+License. Consult each dependency's own distribution for its full license text
+and copyright notices.
