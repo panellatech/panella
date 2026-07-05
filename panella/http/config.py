@@ -19,7 +19,11 @@ class MemoryHttpConfig:
     token_db_path: Path = DEFAULT_TOKEN_DB_PATH
     audit_db_path: Path = AUDIT_DB_PATH
     outbox_db_path: Path = OUTBOX_DB_PATH
-    profile_name: str = "default"
+    # The rendered self-host serving profile. NOT "default": render_distribution_config writes
+    # serving/mcp-read/mcp-write/panella-finalizer/panella-mcp — never a "default" — so an unset
+    # PANELLA_HTTP_PROFILE must resolve to the real serving profile, else the documented local path
+    # (render config + PANELLA_CONFIG_DIR, no explicit profile) fail-loud-aborts on a phantom profile.
+    profile_name: str = "serving"
     host: str = "127.0.0.1"
     port: int = 8001
     rate_limit_per_minute: int = 100
@@ -56,7 +60,7 @@ def load_config(config: MemoryHttpConfig | dict[str, Any] | None = None) -> Memo
         token_db_path=Path(values.get("token_db_path") or env_token_db or DEFAULT_TOKEN_DB_PATH),
         audit_db_path=Path(values.get("audit_db_path") or env_audit_db or AUDIT_DB_PATH),
         outbox_db_path=Path(values.get("outbox_db_path") or env_outbox_db or OUTBOX_DB_PATH),
-        profile_name=str(values.get("profile_name") or os.environ.get("PANELLA_HTTP_PROFILE") or "default"),
+        profile_name=str(values.get("profile_name") or os.environ.get("PANELLA_HTTP_PROFILE") or "serving"),
         host=str(values.get("host") or "127.0.0.1"),
         port=int(values.get("port") or 8001),
         rate_limit_per_minute=int(values.get("rate_limit_per_minute") or env_rate_limit or 100),

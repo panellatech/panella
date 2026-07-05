@@ -5,6 +5,7 @@ import pytest
 from panella.config_render import render_distribution_config
 from panella.governance import current_governance, reset_governance_cache
 from panella.http.app import PanellaBootConfigError, create_app
+from panella.http.config import load_config
 
 
 @pytest.fixture(autouse=True)
@@ -81,4 +82,15 @@ def test_create_app_passes_after_rendered_config(tmp_path, monkeypatch):
         {"profile_name": "serving", "store_path": tmp_path / "store.db"},
         memory_adapter=object(),
     )
+    assert app.state.config.profile_name == "serving"
+
+
+def test_default_http_profile_is_serving_for_documented_local_path(tmp_path, monkeypatch):
+    """The documented local path (render config + PANELLA_CONFIG_DIR, no explicit PANELLA_HTTP_PROFILE)
+    must boot: an unset profile resolves to the rendered 'serving' profile, not a phantom 'default'
+    that the fail-loud preflight would abort on (GH bot #5 regression)."""
+    _render_profiles(tmp_path, monkeypatch)
+    monkeypatch.delenv("PANELLA_HTTP_PROFILE", raising=False)
+    assert load_config().profile_name == "serving"
+    app = create_app({"store_path": tmp_path / "store.db"}, memory_adapter=object())
     assert app.state.config.profile_name == "serving"
