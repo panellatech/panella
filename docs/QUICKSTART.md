@@ -37,7 +37,8 @@ from pathlib import Path
 path = Path(".panella/governance.yaml")
 text = path.read_text(encoding="utf-8")
 text = text.replace('token_file: "~/.panella/approval.token"', 'token_file: "/app/data/approval.token"')
-text = text.replace('config_dir: "./dist-config"', 'config_dir: "/app/dist-config"')
+# NOTE: no need to edit the overlay's `config_dir` — the app image bakes
+# PANELLA_CONFIG_DIR=/app/dist-config, and the env var takes precedence over paths.config_dir.
 path.write_text(text, encoding="utf-8")
 PY
 cat >> .env <<'EOF'
@@ -118,4 +119,6 @@ PY
 ```
 
 Done means the final `recalled.hits` array includes the memory text submitted in
-the first MCP call.
+the first MCP call. (If the just-approved memory isn't in the first `search` yet,
+re-run the `memory.search` call — the store indexes the durable write moments after
+the approval finalizes.)

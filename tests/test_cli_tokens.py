@@ -54,3 +54,16 @@ def test_tokens_mint_prints_once_and_resolves(tmp_path, capsys):
     assert record is not None
     assert record.principal_id == root_principal().id
     assert record.label == "test-owner"
+
+
+def test_tokens_mint_duplicate_label_is_actionable(tmp_path, capsys):
+    """A duplicate --label must fail with an actionable one-liner + exit 2, not an opaque
+    sqlite3.IntegrityError traceback (the exact class WP3 exists to eliminate)."""
+    token_db = tmp_path / "tokens.db"
+    assert main(["tokens", "mint", "--token-db", str(token_db), "--label", "owner"]) == 0
+    capsys.readouterr()  # drain the first mint's output
+    rc = main(["tokens", "mint", "--token-db", str(token_db), "--label", "owner"])
+    captured = capsys.readouterr()
+    assert rc == 2
+    assert "already exists" in captured.err
+    assert captured.out == ""  # no token printed on the failure path

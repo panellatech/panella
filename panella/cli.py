@@ -45,6 +45,8 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _tokens_mint(args: argparse.Namespace) -> int:
+    import sqlite3
+
     from panella.http.config import load_config
     from panella.http.tokens import TokenStore
     from panella.principal import root_principal
@@ -53,7 +55,17 @@ def _tokens_mint(args: argparse.Namespace) -> int:
     principal_id = args.principal or root.id
     token_db_path = args.token_db or load_config(None).token_db_path
     label = args.label or _default_token_label()
-    token = TokenStore(token_db_path).mint(principal_id=principal_id, label=label)
+    try:
+        token = TokenStore(token_db_path).mint(principal_id=principal_id, label=label)
+    except sqlite3.IntegrityError:
+        # Labels are UNIQUE per token DB — a duplicate must be an actionable one-liner, not the
+        # opaque traceback WP3 exists to eliminate.
+        print(
+            f"token label {label!r} already exists in {token_db_path} — "
+            "choose a unique --label.",
+            file=sys.stderr,
+        )
+        return 2
     print(token)
     token_kind = "owner bearer token" if principal_id == root.id else "bearer token"
     print(f"Store this {token_kind} now; it is not recoverable.", file=sys.stderr)
