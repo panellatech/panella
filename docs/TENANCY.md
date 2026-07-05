@@ -1,5 +1,3 @@
-<!-- positioning: maintainers' final draft pending -->
-
 # Tenancy (Draft)
 
 > **Draft / evolving contract, subject to change before v1.** This page sketches the tenancy

@@ -1,5 +1,3 @@
-<!-- positioning: maintainers' final draft pending -->
-
 # Governance Model
 
 This document describes how Panella's governance works, drawn from the code that enforces
