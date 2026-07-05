@@ -85,6 +85,17 @@ def test_create_app_passes_after_rendered_config(tmp_path, monkeypatch):
     assert app.state.config.profile_name == "serving"
 
 
+def test_boot_fail_loud_on_malformed_profile_yaml(tmp_path, monkeypatch):
+    """A malformed rendered profile YAML (yaml.YAMLError) must fail loud + actionable at boot, not
+    an opaque traceback (GH bot #5 round-2: preflight must catch more than ValueError)."""
+    _render_profiles(tmp_path, monkeypatch)
+    serving_yaml = next((tmp_path / "dist-config").rglob("serving.yaml"))
+    serving_yaml.write_text("broken: [unterminated\n:::not yaml", encoding="utf-8")
+    with pytest.raises(PanellaBootConfigError) as exc:
+        create_app({"profile_name": "serving", "store_path": tmp_path / "store.db"}, memory_adapter=object())
+    assert "could not be loaded" in str(exc.value)
+
+
 def test_default_http_profile_is_serving_for_documented_local_path(tmp_path, monkeypatch):
     """The documented local path (render config + PANELLA_CONFIG_DIR, no explicit PANELLA_HTTP_PROFILE)
     must boot: an unset profile resolves to the rendered 'serving' profile, not a phantom 'default'
