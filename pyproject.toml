@@ -33,6 +33,16 @@ panella-render-config = "panella_selfhost.render:main"
 packages = ["panella", "panella_selfhost"]
 artifacts = ["config/**"]
 
+[tool.hatch.build.targets.sdist]
+include = [
+    "/panella",
+    "/panella_selfhost",
+    "/config",
+    "/pyproject.toml",
+    "/README.md",
+    "/LICENSE",
+]
+
 [tool.ruff]
 target-version = "py312"
 line-length = 120
