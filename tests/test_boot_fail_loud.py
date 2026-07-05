@@ -22,6 +22,18 @@ def _render_profiles(tmp_path, monkeypatch):
     return config_dir
 
 
+def test_boot_fail_loud_on_structurally_invalid_profile(tmp_path, monkeypatch):
+    """A valid-YAML but structurally-invalid profile (missing required keys) raises KeyError/TypeError
+    from from_dict(); the boot preflight must still fail loud + actionable, not an opaque traceback
+    (GH bot #5 round-3 — the catch cannot enumerate only ValueError/OSError/YAMLError)."""
+    config_dir = _render_profiles(tmp_path, monkeypatch)
+    serving_yaml = next(config_dir.rglob("serving.yaml"))
+    serving_yaml.write_text("unrelated_key: true\n", encoding="utf-8")  # valid YAML, wrong structure
+    with pytest.raises(PanellaBootConfigError) as exc:
+        create_app({"profile_name": "serving", "store_path": tmp_path / "store.db"}, memory_adapter=object())
+    assert "could not be loaded" in str(exc.value)
+
+
 def test_create_app_fails_loud_when_config_dir_unrendered(tmp_path, monkeypatch):
     monkeypatch.setenv("PANELLA_CONFIG_DIR", str(tmp_path / "empty-config"))
     with pytest.raises(PanellaBootConfigError, match="config not rendered: run `panella-render-config --out"):
