@@ -1,8 +1,8 @@
 # Test Inventory
 
-Summary: PORT=13, EXCLUDE=454, NEEDS-FIXTURE-SURGERY=49.
+Summary: PORT=15, EXCLUDE=454, NEEDS-FIXTURE-SURGERY=47.
 
-Coverage note: `break_glass` and `audit_hash_chain` are shipped security primitives with no direct generated test yet (`approval_finalizer` is exercised indirectly via `tests/test_approval_mcp_loop.py`). Porting a break-glass and an audit-hash-chain test is a tracked follow-up.
+Coverage note: `break_glass` and `audit` (hash-chain tamper-evidence) now have direct generated tests (`tests/test_break_glass.py`, `tests/test_audit_hash_chain.py`); `approval_finalizer` is exercised via `tests/test_approval_mcp_loop.py`.
 
 Every source test file is bucketed below. Governance-critical Panella coverage is ported as generated tests in `tests/`.
 
@@ -264,11 +264,11 @@ Every source test file is bucketed below. Governance-critical Panella coverage i
 - `tests/scripts/test_redline_completeness.py` — **EXCLUDE**: outside the Panella product surface.
 - `tests/scripts/test_review_tier_script.py` — **EXCLUDE**: outside the Panella product surface.
 - `tests/test_agent_profile_consistency.py` — **EXCLUDE**: outside the Panella product surface.
-- `tests/test_audit_hash_chain.py` — **NEEDS-FIXTURE-SURGERY**: exercises a shipped Panella security/governance module (break_glass/audit/principal/profile/client) but references original owner-specific identities/fixtures — port needs fixture surgery.
+- `tests/test_audit_hash_chain.py` — **PORT**: ported to generated Panella tests in tests/ with identity fixture surgery.
 - `tests/test_backfill_dry_run.py` — **EXCLUDE**: outside the Panella product surface.
 - `tests/test_backfill_idempotent.py` — **EXCLUDE**: outside the Panella product surface.
 - `tests/test_backfill_rollback.py` — **EXCLUDE**: outside the Panella product surface.
-- `tests/test_break_glass.py` — **NEEDS-FIXTURE-SURGERY**: exercises a shipped Panella security/governance module (break_glass/audit/principal/profile/client) but references original owner-specific identities/fixtures — port needs fixture surgery.
+- `tests/test_break_glass.py` — **PORT**: ported to generated Panella tests in tests/ with identity fixture surgery.
 - `tests/test_bridge_archive_prune.py` — **EXCLUDE**: outside the Panella product surface.
 - `tests/test_bridge_health.py` — **EXCLUDE**: outside the Panella product surface.
 - `tests/test_cc_memory_sync.py` — **EXCLUDE**: outside the Panella product surface.
