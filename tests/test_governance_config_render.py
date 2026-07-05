@@ -26,3 +26,13 @@ def test_render_distribution_profiles(tmp_path):
     assert mcp_write["approval_required_for"] == ["*"]
     assert mcp_write["write_default"]["wing"] == "owner"
     assert serving["tenant_scope"] == ["t_owner_personal"]
+
+
+def test_governance_example_overlay_loads_and_renders(tmp_path):
+    repo = Path(__file__).resolve().parents[1]
+    example = repo / "config" / "governance.example.yaml"
+    governance = load_governance(overlay_path=example)
+    assert governance.approval.authorized_approvers == ("local_cli:owner",)
+    assert governance.approval.transport_config["token_mode"] == "0600"
+    written = render_distribution_config(governance, tmp_path)
+    assert (tmp_path / "agents" / "mcp-write.yaml") == written["mcp_write_profile"]

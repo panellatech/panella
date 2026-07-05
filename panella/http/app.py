@@ -21,6 +21,8 @@ from panella.http.errors import ApiError, api_error_handler, error_payload, unha
 from panella.http.routes import approvals, audit, delete, health, principal, search, stats, write
 from panella.http.tokens import TokenStore, normalize_principal_id
 from panella.principal import root_principal
+from panella.governance import GovernanceConfigError, current_governance
+from panella.profile import AgentProfile, AgentProfileConfigError, ensure_rendered_profiles
 from panella.store_probe import startup_self_check
 
 logger = logging.getLogger(__name__)
@@ -31,6 +33,10 @@ logger = logging.getLogger(__name__)
 # confusing). /v1/health stays reachable so Doctor sees a live-but-refusing process.
 _GATED_PREFIXES = ("/v1/memory/", "/v1/approvals/")
 _GATED_EXACT = frozenset({"/v1/principal/break-glass"})
+
+
+class PanellaBootConfigError(RuntimeError):
+    """Raised when the serving factory detects a boot-time configuration error."""
 
 
 class ServingGateMiddleware:
@@ -64,6 +70,7 @@ class ServingGateMiddleware:
 def create_app(config: Any = None, *, memory_adapter: Any | None = None) -> FastAPI:
     http_config = load_config(config)
     logging.basicConfig(level=getattr(logging, http_config.log_level.upper(), logging.INFO))
+    _preflight_boot_config(http_config)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -259,10 +266,8 @@ def _mount_mcp(app: FastAPI, http_config: MemoryHttpConfig) -> Any:
     from mcp.server.transport_security import TransportSecurityMiddleware, TransportSecuritySettings
 
     from panella.client import MemoryClient
-    from panella.governance import current_governance
     from panella.mcp_tools import McpToolContext, build_mcp_server, build_transport_if_approvable
     from panella.principal import principal_default_for_profile
-    from panella.profile import AgentProfile
 
     profile = AgentProfile.load(http_config.mcp_profile)
     principal = principal_default_for_profile(profile)
@@ -309,6 +314,38 @@ def _mount_mcp(app: FastAPI, http_config: MemoryHttpConfig) -> Any:
         allowed_hosts,
     )
     return _McpDispatchApp(app, session_manager, TransportSecurityMiddleware(security))
+
+
+def _preflight_boot_config(http_config: MemoryHttpConfig) -> None:
+    """Fail common self-host configuration mistakes at factory construction, not per request."""
+    try:
+        current_governance()
+        ensure_rendered_profiles()
+        _load_boot_profile(http_config.profile_name, env_var="PANELLA_HTTP_PROFILE")
+        if http_config.mcp_enabled:
+            _load_boot_profile(http_config.mcp_profile, env_var="PANELLA_MCP_PROFILE")
+    except GovernanceConfigError as exc:
+        raise PanellaBootConfigError(f"governance config error: {exc}") from None
+    except AgentProfileConfigError as exc:
+        raise PanellaBootConfigError(str(exc)) from None
+
+
+def _load_boot_profile(name: str, *, env_var: str) -> None:
+    import yaml
+
+    try:
+        AgentProfile.load(name)
+    except AgentProfileConfigError:
+        raise
+    except (ValueError, OSError, yaml.YAMLError) as exc:
+        # A malformed profile YAML raises yaml.YAMLError, a missing/unreadable wings.yaml raises
+        # OSError, an invalid value raises ValueError — all are boot config mistakes that must be a
+        # single actionable line, not the opaque traceback WP3 exists to eliminate.
+        raise AgentProfileConfigError(
+            f"{env_var}={name!r} could not be loaded ({type(exc).__name__}: {exc}); "
+            "check the rendered profile + wings.yaml, or rerun `panella-render-config --out <dir>` "
+            "and set PANELLA_CONFIG_DIR=<dir>"
+        ) from exc
 
 
 def _openapi(app: FastAPI) -> dict[str, Any]:

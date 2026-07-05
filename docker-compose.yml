@@ -40,10 +40,16 @@ services:
       PANELLA_BASE_URL: http://panella:8000
       # The coherence self-check probes the store bytes directly (read-only mount below).
       PANELLA_STORE_PATH: /data/sqlite_vec.db
+      # Optional self-host approval overlay. Keep unset for the inert-closed default.
+      PANELLA_GOVERNANCE_OVERLAY: ${PANELLA_GOVERNANCE_OVERLAY:-}
+      # Read-only MCP by default; set mcp-write only after provisioning approval.
+      PANELLA_MCP_PROFILE: ${PANELLA_MCP_PROFILE:-mcp-read}
     volumes:
       - panella-store:/data:ro
       # Facade-local state: bearer-token DB, audit log, outbox.
       - panella-http-data:/app/data
+      # Local, uncommitted operator files used by the quickstart overlay/token.
+      - ./.panella:/app/local:ro
     ports:
       - "127.0.0.1:8001:8001"
     depends_on:

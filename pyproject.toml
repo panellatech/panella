@@ -26,6 +26,7 @@ dependencies = [
 dev = ["pytest>=8.0.0", "pytest-asyncio>=0.24.0", "ruff>=0.8.0", "build>=1.2.0"]
 
 [project.scripts]
+panella = "panella.cli:main"
 panella-http = "panella_selfhost.serve:main"
 panella-render-config = "panella_selfhost.render:main"
 
