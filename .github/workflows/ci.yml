@@ -1,0 +1,26 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Secret scan (gitleaks CLI, free — the org-gated action needs a paid license)
+        run: |
+          set -eu
+          GL=8.18.4
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GL}/gitleaks_${GL}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          /tmp/gitleaks detect --source . --redact
+      - run: python -m pip install -U pip
+      - run: python -m pip install -e '.[dev]'
+      - run: ruff check .
+      - run: pytest
+      - run: python -m build
+      - run: python -m venv /tmp/panella-wheel
+      - run: /tmp/panella-wheel/bin/pip install dist/*.whl
+      - run: /tmp/panella-wheel/bin/panella-render-config --out /tmp/panella-dist-config
+      - run: /tmp/panella-wheel/bin/python -c "import panella; import panella_selfhost"

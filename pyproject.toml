@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "panella"
+version = "0.2.0"
+description = "Governed, self-hosted memory for AI agents."
+requires-python = ">=3.12"
+license = "Apache-2.0"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "pydantic>=2.10.0",
+    "pyyaml>=6.0.0",
+    "aiosqlite>=0.20.0",
+    "httpx>=0.27.0",
+    # Pinned to the tested minor: the box ships MCP enabled (PANELLA_MCP_ENABLED=1), and the
+    # SDK's transport/security constructor shape (StreamableHTTPSessionManager /
+    # TransportSecuritySettings) can change across minor versions. <1.29 keeps an in-range
+    # upgrade from silently breaking the /mcp mount at boot with no CI signal.
+    "mcp>=1.28,<1.29",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0", "pytest-asyncio>=0.24.0", "ruff>=0.8.0", "build>=1.2.0"]
+
+[project.scripts]
+panella-http = "panella_selfhost.serve:main"
+panella-render-config = "panella_selfhost.render:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["panella", "panella_selfhost"]
+artifacts = ["config/**"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "A", "SIM"]
+ignore = ["E501", "E701", "E702", "E401", "E402", "I001", "N818", "UP035", "F401"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

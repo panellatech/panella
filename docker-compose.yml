@@ -1,0 +1,60 @@
+# Self-host Panella store: governed memory in one command (Slice-S P3a — docs/SELF_HOST.md).
+#
+#   echo "PANELLA_API_KEY=$(openssl rand -hex 32)" >> .env   # once: the internal service secret
+#   docker compose up -d --wait
+#
+# Boots with NO model/BYOK key: the store embeds locally (ONNX), the facade serves the governed
+# surface (health, tokens, audit, coherence gate; routine /v1/memory/* opens with the P3b
+# generic serving profile — docs/SELF_HOST.md "What serves today"). PANELLA_API_KEY is the only
+# required secret — the shared store<->facade auth, generated locally, never a provider key.
+#
+# Topology (§1.5.3(c) choice, documented in SELF_HOST.md): the store volume is mounted
+# READ-ONLY into the facade so the startup coherence self-check runs its bounded direct-SQLite
+# EXISTS probe against the same bytes the store serves; the facade can never write the store
+# file (all writes go through the governed HTTP adapter).
+
+name: panella-selfhost
+
+services:
+  panella:
+    build:
+      context: .
+      target: store
+    environment:
+      MCP_API_KEY: ${PANELLA_API_KEY:?generate the internal secret once -- echo "PANELLA_API_KEY=$(openssl rand -hex 32)" >> .env}
+    volumes:
+      - panella-store:/data
+      # Embedding-model cache (local ONNX embeddings) — survives container recreation.
+      - panella-model-cache:/home/panella/.cache
+    ports:
+      # Loopback only: the upstream dashboard/API for the box owner, never the LAN.
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+  panella-http:
+    build:
+      context: .
+      target: app
+    environment:
+      PANELLA_API_KEY: ${PANELLA_API_KEY:?generate the internal secret once -- echo "PANELLA_API_KEY=$(openssl rand -hex 32)" >> .env}
+      PANELLA_BASE_URL: http://panella:8000
+      # The coherence self-check probes the store bytes directly (read-only mount below).
+      PANELLA_STORE_PATH: /data/sqlite_vec.db
+    volumes:
+      - panella-store:/data:ro
+      # Facade-local state: bearer-token DB, audit log, outbox.
+      - panella-http-data:/app/data
+    ports:
+      - "127.0.0.1:8001:8001"
+    depends_on:
+      panella:
+        # The store initializes the SQLite file at first boot; starting the facade after the
+        # store is healthy means the probe sees a real (possibly empty) store, never a
+        # missing file.
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  panella-store:
+  panella-model-cache:
+  panella-http-data:

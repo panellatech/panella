@@ -1,0 +1,524 @@
+# Test Inventory
+
+Summary: PORT=13, EXCLUDE=454, NEEDS-FIXTURE-SURGERY=49.
+
+Coverage note: `break_glass` and `audit_hash_chain` are shipped security primitives with no direct generated test yet (`approval_finalizer` is exercised indirectly via `tests/test_approval_mcp_loop.py`). Porting a break-glass and an audit-hash-chain test is a tracked follow-up.
+
+Every source test file is bucketed below. Governance-critical Panella coverage is ported as generated tests in `tests/`.
+
+- `tests/HERMETIC-NOTES.md` — **EXCLUDE**: outside the Panella product surface.
+- `tests/__init__.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/conftest.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/__init__.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/iris/core/test_frontend_status.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/iris/observability/__init__.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/iris/observability/test_run_status.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_approval.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_approval_preview.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_artifact_retention.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_audit.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_backend_policy.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_browser_snapshot.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_browser_worker_contract.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_business_finance_context.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_capability_execution.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_capability_runner.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_channel_binding.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_command_center_browser_surface.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_command_center_goal_mode.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_command_center_memory.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_command_center_memory_cutover.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_command_center_natural_next.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_command_center_persona.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_command_center_runtime_context.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_command_center_surface_policy.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_command_center_task_query_intent.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_command_center_task_readiness.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_command_center_task_session.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_command_center_work_brief.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_comms.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_comms_pipeline.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_conflict_policy.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_daily_briefing_delivery.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_dataengine_activist_source.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_dataengine_inventory.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_dataengine_promotion_caveat.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_dataengine_source_replacement.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_discord_admin_bootstrap.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_discord_bot.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_discord_channel_map.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_discord_gateway.py` — **EXCLUDE**: private gateway is out of public product scope.
+- `tests/daemon/agent_governance/test_discord_webhook_bootstrap.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_discord_workbench_ops.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_discord_workbench_runtime.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_dispatch_planner.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_evidence_artifacts.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_evidence_bundle.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_execution_agent_contract.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_health.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_idempotency.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_inbound.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_interaction.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_interaction_agent_learning.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_interaction_agent_trace.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_interaction_agent_turn.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_interaction_orchestrator.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_iris_autonomous_growth.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_iris_cashtag_policy_ark_sources.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_iris_cmo_operating_model.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_iris_daily_content_loop.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_iris_daily_generation.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_iris_daily_queue_payload.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_iris_editorial_signal_feed.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_iris_templated_slots.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_iris_templated_slots_budget.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_live_send_smoke.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_panella_status.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_ops_health.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_ops_health_collectors.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_ops_health_delivery.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_persistent_pipeline.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_pipeline.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_project_orchestration_context.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_registry.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_retry_policy.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_runspec_preview.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_social_campaign_policy.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_social_campaign_policy_registry.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_social_ops_context.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_source_quality.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_specialist_collaboration.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_specialist_dispatch_plan.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_specialist_revival.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_specialist_task_eval.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/daemon/agent_governance/test_store.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_sweeper.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_telegram_command_center.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_telegram_command_center_loop_web_context.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_telegram_command_center_runtime.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_telegram_handoff.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/agent_governance/test_tool_capability_contract.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_web_read.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_web_research.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_web_search.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_workbench_explainer.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_workbench_explainer_runtime.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_worker_backend_selector.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_worker_dispatch.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/agent_governance/test_worker_dispatch_runtime.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/coordination/__init__.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/fixtures/example_default_daemon_policy.json` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_admit.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_agent_projection.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_approval.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_approval_liveness.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_auto_gate.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_broker.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_broker_auto.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_budget.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_contracts.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_coord6.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_coord_approval.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_coord_deploy_lock.py` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/daemon/coordination/test_drift.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_executor.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_freeze.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_identity.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_integration.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_integration_provision.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_lock.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_notify.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_orient.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_plan.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_policy.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_promote_producer.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_protected_paths.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/coordination/test_receipts.py` — **EXCLUDE**: non-Panella application module.
+- `tests/panella/__init__.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/_governance_fixtures.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/eval/__init__.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/panella/eval/test_conflict_decide_eval.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/panella/eval/test_conflict_decide_eval_2b.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/panella/eval/test_continuity_gate.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/panella/eval/test_extraction_eval.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/panella/eval/test_fixtures_v2_lint.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/panella/eval/test_qa_reader.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/panella/eval/test_reader_residual_eval.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/panella/fixtures/slice_s_owner_payload_golden.json` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_aggregate_stats.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_approval_finalizer.py` — **PORT**: covered by generated Panella governance-critical tests.
+- `tests/panella/test_approval_transport.py` — **PORT**: covered by generated Panella governance-critical tests.
+- `tests/panella/test_atomize.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_atomize_recall_eval.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/panella/test_claude_bridge_resilience.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_codex_bridge_resilience.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_config_render_p3b.py` — **PORT**: covered by generated Panella governance-critical tests.
+- `tests/panella/test_conversation_id_scope.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_default_adapter.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_deploy_overlay_owner.py` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/panella/test_dream_candidate_review.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_dream_retro_tagger.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_embed_proxy.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_embed_proxy_live_smoke.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_eval_runner_privacy.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/panella/test_governance_inert_closed.py` — **PORT**: covered by generated Panella governance-critical tests.
+- `tests/panella/test_governance_loader.py` — **PORT**: covered by generated Panella governance-critical tests.
+- `tests/panella/test_llm_judge.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_panella_adapter.py` — **PORT**: covered by generated Panella governance-critical tests.
+- `tests/panella/test_panella_adapter_live.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_panella_backfill.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_panella_backfill_revert.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_panella_bridge_smoke.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_mcp_tools.py` — **PORT**: covered by generated Panella governance-critical tests.
+- `tests/panella/test_memory_http_mcp.py` — **PORT**: covered by generated Panella governance-critical tests.
+- `tests/panella/test_memoryclient_with_panella.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_model_router.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_no_owner_literals.py` — **PORT**: covered by generated Panella governance-critical tests.
+- `tests/panella/test_open_core_invariant.py` — **PORT**: covered by generated Panella governance-critical tests.
+- `tests/panella/test_phase1_5_memory_history.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_phase1_additive_metadata.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_phase2_guards.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_policy_decision_vector.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_preference_decide.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_preference_extraction.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_quota_counts_dedup.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_reader.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_replace_source_atom_set.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/panella/test_sanitize.py` — **PORT**: covered by generated Panella governance-critical tests.
+- `tests/panella/test_store_probe.py` — **PORT**: covered by generated Panella governance-critical tests.
+- `tests/daemon/runtime/test_openai_agents_contracts.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_adapters.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_approval.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_canary_failed_units.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_cancellation_registry.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_candidate_generator.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_config.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_contracts.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_daemon_core_hardening_p016.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_event_emitter.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_executors.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_gateway.py` — **EXCLUDE**: private gateway is out of public product scope.
+- `tests/daemon/test_health_bounded_probes.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_main_runs.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_model_router.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_orchestrator.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_orchestrator_runspec.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_privacy_policy.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_prompt_assembly.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_quant_journal.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_review_trigger.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_router_decision_vector.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_router_runspec.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_run_compiler.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_run_store.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_scheduler.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_scoped_process.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_scoped_process_memory_serialization.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_session_manager.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_skill_guard.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_skill_review_worker.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_skills_parser.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_skills_store.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_step_data.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_telegram_approval_coord.py` — **EXCLUDE**: non-Panella application module.
+- `tests/daemon/test_timestamp_normalize.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_upgrade_executor.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_upgrade_queue.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_workflow.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_workflow_compile_degrade_p019.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_workflow_compiler.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/daemon/test_workflow_runs.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/deploy/test_default_agent_wrappers.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/fixtures/agent_governance/comms_pipeline_examples.json` — **EXCLUDE**: outside the Panella product surface.
+- `tests/fixtures/agent_governance/dry_run_examples.json` — **EXCLUDE**: outside the Panella product surface.
+- `tests/fixtures/agent_governance/pipeline_examples.json` — **EXCLUDE**: outside the Panella product surface.
+- `tests/fixtures/cc_sync/project_iris_dir_c_package_decomp.md` — **EXCLUDE**: non-Panella application module.
+- `tests/fixtures/live_entry_targets.golden.json` — **EXCLUDE**: outside the Panella product surface.
+- `tests/fixtures/mcg/openclaw_session_synthetic.jsonl` — **EXCLUDE**: outside the Panella product surface.
+- `tests/fixtures/panella_openapi_v10.31.2.json` — **PORT**: renamed fixture copied to tests/fixtures/panella_openapi_v10.31.2.json.
+- `tests/fixtures/memory_write_literals_exceptions.json` — **EXCLUDE**: outside the Panella product surface.
+- `tests/integration/test_codex_desktop_e2e.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/integrations/test_panella_plugin_static.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/memory_gateway/__init__.py` — **EXCLUDE**: private gateway is out of public product scope.
+- `tests/memory_gateway/conftest.py` — **EXCLUDE**: private gateway is out of public product scope.
+- `tests/memory_gateway/test_auth_policy_unit.py` — **EXCLUDE**: private gateway is out of public product scope.
+- `tests/memory_gateway/test_cli.py` — **EXCLUDE**: private gateway is out of public product scope.
+- `tests/memory_gateway/test_contract_six.py` — **EXCLUDE**: private gateway is out of public product scope.
+- `tests/memory_gateway/test_gate0_real_upstream.py` — **EXCLUDE**: private gateway is out of public product scope.
+- `tests/memory_gateway/test_import_isolation.py` — **EXCLUDE**: private gateway is out of public product scope.
+- `tests/memory_gateway/test_read_path.py` — **EXCLUDE**: private gateway is out of public product scope.
+- `tests/memory_gateway/test_registry.py` — **EXCLUDE**: private gateway is out of public product scope.
+- `tests/memory_gateway/test_sanitize_parity.py` — **EXCLUDE**: private gateway is out of public product scope.
+- `tests/memory_gateway/test_write_path.py` — **EXCLUDE**: private gateway is out of public product scope.
+- `tests/packaging/test_mcp_sdk_contract.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/packaging/test_selfhost_packaging_contract.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/packaging/test_selfhost_render_cli.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/packaging/test_selfhost_serve_cli.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/scripts/migrations/test_legacy_reclassify_phase1.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/scripts/migrations/test_legacy_reclassify_phase3.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/scripts/migrations/test_phase0_legacy_probe.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/scripts/test_codex_desktop_drain.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/scripts/test_git_auto_backup.sh` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/scripts/test_iris_templated_daily_publisher.py` — **EXCLUDE**: non-Panella application module.
+- `tests/scripts/test_probes_memory_stats.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/scripts/test_redline_completeness.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/scripts/test_review_tier_script.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_agent_profile_consistency.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_audit_hash_chain.py` — **NEEDS-FIXTURE-SURGERY**: exercises a shipped Panella security/governance module (break_glass/audit/principal/profile/client) but references original owner-specific identities/fixtures — port needs fixture surgery.
+- `tests/test_backfill_dry_run.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_backfill_idempotent.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_backfill_rollback.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_break_glass.py` — **NEEDS-FIXTURE-SURGERY**: exercises a shipped Panella security/governance module (break_glass/audit/principal/profile/client) but references original owner-specific identities/fixtures — port needs fixture surgery.
+- `tests/test_bridge_archive_prune.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_bridge_health.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_cc_memory_sync.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_check_systemd_unit_drift.sh` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_claude_bridge_systemd_unit.py` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_claude_session_state_reset.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_claude_session_summarize.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_claude_session_sync.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_claude_session_sync_ssh_retry.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_client_principal_injection.py` — **NEEDS-FIXTURE-SURGERY**: exercises a shipped Panella security/governance module (break_glass/audit/principal/profile/client) but references original owner-specific identities/fixtures — port needs fixture surgery.
+- `tests/test_codex_session_summarize.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_codex_session_sync.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_codex_session_sync_ssh_retry.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_command_center_memory_candidates_script.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_coord_deploy_lock_behavioral.sh` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_coord_promote_timer_schedule.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_data_rsync_to_vps_script.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_dataengine_collector_wrapper.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_deploy_converge_behavioral.sh` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_diagnostics.sh` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_drain_chunk_loop.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_eval_retrieval_v3.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/test_eval_sdk_parity.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/test_feedback_capture.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_goldset_v2_loader.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_heal.sh` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_heal_behavioral.sh` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_indexnow_ping_script.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_iris_content_engine_postflight.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_editorial_slot.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_editorial_validation.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_founder_steer.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_growth_daily_supervisor_script.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_hermetic_env.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_materialize.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_pipeline_preflight_mac_queue.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_plan_adapter.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_public_copy_policy_voice.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_reddit_warmup_cdp_loop_script.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_social_cdp_due_loop_script.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_templated_slots_pr1.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_verdict_extract.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_weekly_priority_packet.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_weekly_report_postflight.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_weekly_report_preflight.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_weekly_roi_ledger.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_x_history_sync_script.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_x_reply_cdp_loop_script.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_iris_x_topic_cdp_loop_script.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_knowledge_geo_binding.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_knowledge_geo_grounded_13f.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_knowledge_geo_publish.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_knowledge_geo_run.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_knowledge_recap_run.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_link_systemd_unit.sh` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_mac_watchdog_behavioral.sh` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_main_reconcile.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_main_singleton_lock.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_mcg_openclaw_parser.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_mcg_session_bridge.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_mcg_tenant_smoke_e2e.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_main_backup.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/test_panella_tenant_backup.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/test_memory_client.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/test_memory_counters.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/test_memory_eval.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/test_memory_eval_guard.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/test_memory_http.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/test_memory_http_stats.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/test_memory_import_firewall.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/test_memory_profile.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/test_memory_weekly_eval_retry.sh` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/test_memory_write_literals.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/test_memory_write_volume.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/test_memory_embed_cache.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_morning_briefing_postflight.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_business_finance_packet.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_capability_evidence.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_daily_briefing_delivery.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_daily_briefing_generate.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_daily_briefing_packet.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_daily_briefing_run.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_deploy_readiness.py` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_panella_finance_action_preflight.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_github_review_feedback.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_iris_agent_runtime.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_autonomous_daily_run.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_autonomous_plan.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_brain_loop.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_brain_next_actions.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_brain_run.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_briefing_signals.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_cmo.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_cmo_pulse.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_cmo_pulse_next_actions.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_content_engine_run.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_content_variants.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_conversion_loop_integration.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_creative_asset_brief.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_cro.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_daily_content_loop.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_daily_decision.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_daily_execution.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_daily_generate.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_daily_growth_decision.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_daily_mac_queue.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_daily_queue.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_daily_queue_self_repair.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_dispatcher.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_editorial_brief.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_editorial_fluff_gate.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_editorial_run.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_editorial_slot.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_editorial_systemd_unit.py` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_panella_iris_growth_bet_portfolio.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_growth_daily_supervisor.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_growth_goal_scorecard.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_growth_goal_scorecard_attribution.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_growth_metric_contract.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_growth_regression_diagnosis.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_growth_regression_work_order_run.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_growth_supervisor.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_iris_core.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_knowledge_hub_brief.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_knowledge_hub_draft.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_learning.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_materialize_weekly_priorities.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_module_facade.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_newsletter_preview.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_owned_signal_asset_brief.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_owned_signal_asset_review.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p2_bridge.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p2_pathconfig.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p2_policy.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p2_shims.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p3_wire.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p4_autonomous_growth.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p4_cmo_pulse_internals.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p4_daily_queue_payload.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p4_editorial_deps.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p4_iris_family.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p4_pathconfig_readers.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p4_social_cadence.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p4_statedir_snapshots.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p4_supabase.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p4_templated_slots.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_p4_workflow_impact.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_pmm_context.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_public_action_learning_candidates.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_public_action_learning_review.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_public_action_learning_review_runner.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_public_action_value_ledger.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_queue_candidate_mac_queue.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_search_demand_owned_content_brief.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_signal_evidence.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_skill_pack.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_social_browse_brief.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_social_cadence.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_social_growth_snapshot.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_social_learning.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_social_ops_packet.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_social_receipt_learning.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_social_receipt_stats.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_supabase_attribution_snapshot.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_supabase_growth_snapshot.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_utm_link_plan.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_verdict_extract_systemd_unit.py` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_panella_iris_visual_contract.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_voc_packet.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_watchlist_activation_brief.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_weekly_analytics_snapshot.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_weekly_growth_operating_plan.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_weekly_growth_progress_report.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_weekly_report_run.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_weekly_social_receipt_overlay.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_workflow_impact.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_x_engagement_mac_queue.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_x_engagement_plan.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_x_engagement_run.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_x_history_cdp_collect.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_x_public_ref_engagement_collect.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_x_reply_generation.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_x_reply_queue.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_x_topic_cdp_discovery.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_iris_x_topic_discovery.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_live_send_smoke_plan.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_operator_smoke.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_project_ops_packet.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_reddit_comment_engagement.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_reddit_demand_scan.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_reddit_warmup_mac_queue.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_reddit_warmup_plan.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_reddit_warmup_target_discovery.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_social_browser_account_state.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_cdp_account_probe.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_cdp_due_loop.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_cdp_post_dry_run.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_cdp_post_execute.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_cdp_post_runner.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_cdp_readiness.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_executor_plan.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_executor_readiness.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_mac_executor.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_mac_inbox.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_mac_operator_prompt.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_mac_pull.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_mac_queue.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_mac_receipt_push.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_postflight.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_preflight.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_reddit_comment_dry_run.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_reddit_comment_execute.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_reddit_comment_runner.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_x_delete_execute.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_x_like_runner.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_x_reply_dry_run.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_x_reply_execute.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_social_browser_x_reply_runner.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_panella_specialist_revival.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_specialist_source_inventory.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_specialist_task_eval.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/test_panella_task_parity_smoke.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_user_timer_health.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_panella_user_timer_health_systemd_unit.py` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_openclaw_parser.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_openclaw_permanent_disable.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_openclaw_stop_trial_revalidate.py` — **EXCLUDE**: eval package is Phase C2 and intentionally absent.
+- `tests/test_pi_integration_inventory.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_principal.py` — **NEEDS-FIXTURE-SURGERY**: exercises a shipped Panella security/governance module (break_glass/audit/principal/profile/client) but references original owner-specific identities/fixtures — port needs fixture surgery.
+- `tests/test_profile.py` — **NEEDS-FIXTURE-SURGERY**: exercises a shipped Panella security/governance module (break_glass/audit/principal/profile/client) but references original owner-specific identities/fixtures — port needs fixture surgery.
+- `tests/test_profile_tenant_scope.py` — **NEEDS-FIXTURE-SURGERY**: exercises a shipped Panella security/governance module (break_glass/audit/principal/profile/client) but references original owner-specific identities/fixtures — port needs fixture surgery.
+- `tests/test_record_openclaw_retirement.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_reddit_subreddit_avoid.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_reddit_warmup_subreddits.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_repo_hermetic_env.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_run_with_tunnel.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_stalled_pr_review.sh` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_state_store.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_telegram_ack_callback.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_telegram_approval_bot.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_telegram_command_center_loop.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_telegram_command_menu_sync.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_verify_skills_lock.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_watchdog.sh` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_watchdog_behavioral.sh` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/test_watchdog_iris_daily_queue_freshness.py` — **EXCLUDE**: non-Panella application module.
+- `tests/test_watchdog_oom_events.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/test_watchdog_systemd_unit_drift.py` — **EXCLUDE**: host deploy/systemd shell checks are out of public repo scope.
+- `tests/tools/test_panella_mcp_server.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/tools/test_panella_mcp_server_profile.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/tools/test_memory_freeze_check.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
+- `tests/tools/test_default_docs_mcp_server.py` — **EXCLUDE**: outside the Panella product surface.
+- `tests/tools/test_panella_mcp_server.py` — **EXCLUDE**: outside the Panella product surface.

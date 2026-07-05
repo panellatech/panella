@@ -1,0 +1,8 @@
+schema_version: 1
+approval:
+  authorized_approvers: ["local_cli:owner"]
+  transport:
+    kind: "local_cli"
+    config:
+      token_file: "~/.panella/approval.token"
+      token_mode: "0600"

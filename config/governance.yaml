@@ -1,0 +1,35 @@
+schema_version: 1
+
+identity:
+  root_principal:
+    id: "human:owner"
+    subject_id: "u_owner"
+    roles: ["root_operator"]
+  default_tenant_id: "t_owner_personal"
+  default_subject_id: "u_owner"
+  tenant_id_prefix: "t_"
+  content_owner_label: "Owner"
+  owner_slug: "owner"
+  owner_wing: "owner"
+
+approval:
+  authorized_approvers: []
+  transport:
+    kind: "local_cli"
+    config:
+      token_file: "~/.panella/approval.token"
+      token_mode: "0600"
+
+paths:
+  store_path: "~/.panella/sqlite_vec.db"
+  embeddings_env: "~/.panella/openai.env"
+  config_dir: null
+
+model_router:
+  extract:
+    - name: T0
+      primary:
+        provider: openai
+        auth_mode: api_key
+        model: gpt-4o-mini
+        credential_ref: OPENAI_API_KEY
