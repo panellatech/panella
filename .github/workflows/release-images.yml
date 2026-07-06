@@ -1,0 +1,311 @@
+# Release images are explicit and pinnable: no latest tag is ever published.
+# Pre-flip dispatch testing publishes private GHCR images tagged only with sha/test refs.
+# Keyless signing writes this repo/workflow identity to the public Rekor transparency log even while
+# the repo is private. The name is already public through PyPI/domain exposure; the owner accepted
+# the Rekor exposure on 2026-07-07.
+name: release-images
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  STORE_IMAGE: ghcr.io/panellatech/panella-store
+  APP_IMAGE: ghcr.io/panellatech/panella-app
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Assert release ref matches pyproject version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(python3 - <<'PY'
+          import tomllib
+          with open("pyproject.toml", "rb") as f:
+              print(tomllib.load(f)["project"]["version"])
+          PY
+          )"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            expected="v${version}"
+            if [[ "${GITHUB_REF_TYPE}" != "tag" || "${GITHUB_REF_NAME}" != "${expected}" ]]; then
+              echo "::error title=Release tag mismatch::expected ${expected}, got ${GITHUB_REF}" >&2
+              exit 1
+            fi
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+              echo "::error title=Dispatch ref rejected::release image dispatch must run from refs/heads/main, got ${GITHUB_REF}" >&2
+              exit 1
+            fi
+          else
+            echo "::error title=Unsupported event::${GITHUB_EVENT_NAME}" >&2
+            exit 1
+          fi
+
+          {
+            echo "### Release image guard"
+            echo "- package version: ${version}"
+            echo "- event: ${GITHUB_EVENT_NAME}"
+            echo "- ref: ${GITHUB_REF}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Resolve image tags
+        id: tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha_short="${GITHUB_SHA::12}"
+          echo "sha_short=${sha_short}" >> "$GITHUB_OUTPUT"
+
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            {
+              echo "store_tags<<TAGS"
+              echo "${STORE_IMAGE}:${GITHUB_REF_NAME}"
+              echo "${STORE_IMAGE}:sha-${sha_short}"
+              echo "TAGS"
+              echo "app_tags<<TAGS"
+              echo "${APP_IMAGE}:${GITHUB_REF_NAME}"
+              echo "${APP_IMAGE}:sha-${sha_short}"
+              echo "TAGS"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "store_tags<<TAGS"
+              echo "${STORE_IMAGE}:sha-${sha_short}"
+              echo "${STORE_IMAGE}:test-${GITHUB_RUN_ID}"
+              echo "TAGS"
+              echo "app_tags<<TAGS"
+              echo "${APP_IMAGE}:sha-${sha_short}"
+              echo "${APP_IMAGE}:test-${GITHUB_RUN_ID}"
+              echo "TAGS"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build store amd64 scan proxy
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          target: store
+          platforms: linux/amd64
+          load: true
+          tags: panella-store-scan:${{ steps.tags.outputs.sha_short }}
+
+      - name: Store Trivy breakglass annotation
+        if: vars.PANELLA_RELEASE_SKIP_TRIVY == 'true'
+        shell: bash
+        run: |
+          echo "::warning title=TRIVY SCAN SKIPPED::PANELLA_RELEASE_SKIP_TRIVY=true skipped the blocking store image scan. Unset the repository variable immediately after the breakglass release."
+          echo "### TRIVY SCAN SKIPPED for store image" >> "$GITHUB_STEP_SUMMARY"
+          echo "Repository variable PANELLA_RELEASE_SKIP_TRIVY=true was active. Unset it immediately after this run." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Trivy scan store amd64 proxy
+        if: vars.PANELLA_RELEASE_SKIP_TRIVY != 'true'
+        # The amd64 local image is the scan proxy for both arches: the Dockerfile/dependency graph is
+        # lockstep, and multi-arch manifests cannot be loaded into the local Docker daemon.
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          image-ref: panella-store-scan:${{ steps.tags.outputs.sha_short }}
+          vuln-type: os,library
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: "true"
+          format: table
+
+      - name: Build app amd64 scan proxy
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          target: app
+          platforms: linux/amd64
+          load: true
+          tags: panella-app-scan:${{ steps.tags.outputs.sha_short }}
+
+      - name: App Trivy breakglass annotation
+        if: vars.PANELLA_RELEASE_SKIP_TRIVY == 'true'
+        shell: bash
+        run: |
+          echo "::warning title=TRIVY SCAN SKIPPED::PANELLA_RELEASE_SKIP_TRIVY=true skipped the blocking app image scan. Unset the repository variable immediately after the breakglass release."
+          echo "### TRIVY SCAN SKIPPED for app image" >> "$GITHUB_STEP_SUMMARY"
+          echo "Repository variable PANELLA_RELEASE_SKIP_TRIVY=true was active. Unset it immediately after this run." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Trivy scan app amd64 proxy
+        if: vars.PANELLA_RELEASE_SKIP_TRIVY != 'true'
+        # The amd64 local image is the scan proxy for both arches: the Dockerfile/dependency graph is
+        # lockstep, and multi-arch manifests cannot be loaded into the local Docker daemon.
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          image-ref: panella-app-scan:${{ steps.tags.outputs.sha_short }}
+          vuln-type: os,library
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: "true"
+          format: table
+
+      - name: Push store multi-arch image
+        id: push_store
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          target: store
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.tags.outputs.store_tags }}
+
+      - name: Push app multi-arch image
+        id: push_app
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          target: app
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.tags.outputs.app_tags }}
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+
+      - name: Sign pushed image digests
+        shell: bash
+        env:
+          STORE_REF: ${{ env.STORE_IMAGE }}@${{ steps.push_store.outputs.digest }}
+          APP_REF: ${{ env.APP_IMAGE }}@${{ steps.push_app.outputs.digest }}
+        run: |
+          set -euo pipefail
+          cosign sign --yes "${STORE_REF}"
+          cosign sign --yes "${APP_REF}"
+
+      - name: Verify image signatures
+        shell: bash
+        env:
+          STORE_REF: ${{ env.STORE_IMAGE }}@${{ steps.push_store.outputs.digest }}
+          APP_REF: ${{ env.APP_IMAGE }}@${{ steps.push_app.outputs.digest }}
+          CERT_IDENTITY_RE: ^https://github\.com/panellatech/panella/\.github/workflows/release-images\.yml@refs/(tags/v.*|heads/main)$
+        run: |
+          set -euo pipefail
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "${CERT_IDENTITY_RE}" \
+            "${STORE_REF}"
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "${CERT_IDENTITY_RE}" \
+            "${APP_REF}"
+
+      - name: Generate digest-pinned compose file
+        shell: bash
+        env:
+          STORE_REF: ${{ env.STORE_IMAGE }}@${{ steps.push_store.outputs.digest }}
+          APP_REF: ${{ env.APP_IMAGE }}@${{ steps.push_app.outputs.digest }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          images = {
+              "panella": os.environ["STORE_REF"],
+              "panella-http": os.environ["APP_REF"],
+          }
+
+          source = Path("docker-compose.yml")
+          lines = source.read_text().splitlines(keepends=True)
+          out = []
+          current_service = None
+          in_services = False
+          skip_build_block = False
+          seen = {name: {"image": False, "build": False, "pull_policy": False} for name in images}
+
+          for line in lines:
+              if skip_build_block:
+                  stripped = line.strip()
+                  indent = len(line) - len(line.lstrip(" "))
+                  if stripped and indent > 4:
+                      continue
+                  skip_build_block = False
+
+              if line == "services:\n":
+                  in_services = True
+                  current_service = None
+              elif in_services and line.strip() and not line.startswith(" "):
+                  in_services = False
+                  current_service = None
+              elif in_services and line.startswith("  ") and not line.startswith("    ") and line.strip().endswith(":"):
+                  current_service = line.strip()[:-1]
+
+              if current_service in images:
+                  if line.startswith("    image:"):
+                      out.append(f"    image: {images[current_service]}\n")
+                      seen[current_service]["image"] = True
+                      continue
+                  if line.startswith("    pull_policy:"):
+                      seen[current_service]["pull_policy"] = True
+                      continue
+                  if line.startswith("    build:"):
+                      seen[current_service]["build"] = True
+                      skip_build_block = True
+                      continue
+
+              out.append(line)
+
+          missing = [
+              f"{service}.{key}"
+              for service, flags in seen.items()
+              for key, was_seen in flags.items()
+              if not was_seen
+          ]
+          if missing:
+              raise SystemExit(f"compose transform did not see expected keys: {', '.join(missing)}")
+
+          Path("compose.pinned.yml").write_text("".join(out))
+          PY
+          # Interpolation-only placeholder: the pinned file keeps ${PANELLA_API_KEY:?...} required
+          # vars, and `config` interpolates — without a value this validation step would fail on
+          # every runner (no .env in CI).
+          PANELLA_API_KEY=ci-validate-placeholder docker compose -f compose.pinned.yml config >/dev/null
+          {
+            echo "### Pinned compose artifact"
+            echo "- store: ${STORE_REF}"
+            echo "- app: ${APP_REF}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload pinned compose file
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: compose-pinned
+          path: compose.pinned.yml
+          if-no-files-found: error

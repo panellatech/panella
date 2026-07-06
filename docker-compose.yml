@@ -3,6 +3,11 @@
 #   echo "PANELLA_API_KEY=$(openssl rand -hex 32)" >> .env   # once: the internal service secret
 #   docker compose up -d --wait
 #
+# Release image names are attached below with pull_policy: build: a fresh clone still builds from
+# local source when GHCR is private or unauthenticated, and a stale registry image cannot replace
+# local code. The release workflow emits compose.pinned.yml with build/pull_policy removed and
+# digest-pinned images for the post-flip pull-by-digest path.
+#
 # Boots with NO model/BYOK key: the store embeds locally (ONNX), the facade serves the governed
 # surface (health, tokens, audit, coherence gate; routine /v1/memory/* opens with the P3b
 # generic serving profile — docs/SELF_HOST.md "What serves today"). PANELLA_API_KEY is the only
@@ -17,6 +22,8 @@ name: panella-selfhost
 
 services:
   panella:
+    image: ghcr.io/panellatech/panella-store:v0.2.0
+    pull_policy: build
     build:
       context: .
       target: store
@@ -32,6 +39,8 @@ services:
     restart: unless-stopped
 
   panella-http:
+    image: ghcr.io/panellatech/panella-app:v0.2.0
+    pull_policy: build
     build:
       context: .
       target: app
