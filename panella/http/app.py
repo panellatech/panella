@@ -331,16 +331,17 @@ def _preflight_boot_config(http_config: MemoryHttpConfig) -> None:
 
 
 def _load_boot_profile(name: str, *, env_var: str) -> None:
-    import yaml
-
     try:
         AgentProfile.load(name)
     except AgentProfileConfigError:
         raise
-    except (ValueError, OSError, yaml.YAMLError) as exc:
-        # A malformed profile YAML raises yaml.YAMLError, a missing/unreadable wings.yaml raises
-        # OSError, an invalid value raises ValueError — all are boot config mistakes that must be a
-        # single actionable line, not the opaque traceback WP3 exists to eliminate.
+    # ANY other failure to load a profile at boot is a config mistake — malformed profile YAML
+    # (yaml.YAMLError), a valid-YAML-but-structurally-invalid profile missing required keys / wrong
+    # types (KeyError / TypeError from from_dict), a missing/unreadable wings.yaml (OSError), or a
+    # bad value (ValueError). Surface ALL of them as one actionable line + exit 2, never the opaque
+    # traceback WP3 exists to eliminate. The exception type + message are preserved (and via
+    # `from exc`), so a genuine bug still surfaces as a named boot-config error, not silently.
+    except Exception as exc:
         raise AgentProfileConfigError(
             f"{env_var}={name!r} could not be loaded ({type(exc).__name__}: {exc}); "
             "check the rendered profile + wings.yaml, or rerun `panella-render-config --out <dir>` "
