@@ -11,6 +11,10 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          # On pull_request events the default checkout is GitHub's SYNTHETIC test-merge commit
+          # (committer "GitHub <noreply@github.com>") — exactly what this gate exists to reject on
+          # real history. Check the PR head itself instead; push events keep the pushed ref.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - name: All commits carry the neutral maintainer identity (UI merges go red by design)
         run: scripts/ci/check-git-identity.sh
 
