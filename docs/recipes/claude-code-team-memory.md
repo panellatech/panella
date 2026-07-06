@@ -227,12 +227,19 @@ that same server-side check — neither is a stronger boundary than the credenti
 
 ## 5. Team on-ramp
 
-Each additional teammate needs their own bearer pointed at the same box — never hand out the
-operator's own bearer. Two ways to do that:
+Each additional teammate needs a bearer pointed at the same box — never hand out the operator's own
+`.panella/owner-bearer`. Both paths below mint a *separate* token so the operator's own bearer never
+leaves the host. Two ways to do that:
 
-- **Operator shares the same connect snippet.** Every teammate's Claude Code gets the identical
-  `panella connect --print claude-code` output the operator already has. Simple, but the operator
-  can't tell teammates apart in the audit trail and can't revoke one without revoking all.
+- **One shared team bearer.** Mint a single extra bearer and give its connect snippet to everyone.
+  Simple, but you can't tell teammates apart in the audit trail and can't cut one off without
+  re-issuing all:
+
+  ```bash
+  TEAM_BEARER="$(docker compose exec -T panella-http panella tokens mint --label team-shared)"
+  panella connect --print claude-code --token "$TEAM_BEARER"
+  ```
+
 - **Mint a fresh bearer per teammate**, inside the running container (a bare host-side
   `panella tokens mint` writes to the *host's* default token DB — not the box the team is actually
   talking to):
@@ -259,15 +266,21 @@ token DB alone, and old bearers stay valid after a re-provision). The reset kill
 once while preserving the audit trail and outbox (they live in separate files in the same volume):
 
 ```bash
+# 1. Wipe the token DB — invalidates EVERY bearer at once.
 docker compose exec -T panella-http sh -c 'rm /app/data/memory_tokens.db*'
 docker compose restart panella-http
+# 2. Re-provision the operator bearer. init --force re-mints AND rewrites
+#    .panella/owner-bearer (0600) — the file Steps 5 and 9 read — so connect/approvals
+#    stop handing out the now-dead token. (init --force alone does NOT invalidate bearers;
+#    step 1's wipe is what did that.)
+panella init --force
 ```
 
-(The glob matters: the token DB runs in SQLite WAL mode, so `-shm`/`-wal` sidecars sit next to it.)
+(The glob in step 1 matters: the token DB runs in SQLite WAL mode, so `-shm`/`-wal` sidecars sit
+next to it. The audit trail and outbox are separate files in the same volume and survive the wipe.)
 
-Then re-mint the operator's bearer and each remaining teammate's (§5 above), and reconnect every
-client. Blunt, but honest — until a real `tokens revoke` ships, offboarding one teammate costs
-re-issuing everyone.
+Then re-issue each remaining teammate's bearer (§5 above) and reconnect every client. Blunt but
+honest — until a real `tokens revoke` ships, offboarding one teammate costs re-issuing everyone.
 
 ## 6. Daily rhythm
 
