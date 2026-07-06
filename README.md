@@ -13,7 +13,7 @@ docker compose up -d --wait
 panella init                          # one command: owner token, approval token, governance overlay
 printf 'PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\nPANELLA_MCP_PROFILE=mcp-write\n' >> .env
 docker compose up -d --wait           # restart write-capable
-panella connect --print claude-code   # paste into your agent
+panella connect --print claude-code   # swap PANELLA_BEARER_HERE for the bearer init printed, then paste
 ```
 
 Your agent proposes a memory → it queues → you approve it (CLI, console, or API) → your agent recalls
