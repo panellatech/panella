@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Panella Console</title>
+  <link rel="stylesheet" href="/console/static/console.css" />
+</head>
+<body>
+  <header id="site-header">
+    <h1>Panella Console</h1>
+    <p id="site-subtitle">Governance visibility for the box owner. Nothing here is sent anywhere except this box.</p>
+  </header>
+
+  <main id="app-root">
+    <section id="connect-panel" aria-labelledby="connect-heading">
+      <h2 id="connect-heading">Connect</h2>
+      <p class="hint">
+        Both secrets stay in this tab's memory only — never localStorage, never a cookie, never the
+        URL. Reload the page and you must paste them again.
+      </p>
+      <form id="connect-form" autocomplete="off">
+        <label for="owner-bearer-input">Owner bearer token</label>
+        <input id="owner-bearer-input" type="password" name="owner-bearer" autocomplete="off" spellcheck="false" />
+
+        <label for="approval-token-input">Approval token (optional — required for pending list / approve / reject)</label>
+        <input id="approval-token-input" type="password" name="approval-token" autocomplete="off" spellcheck="false" />
+
+        <button id="connect-button" type="submit">Connect</button>
+      </form>
+      <p id="connect-status" role="status"></p>
+    </section>
+
+    <section id="approvals-panel" aria-labelledby="approvals-heading" hidden>
+      <h2 id="approvals-heading">
+        Pending approvals
+        <span id="pending-badge" class="badge">0</span>
+      </h2>
+      <button id="refresh-approvals-button" type="button">Refresh</button>
+      <ul id="pending-list"></ul>
+      <p id="approvals-status" role="status"></p>
+    </section>
+
+    <section id="search-panel" aria-labelledby="search-heading" hidden>
+      <h2 id="search-heading">Memory search</h2>
+      <form id="search-form" autocomplete="off">
+        <label for="search-query-input">Query</label>
+        <input id="search-query-input" type="text" name="query" autocomplete="off" />
+        <button id="search-button" type="submit">Search</button>
+      </form>
+      <ul id="search-results"></ul>
+      <p id="search-status" role="status"></p>
+    </section>
+
+    <section id="audit-panel" aria-labelledby="audit-heading" hidden>
+      <h2 id="audit-heading">Audit tail</h2>
+      <button id="refresh-audit-button" type="button">Refresh</button>
+      <ul id="audit-list"></ul>
+      <p id="audit-status" role="status"></p>
+    </section>
+
+    <section id="stats-panel" aria-labelledby="stats-heading" hidden>
+      <h2 id="stats-heading">Stats</h2>
+      <button id="refresh-stats-button" type="button">Refresh</button>
+      <dl id="stats-summary"></dl>
+      <p id="stats-status" role="status"></p>
+    </section>
+  </main>
+
+  <footer id="site-footer">
+    <p>Loopback-only by default. See docs/CONSOLE.md before exposing this beyond 127.0.0.1.</p>
+  </footer>
+
+  <script src="/console/static/console.js"></script>
+</body>
+</html>

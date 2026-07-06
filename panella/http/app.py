@@ -15,6 +15,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
 from panella._default_adapter import default_adapter
+from panella.http import console
 from panella.http.auth import AuthMiddleware, RateLimiter, resolve_bearer
 from panella.http.config import MemoryHttpConfig, load_config
 from panella.http.errors import ApiError, api_error_handler, error_payload, unhandled_error_handler
@@ -28,10 +29,13 @@ from panella.store_probe import startup_self_check
 logger = logging.getLogger(__name__)
 
 # Routes the coherence gate refuses while incoherent (§1.5.3): the memory surface, the approval
-# surface (approving finalizes a durable write — never do that on an incoherent box, WP-B2a), and
-# the break-glass token mint (an elevation minted against a wrong-identity box is worthless and
-# confusing). /v1/health stays reachable so Doctor sees a live-but-refusing process.
-_GATED_PREFIXES = ("/v1/memory/", "/v1/approvals/")
+# surface (approving finalizes a durable write — never do that on an incoherent box, WP-B2a), the
+# break-glass token mint (an elevation minted against a wrong-identity box is worthless and
+# confusing), and the operator console (WP-B3): the console is an unauthenticated page into which
+# the operator PASTES the owner bearer + approval token, so an incoherent box must not serve it —
+# that would invite secrets into a process whose own self-check says it cannot serve. /v1/health is
+# the ONLY path that stays reachable while incoherent, so Doctor sees a live-but-refusing process.
+_GATED_PREFIXES = ("/v1/memory/", "/v1/approvals/", "/console")
 _GATED_EXACT = frozenset({"/v1/principal/break-glass"})
 
 
@@ -115,11 +119,24 @@ def create_app(config: Any = None, *, memory_adapter: Any | None = None) -> Fast
     app.state.memory_adapter = memory_adapter if memory_adapter is not None else default_adapter(
         source="panella-http",
     )
+    # WP-B3 — the operator console shell has no data of its own (all data comes from JS fetch()
+    # calls that DO send the bearer), so its page/asset paths must be reachable without one — a
+    # browser's page-load navigation cannot attach custom headers. Computed BEFORE add_middleware
+    # (AuthMiddleware is constructed at this call, not lazily) so the auth-free set is correct from
+    # the first request. Flag OFF (default) leaves both collections exactly as they start below.
+    auth_free_paths: set[str] = {"/v1/health"}
+    auth_free_prefixes: tuple[str, ...] = ()
+    if console.console_enabled():
+        auth_free_paths, auth_free_prefixes = console.mount_console(
+            app, auth_free_paths=auth_free_paths, auth_free_prefixes=auth_free_prefixes,
+        )
     app.add_middleware(
         AuthMiddleware,
         token_store=app.state.token_store,
         rate_limiter=RateLimiter(http_config.rate_limit_per_minute),
         elevated_tokens=app.state.elevated_tokens,
+        auth_free_paths=auth_free_paths,
+        auth_free_prefixes=auth_free_prefixes,
     )
     # Added AFTER AuthMiddleware → runs BEFORE it (LIFO): an incoherent box refuses loudly even
     # to unauthenticated callers, and never burns rate-limit budget while dark.

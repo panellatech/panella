@@ -44,6 +44,9 @@ services:
       PANELLA_GOVERNANCE_OVERLAY: ${PANELLA_GOVERNANCE_OVERLAY:-}
       # Read-only MCP by default; set mcp-write only after provisioning approval.
       PANELLA_MCP_PROFILE: ${PANELLA_MCP_PROFILE:-mcp-read}
+      # Operator console (docs/CONSOLE.md) -- flag-gated, off by default. Set
+      # PANELLA_CONSOLE_ENABLED=1 in .env to serve http://127.0.0.1:8001/console.
+      PANELLA_CONSOLE_ENABLED: ${PANELLA_CONSOLE_ENABLED:-}
     volumes:
       - panella-store:/data:ro
       # Facade-local state: bearer-token DB, audit log, outbox.
