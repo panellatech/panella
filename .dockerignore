@@ -1,0 +1,20 @@
+# The app image does `COPY . /app` (Dockerfile), so anything here that is NOT excluded is baked into
+# image layers — including any pushed image. Operator secrets and local state MUST stay out:
+#   - .panella/ holds the 0600 approval token + governance overlay that `panella init` provisions;
+#     baking them into the image would defeat the whole secret boundary (Codex B1 P1).
+#   - .env holds PANELLA_API_KEY (the internal service secret) — never in an image layer.
+.panella/
+.env
+
+# Local dev state / caches — not part of the shipped image, keep layers small + reproducible.
+.git/
+.gitignore
+.venv/
+**/__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+.*-evidence/
+dist/
+build/
+*.egg-info/
