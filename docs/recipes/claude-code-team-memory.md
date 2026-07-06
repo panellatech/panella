@@ -284,6 +284,14 @@ honest — until a real `tokens revoke` ships, offboarding one teammate costs re
 
 ## 6. Daily rhythm
 
+The operator CLI commands below (`approvals`, `stats`, `audit`) read the owner bearer from
+`--token` or `PANELLA_BEARER` — they do NOT auto-read `.panella/owner-bearer`. In a fresh daily
+shell, export it once first (from the checkout directory):
+
+```bash
+export PANELLA_BEARER="$(cat .panella/owner-bearer)"
+```
+
 - **Submit** whenever something worth remembering comes up in a session: a decision, a stated
   preference, a gotcha worth not re-discovering. This is the agent's job — it happens through
   `memory.submit_candidate` with no operator involvement.
