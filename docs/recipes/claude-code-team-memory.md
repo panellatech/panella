@@ -217,13 +217,15 @@ operator's own bearer. Two ways to do that:
   `connect` fall back to reading the *operator's* `.panella/owner-bearer` — exactly the wrong
   credential to hand a teammate.
 
-**Honesty constraint:** per-teammate tokens give you *operational* separation only — a distinct,
-operator-recognizable label in the token database, and the ability to revoke one teammate's access
-without touching the others. They are NOT least-privilege identity, and they do NOT give
-per-teammate audit attribution: every bearer minted this way is bound to the same owner/root
-principal (the `/mcp` surface requires it), and the audit trail records the *principal*, so all
-teammates' actions appear under that shared identity. No per-user read/write scoping or per-user
-audit attribution exists yet.
+**Honesty constraint:** per-teammate tokens give you *recognition*, not control — a distinct,
+operator-recognizable label in the token database, nothing more today. They are NOT least-privilege
+identity, they do NOT give per-teammate audit attribution (every bearer minted this way is bound to
+the same owner/root principal — the `/mcp` surface requires it — and the audit trail records the
+*principal*, so all teammates' actions appear under that shared identity), and there is NO exposed
+revoke surface yet (`panella tokens` currently only mints; the token store schema supports
+revocation, but no CLI/HTTP operation performs it). If a teammate must lose access today, treat it
+as a box-level event: rotate `PANELLA_API_KEY`, re-provision with `panella init --force`, and
+re-issue bearers to the teammates who remain.
 
 ## 6. Daily rhythm
 
