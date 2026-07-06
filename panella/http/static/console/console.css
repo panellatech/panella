@@ -1,0 +1,112 @@
+/* Panella operator console — plain, dependency-free CSS. No @import (CSP has no style-src for
+   remote origins anyway), no url() to anything but same-origin. */
+
+:root {
+  color-scheme: light dark;
+  --border: #888;
+  --danger: #b00020;
+  --ok: #1a7f37;
+  --muted: #666;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  margin: 0;
+  padding: 0 1rem 3rem;
+  max-width: 860px;
+  margin-inline: auto;
+  line-height: 1.4;
+}
+
+header#site-header {
+  padding-top: 1.5rem;
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin-bottom: 0.25rem;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+section {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+input[type="password"],
+input[type="text"] {
+  width: 100%;
+  padding: 0.4rem;
+  margin-top: 0.15rem;
+  font-family: inherit;
+}
+
+button {
+  margin-top: 0.75rem;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+
+.badge {
+  display: inline-block;
+  min-width: 1.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--border);
+  color: #fff;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  border-bottom: 1px solid #ddd;
+  padding: 0.5rem 0;
+}
+
+li:last-child {
+  border-bottom: none;
+}
+
+.item-meta {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.item-actions button {
+  margin-right: 0.5rem;
+}
+
+.status-error {
+  color: var(--danger);
+}
+
+.status-ok {
+  color: var(--ok);
+}
+
+footer#site-footer {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-top: 2rem;
+}

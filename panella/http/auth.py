@@ -75,19 +75,29 @@ class AuthMiddleware(BaseHTTPMiddleware):
         rate_limiter: RateLimiter,
         elevated_tokens: dict[str, Principal] | None = None,
         auth_free_paths: set[str] | None = None,
+        auth_free_prefixes: tuple[str, ...] = (),
     ) -> None:
         super().__init__(app)
         self.token_store = token_store
         self.rate_limiter = rate_limiter
         self.elevated_tokens = elevated_tokens if elevated_tokens is not None else {}
         self.auth_free_paths = auth_free_paths or {"/v1/health"}
+        # WP-B3: a small number of static-asset PREFIXES (e.g. the console's static dir) that are
+        # unauthenticated by design — a browser's page-load navigation cannot attach a bearer, so
+        # the console shell/JS/CSS must be reachable without one. Content-gating for anything under
+        # such a prefix (an unknown filename → 404, never a directory listing) is the ROUTE
+        # HANDLER's job (see panella/http/console.py), not this middleware's — this only decides
+        # whether the request reaches that handler at all. Empty by default: every existing caller
+        # (including every other test in this suite) is unaffected.
+        self.auth_free_prefixes = auth_free_prefixes
 
     async def dispatch(self, request: Request, call_next: CallNext) -> Response:
         request_id = str(uuid.uuid4())
         request.state.request_id = request_id
         start = time.monotonic()
         try:
-            if request.url.path not in self.auth_free_paths:
+            path = request.url.path
+            if path not in self.auth_free_paths and not path.startswith(self.auth_free_prefixes):
                 record = self._authenticate(request)
                 if not self.rate_limiter.allow(record.token_sha256):
                     raise ApiError("rate_limited", "rate limit exceeded", 429)

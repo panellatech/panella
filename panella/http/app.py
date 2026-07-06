@@ -15,6 +15,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
 from panella._default_adapter import default_adapter
+from panella.http import console
 from panella.http.auth import AuthMiddleware, RateLimiter, resolve_bearer
 from panella.http.config import MemoryHttpConfig, load_config
 from panella.http.errors import ApiError, api_error_handler, error_payload, unhandled_error_handler
@@ -115,11 +116,24 @@ def create_app(config: Any = None, *, memory_adapter: Any | None = None) -> Fast
     app.state.memory_adapter = memory_adapter if memory_adapter is not None else default_adapter(
         source="panella-http",
     )
+    # WP-B3 — the operator console shell has no data of its own (all data comes from JS fetch()
+    # calls that DO send the bearer), so its page/asset paths must be reachable without one — a
+    # browser's page-load navigation cannot attach custom headers. Computed BEFORE add_middleware
+    # (AuthMiddleware is constructed at this call, not lazily) so the auth-free set is correct from
+    # the first request. Flag OFF (default) leaves both collections exactly as they start below.
+    auth_free_paths: set[str] = {"/v1/health"}
+    auth_free_prefixes: tuple[str, ...] = ()
+    if console.console_enabled():
+        auth_free_paths, auth_free_prefixes = console.mount_console(
+            app, auth_free_paths=auth_free_paths, auth_free_prefixes=auth_free_prefixes,
+        )
     app.add_middleware(
         AuthMiddleware,
         token_store=app.state.token_store,
         rate_limiter=RateLimiter(http_config.rate_limit_per_minute),
         elevated_tokens=app.state.elevated_tokens,
+        auth_free_paths=auth_free_paths,
+        auth_free_prefixes=auth_free_prefixes,
     )
     # Added AFTER AuthMiddleware → runs BEFORE it (LIFO): an incoherent box refuses loudly even
     # to unauthenticated callers, and never burns rate-limit budget while dark.
