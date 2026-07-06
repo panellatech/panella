@@ -191,6 +191,38 @@ def test_init_verify_fails_without_overlay_actionably(tmp_path, monkeypatch, cap
     assert "PANELLA_GOVERNANCE_OVERLAY" in captured.out or "SELF_HOST" in captured.out
 
 
+def test_compose_mint_binds_the_resolved_principal(tmp_path, monkeypatch):
+    # On the compose path the owner bearer must be minted FOR the principal init resolved (a custom
+    # identity from the host overlay), not the container's current default — else it is rejected once
+    # /mcp requires the new root after restart (Codex B1 P2). Assert --principal is passed through.
+    import subprocess as sp
+
+    monkeypatch.setattr(init_cli, "_compose_service_running", lambda service: True)
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return sp.CompletedProcess(cmd, 0, stdout="m2_minted_token\n", stderr="")
+
+    monkeypatch.setattr(init_cli.shutil, "which", lambda name: "/usr/bin/docker")
+    monkeypatch.setattr(init_cli.subprocess, "run", fake_run)
+    token = init_cli._mint_in_running_compose("human:alice")
+    assert token == "m2_minted_token"
+    mint_cmd = calls[-1]
+    assert "--principal" in mint_cmd
+    assert mint_cmd[mint_cmd.index("--principal") + 1] == "human:alice"
+
+
+def test_dockerignore_excludes_operator_secrets(tmp_path):
+    # The image does `COPY . /app`, so .panella (approval token + overlay) and .env (API key) MUST be
+    # excluded from the build context or they bake into image layers (Codex B1 P1). Assert the repo
+    # ships a .dockerignore that excludes them.
+    repo_root = Path(init_cli.__file__).resolve().parents[2]
+    dockerignore = (repo_root / ".dockerignore").read_text(encoding="utf-8")
+    assert ".panella/" in dockerignore
+    assert ".env" in dockerignore
+
+
 def test_init_written_approver_matches_transport_stamp_exactly(tmp_path, monkeypatch):
     # Drift-lock: the literal init writes into authorized_approvers MUST equal what the runtime
     # transport actually stamps for a valid presser. If either side ever changes, this fails loudly

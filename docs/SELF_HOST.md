@@ -68,9 +68,12 @@ Then, **before the first `docker compose up`** (or once, on an existing box), gi
 of the data volume:
 
 ```bash
-# fresh box: create the volume and chown it to your uid before starting the stack
-docker volume create panella_panella-http-data
-docker run --rm -v panella_panella-http-data:/app/data alpine chown -R "$(id -u):$(id -g)" /app/data
+# fresh box: create the volume and chown it to your uid before starting the stack.
+# The volume is namespaced by the compose project (docker-compose.yml sets name: panella-selfhost),
+# so its full name is panella-selfhost_panella-http-data.
+docker volume create panella-selfhost_panella-http-data
+docker run --rm -v panella-selfhost_panella-http-data:/app/data alpine \
+  chown -R "$(id -u):$(id -g)" /app/data
 ```
 
 Now the container process shares your uid — it can both read the mounted `0600` token and write its

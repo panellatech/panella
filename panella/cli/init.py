@@ -157,7 +157,7 @@ def _load_root_principal():
 
 def _mint_owner_bearer(principal_id: str, *, compose_present: bool) -> str:
     if compose_present:
-        return _mint_in_running_compose()
+        return _mint_in_running_compose(principal_id)
 
     from panella.http.config import load_config
     from panella.http.tokens import TokenStore
@@ -185,13 +185,17 @@ def _compose_service_running(service: str) -> bool:
     return service in {line.strip() for line in ps.stdout.splitlines()}
 
 
-def _mint_in_running_compose() -> str:
+def _mint_in_running_compose(principal_id: str) -> str:
     if shutil.which("docker") is None:
         raise subprocess.SubprocessError("docker command not found; run panella init after docker compose up --wait")
     if not _compose_service_running(COMPOSE_SERVICE):
         raise subprocess.SubprocessError("panella-http is not running; run docker compose up --wait first")
+    # Mint FOR the principal init resolved (the effective root, incl. a custom identity from the
+    # host overlay), not the container's current default. Without --principal the bearer would be
+    # bound to the old/generic principal and rejected once /mcp requires the new root after restart
+    # (Codex B1 P2).
     minted = subprocess.run(
-        ["docker", "compose", "exec", "-T", "panella-http", "panella", "tokens", "mint"],
+        ["docker", "compose", "exec", "-T", "panella-http", "panella", "tokens", "mint", "--principal", principal_id],
         cwd=Path.cwd(),
         capture_output=True,
         text=True,
