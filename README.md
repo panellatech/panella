@@ -8,8 +8,9 @@ Desktop, Cursor, or any MCP client connects with one line. Default-deny, fully a
 your own box. Apache-2.0.
 
 ```bash
+python -m pip install .               # the panella CLI, from this checkout
 mkdir -p .panella && echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
-docker compose up -d --wait
+docker compose up -d --wait           # first boot downloads the embedding model — allow a few minutes
 panella init                          # one command: owner token, approval token, governance overlay
 printf 'PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\nPANELLA_MCP_PROFILE=mcp-write\n' >> .env
 docker compose up -d --wait           # restart write-capable
@@ -44,13 +45,14 @@ did it come from?"*, the system has an answer.
 ## Quickstart
 
 ```bash
-mkdir -p .panella       # create it yourself — a compose-created bind mount would be root-owned
+python -m pip install .   # install the panella CLI from this checkout
+mkdir -p .panella         # create it yourself — a compose-created bind mount would be root-owned
 echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
-docker compose up -d --wait
-panella init            # provisions owner bearer + local approval token + governance overlay
+docker compose up -d --wait   # first boot downloads the embedding model — allow a few minutes
+panella init              # provisions owner bearer + local approval token + governance overlay
 printf 'PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\nPANELLA_MCP_PROFILE=mcp-write\n' >> .env
 docker compose up -d --wait   # restart into the write-capable MCP profile
-panella init --verify   # confirms the box is serving and write-capable
+panella init --verify     # confirms the box is serving and write-capable
 ```
 
 For the full copy-paste path from a fresh box to your first approved, recalled memory — including
