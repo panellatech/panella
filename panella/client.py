@@ -186,6 +186,29 @@ class MemoryClient:
         )
         return boosted[:limit]
 
+    def get_memory(self, memory_id: str) -> dict[str, Any] | None:
+        """Read one active drawer by id under the same ABAC net used by search."""
+        self.principal.require_scope("memory.read")
+        self._enforce_break_glass_ttl()
+        getter = getattr(self.adapter, "get_drawer", None)
+        if getter is None:
+            raise RuntimeError("memory adapter does not support get_drawer")
+        raw = getter(memory_id)
+        if raw is None:
+            return None
+        filtered, blocked = self._filter_hits([dict(raw)])
+        if blocked:
+            counters.increment(self.profile.name, "privacy_blocks", count=len(blocked))
+        if not filtered:
+            return None
+        self._audit_if_cross_tenant(
+            op="get_memory",
+            target_id=memory_id,
+            details={"memory_id": memory_id},
+            tenant_accessed=str(filtered[0].get("tenant_id") or self.principal.tenant_id),
+        )
+        return filtered[0]
+
     def write(
         self,
         content: str,
