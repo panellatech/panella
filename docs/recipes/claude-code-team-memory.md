@@ -217,11 +217,13 @@ operator's own bearer. Two ways to do that:
   `connect` fall back to reading the *operator's* `.panella/owner-bearer` — exactly the wrong
   credential to hand a teammate.
 
-**Honesty constraint:** per-teammate tokens give you *operational* separation only — a distinct
-label the operator can recognize and revoke later, and a distinct row in the audit trail. They are
-NOT least-privilege identity: the `/mcp` surface requires the owner/root principal, so every
-teammate bearer carries the same owner-level read-and-submit access as the operator's own. There is
-no per-user read/write scoping yet.
+**Honesty constraint:** per-teammate tokens give you *operational* separation only — a distinct,
+operator-recognizable label in the token database, and the ability to revoke one teammate's access
+without touching the others. They are NOT least-privilege identity, and they do NOT give
+per-teammate audit attribution: every bearer minted this way is bound to the same owner/root
+principal (the `/mcp` surface requires it), and the audit trail records the *principal*, so all
+teammates' actions appear under that shared identity. No per-user read/write scoping or per-user
+audit attribution exists yet.
 
 ## 6. Daily rhythm
 
