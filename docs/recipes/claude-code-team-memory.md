@@ -51,12 +51,19 @@ build dependencies; retry with `python -m pip install -v .` for verbose output.
 
 ```bash
 mkdir -p .panella
-echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
+touch .env
+grep -q '^PANELLA_API_KEY=' .env || echo "PANELLA_API_KEY=$(openssl rand -hex 32)" >> .env
 ```
 
-**Expected:** no output; `.env` now contains one `PANELLA_API_KEY=...` line.
+This appends rather than truncates: on native Linux you added `UID`/`GID` to `.env` in the
+prerequisite above, and a `>` redirect here would wipe them (Compose would then fall back to the
+wrong uid and Step 4's in-container verify would FAIL). The `grep` guard also keeps a re-run from
+minting a second key line.
+
+**Expected:** no output; `.env` contains a `PANELLA_API_KEY=...` line (plus any `UID`/`GID` lines
+from the prerequisite).
 **On failure:** if `openssl` is missing, generate 32 random hex bytes any other way (e.g.
-`python3 -c "import secrets; print(secrets.token_hex(32))"`) and paste it into `.env` by hand.
+`python3 -c "import secrets; print(secrets.token_hex(32))"`) and append it to `.env` by hand.
 
 ### Step 3 — start the box
 
@@ -129,8 +136,11 @@ path works before anything has been approved yet.
 ### Step 8 — submit a marker candidate
 
 In the same session, ask the agent to store a fact through Panella, for example: "Use Panella to
-remember: this box is the team's shared Claude Code memory." The agent calls
-`memory.submit_candidate` with that text.
+remember that this box is the team's shared Claude Code memory — store it in room `preferences`
+with memory_type `owner_preference`." `memory.submit_candidate` requires all three of `content`,
+`room`, and `memory_type` (it returns `invalid_arguments` if `room`/`memory_type` are missing), so
+name the room and type explicitly rather than relying on the agent to guess them. `preferences` /
+`owner_preference` are valid out of the box.
 
 **Expected:** the tool call reports the candidate was queued (an `approval_id`, not a durable
 write) — the write profile cannot write durably by itself.
