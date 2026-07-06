@@ -150,7 +150,7 @@ jobs:
         if: vars.PANELLA_RELEASE_SKIP_TRIVY != 'true'
         # The amd64 local image is the scan proxy for both arches: the Dockerfile/dependency graph is
         # lockstep, and multi-arch manifests cannot be loaded into the local Docker daemon.
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: panella-store-scan:${{ steps.tags.outputs.sha_short }}
           vuln-type: os,library
@@ -181,7 +181,7 @@ jobs:
         if: vars.PANELLA_RELEASE_SKIP_TRIVY != 'true'
         # The amd64 local image is the scan proxy for both arches: the Dockerfile/dependency graph is
         # lockstep, and multi-arch manifests cannot be loaded into the local Docker daemon.
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: panella-app-scan:${{ steps.tags.outputs.sha_short }}
           vuln-type: os,library
