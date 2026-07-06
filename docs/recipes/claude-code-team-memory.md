@@ -65,16 +65,20 @@ most common cause; `docker compose up -d --wait` again after fixing it.
 ### Step 4 — provision the box (one shot)
 
 ```bash
-OWNER_BEARER="$(panella init --yes | tee /dev/stderr | sed -n '1p')"
+set -o pipefail
+OWNER_BEARER="$(panella init --yes | tee /dev/stderr | sed -n '1p')" || echo "INIT FAILED — do not proceed"
 ```
+
+The `set -o pipefail` line is load-bearing: without it, the capture pipeline reports `sed`'s exit
+code and a failed `panella init` would still look like a successful assignment.
 
 **Expected:** the first stdout line is the owner bearer (also saved to `.panella/owner-bearer`,
 mode `0600`); stderr shows the approval token and governance overlay written, `.env` updated with
 `PANELLA_GOVERNANCE_OVERLAY` and `PANELLA_MCP_PROFILE=mcp-write`, the compose stack restarted, and
-a block of self-verify lines all starting `PASS`. Exit code `0`.
-**On failure:** a non-zero exit or any `FAIL` line means the box is not yet write-capable — re-run
-`panella init --yes` after resolving the printed cause; do not proceed to Step 5 until every line
-reads `PASS`.
+a block of self-verify lines all starting `PASS`. No `INIT FAILED` line.
+**On failure:** `INIT FAILED` (or any `FAIL` verify line) means the box is not yet write-capable —
+re-run `panella init --yes` after resolving the printed cause; do not proceed to Step 5 until every
+line reads `PASS`.
 
 > NOTE — capture the bearer: the line above is printed exactly once. If you lose it, mint a fresh
 > one with `docker compose exec -T panella-http panella tokens mint --label owner-replacement`
@@ -133,17 +137,20 @@ write) — the write profile cannot write durably by itself.
 
 ### Step 9 — operator: authenticate and review
 
-Run this block from the operator's own shell (not the agent's), on the box host:
+Run this block from the operator's own shell (not the agent's), on the box host, in the checkout
+directory. A fresh shell does not inherit the agent's `$OWNER_BEARER` variable — read the bearer
+from the file `panella init` saved for exactly this purpose:
 
 ```bash
-export PANELLA_BEARER="$OWNER_BEARER"
+export PANELLA_BEARER="$(cat .panella/owner-bearer)"
 panella approvals list
 ```
 
 **Expected:** a table with one row — `ID  WING  ROOM  TYPE  CREATED  PREVIEW` — showing the marker
 candidate from Step 8.
 **On failure:** `No pending approvals.` means Step 8 did not actually queue (re-check the agent's
-tool call succeeded); a token error means `$OWNER_BEARER` isn't the value captured in Step 4.
+tool call succeeded); a token error means `.panella/owner-bearer` is missing or not the bearer from
+Step 4 — re-check you are in the directory Step 4 ran in.
 
 ### Step 10 — operator: approve it
 
