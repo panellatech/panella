@@ -263,6 +263,25 @@ def test_get_memory_route_bearer_required_audited_and_tenant_isolated(tmp_path, 
     assert count >= 1
 
 
+def test_static_memory_routes_win_over_dynamic_id_route(tmp_path, monkeypatch):
+    # LOAD-BEARING INVARIANT (code-reviewer B2b P3): GET /v1/memory/{memory_id} must be registered
+    # AFTER the static /v1/memory/stats and /v1/memory/audit routers, or a real path like
+    # /v1/memory/stats would be captured by the {memory_id} param and return a memory-not-found 404
+    # instead of the stats/audit payload. Lock the ordering so a future include_router reorder can't
+    # silently regress it.
+    env = _build(tmp_path, monkeypatch, seed_candidate=False)
+    headers = {"Authorization": f"Bearer {env.bearer}"}
+    with TestClient(env.app) as client:
+        stats = client.get("/v1/memory/stats", headers=headers)
+        audit = client.get("/v1/memory/audit", headers=headers)
+    # The static handlers answer (200) — NOT the dynamic {memory_id} route (which would 404 with the
+    # memory_not_found code for the non-existent id "stats"/"audit").
+    assert stats.status_code == 200
+    assert "pending" not in stats.json() or stats.json().get("error", {}).get("code") != "memory_not_found"
+    assert audit.status_code == 200
+    assert audit.json().get("error", {}).get("code") != "memory_not_found"
+
+
 def test_get_memory_route_serving_gated(tmp_path, monkeypatch):
     _write_overlay(tmp_path, monkeypatch)
     config = MemoryHttpConfig(
