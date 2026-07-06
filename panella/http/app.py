@@ -19,7 +19,7 @@ from panella.http import console
 from panella.http.auth import AuthMiddleware, RateLimiter, resolve_bearer
 from panella.http.config import MemoryHttpConfig, load_config
 from panella.http.errors import ApiError, api_error_handler, error_payload, unhandled_error_handler
-from panella.http.routes import approvals, audit, delete, health, principal, search, stats, write
+from panella.http.routes import approvals, audit, delete, health, memory, principal, search, stats, write
 from panella.http.tokens import TokenStore, normalize_principal_id
 from panella.principal import root_principal
 from panella.governance import GovernanceConfigError, current_governance
@@ -152,6 +152,9 @@ def create_app(config: Any = None, *, memory_adapter: Any | None = None) -> Fast
     app.include_router(audit.router)
     app.include_router(principal.router)
     app.include_router(stats.router)
+    # Dynamic /v1/memory/{id} must be registered after static /v1/memory/audit and
+    # /v1/memory/stats so it cannot shadow those operator routes.
+    app.include_router(memory.router)
     # WP-B2a — HTTP approval surface. Always registered; each route resolves the deployment's
     # approval transport per request (build_transport_if_approvable) → 404 on a non-local_cli box,
     # so a telegram/foreign box exposes no HTTP approval surface. Serving-gated above.
