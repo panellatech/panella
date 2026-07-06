@@ -26,45 +26,19 @@ import argparse
 import json
 import os
 from collections import defaultdict
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from eval._paths import assert_eval_out
+from eval.longmemeval.visibility import eval_box_governance_env
 
 # The store lane's own description (locked wording, the finding's exact framing): the store lane
 # calls /api/search directly (see ingest_retrieve.py's search_store()) — no profile is resolved, no
 # ABAC filter runs, no lifecycle-status exclusion, no overfetch/backfill, no boost. It is the raw
 # baseline every facade-side delta below is measured AGAINST.
 STORE_LANE_DESCRIPTION = "raw store search (no governance semantics)"
-
-
-@contextmanager
-def _eval_box_governance_env():
-    """Derive "this run" values under the EVAL box's governance, not the operator's shell.
-
-    eval/compose.eval.yml explicitly CLEARS the governance-overlay env inside the eval facade, so
-    the box always runs generic governance — but this helper runs on the HOST, where a lingering
-    PANELLA_GOVERNANCE_OVERLAY / PANELLA_CONFIG_DIR export would make current_governance() resolve
-    the operator's OWN box and the emitted "this run" table would describe the wrong deployment
-    (cross-model review r2 P1). Clear the same vars the eval override clears, for the derivation
-    only, and restore them after.
-    """
-    from panella.governance import reset_governance_cache
-
-    saved = {
-        key: os.environ.pop(key)
-        for key in ("PANELLA_GOVERNANCE_OVERLAY", "PANELLA_CONFIG_DIR")
-        if key in os.environ
-    }
-    reset_governance_cache()
-    try:
-        yield
-    finally:
-        os.environ.update(saved)
-        reset_governance_cache()
 
 
 def _derive_intentional_lane_deltas(governance: Any | None = None) -> list[dict[str, str]]:
@@ -91,7 +65,7 @@ def _derive_intentional_lane_deltas(governance: Any | None = None) -> list[dict[
         gov = governance
         profile = yaml.safe_load(render_serving_profile(gov))
     else:
-        with _eval_box_governance_env():
+        with eval_box_governance_env():
             gov = current_governance()
             profile = yaml.safe_load(render_serving_profile(gov))
 

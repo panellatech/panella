@@ -20,7 +20,7 @@ This bundle exists to show governed reads do not cost recall -- it is not a lead
 
 | Question type | n (store) | n (facade) | recall@1 (store) | recall@1 (facade) | delta | recall@5 (store) | recall@5 (facade) | delta | recall@10 (store) | recall@10 (facade) | delta |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| {{PER_TYPE_ROWS}} |
+{{PER_TYPE_ROWS}}
 | **OVERALL** | {{OVERALL_STORE_N}} | {{OVERALL_FACADE_N}} | {{OVERALL_STORE_R1}} | {{OVERALL_FACADE_R1}} | {{OVERALL_DELTA_R1}} | {{OVERALL_STORE_R5}} | {{OVERALL_FACADE_R5}} | {{OVERALL_DELTA_R5}} | {{OVERALL_STORE_R10}} | {{OVERALL_FACADE_R10}} | {{OVERALL_DELTA_R10}} |
 
 ## Intentional lane deltas (locked framing -- always emitted, never cherry-picked)
@@ -37,7 +37,7 @@ with its actual config value in THIS run:
 
 | Question type | n | accuracy |
 | --- | --- | --- |
-| {{QA_PER_TYPE_ROWS}} |
+{{QA_PER_TYPE_ROWS}}
 | **OVERALL** | {{QA_OVERALL_N}} | {{QA_OVERALL_ACC}} |
 
 Reader: `{{READER_MODEL}}` (`{{READER_TRANSPORT}}`) -- Judge: `{{JUDGE_MODEL}}` (`{{JUDGE_TRANSPORT}}`)

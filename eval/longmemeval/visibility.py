@@ -17,11 +17,37 @@ being measured will actually serve — not a copy that can drift from it.
 from __future__ import annotations
 
 import fnmatch
+import os
+from contextlib import contextmanager
 
 import yaml
 
 from panella.config_render import render_serving_profile
-from panella.governance import Governance, current_governance
+from panella.governance import Governance, current_governance, reset_governance_cache
+
+
+@contextmanager
+def eval_box_governance_env():
+    """Resolve governance the way the EVAL BOX does, not the operator's shell.
+
+    eval/compose.eval.yml explicitly CLEARS the governance-overlay env inside the eval facade, so
+    the box always boots generic governance — but this module runs on the HOST, where a lingering
+    PANELLA_GOVERNANCE_OVERLAY / PANELLA_CONFIG_DIR export would make current_governance() resolve
+    the operator's OWN box (GH-bot P2; same class as the compare_lanes host-drift finding). Every
+    default (governance=None) derivation in the eval harness must run inside this context: clear
+    the same vars the eval override clears, restore them after, reset the governance cache on both
+    edges so neither direction serves a stale resolution."""
+    saved = {
+        key: os.environ.pop(key)
+        for key in ("PANELLA_GOVERNANCE_OVERLAY", "PANELLA_CONFIG_DIR")
+        if key in os.environ
+    }
+    reset_governance_cache()
+    try:
+        yield
+    finally:
+        os.environ.update(saved)
+        reset_governance_cache()
 
 
 def eval_wing_room(governance: Governance | None = None) -> tuple[str, str]:
@@ -32,8 +58,10 @@ def eval_wing_room(governance: Governance | None = None) -> tuple[str, str]:
     the two structural rooms every rendered serving/finalizer profile allows
     (``write_room_allowlist``/``read_allowlist`` both key off ``{wing}/preferences`` and
     ``{wing}/feedback``; either works, "preferences" is arbitrary but fixed for determinism)."""
-    gov = governance if governance is not None else current_governance()
-    return gov.identity.owner_wing, "preferences"
+    if governance is not None:
+        return governance.identity.owner_wing, "preferences"
+    with eval_box_governance_env():
+        return current_governance().identity.owner_wing, "preferences"
 
 
 def assert_serving_profile_reads(wing: str, room: str, *, governance: Governance | None = None) -> None:
@@ -42,8 +70,11 @@ def assert_serving_profile_reads(wing: str, room: str, *, governance: Governance
     (`fnmatch.fnmatchcase` against each allowlist pattern). Call this at eval-box startup
     (`eval-isolation-check` / `eval-selftest`) so a governance drift is caught before any recall
     number is computed, not discovered as a silent facade-lane 0."""
-    gov = governance if governance is not None else current_governance()
-    rendered = yaml.safe_load(render_serving_profile(gov))
+    if governance is not None:
+        rendered = yaml.safe_load(render_serving_profile(governance))
+    else:
+        with eval_box_governance_env():
+            rendered = yaml.safe_load(render_serving_profile(current_governance()))
     allowlist = rendered.get("read_allowlist") or []
     path = f"{wing}/{room}"
     if not any(fnmatch.fnmatchcase(path, pattern) for pattern in allowlist):

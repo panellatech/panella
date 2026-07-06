@@ -4,6 +4,8 @@ is the make-or-break check the brief calls out: a wrong wing/room stamp makes ev
 recall silently 0."""
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from eval.longmemeval.visibility import assert_serving_profile_reads, eval_wing_room
@@ -45,3 +47,23 @@ def test_legacy_fallback_wing_room_would_fail_the_gate() -> None:
     gov = load_governance()
     with pytest.raises(RuntimeError):
         assert_serving_profile_reads("knowledge", "legacy", governance=gov)
+
+
+def test_default_derivation_ignores_host_shell_governance(monkeypatch):
+    """A lingering host-shell overlay/config export must not leak into the default (governance=None)
+    derivations — the eval box boots with those vars CLEARED (eval/compose.eval.yml), so the harness
+    derives under the same cleared env (GH-bot P2; same class as the compare_lanes host-drift fix).
+    Bogus paths make the failure loud: without the clearing, current_governance() would try to load
+    the operator's box config and error instead of resolving generic governance."""
+    from eval.longmemeval.visibility import assert_serving_profile_reads, eval_wing_room
+
+    monkeypatch.setenv("PANELLA_GOVERNANCE_OVERLAY", "/nonexistent/host-box-governance.yaml")
+    monkeypatch.setenv("PANELLA_CONFIG_DIR", "/nonexistent/host-config-dir")
+
+    wing, room = eval_wing_room()
+    assert (wing, room) == ("owner", "preferences")
+    assert_serving_profile_reads(wing, room)  # must not raise under the bogus host env
+
+    # both derivations restored the operator's env afterwards
+    assert os.environ["PANELLA_GOVERNANCE_OVERLAY"] == "/nonexistent/host-box-governance.yaml"
+    assert os.environ["PANELLA_CONFIG_DIR"] == "/nonexistent/host-config-dir"

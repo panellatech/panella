@@ -2,6 +2,8 @@
 that report rendering writes ONLY under the given out_path (never printing numbers elsewhere)."""
 from __future__ import annotations
 
+from pathlib import Path
+
 import re
 
 from eval.render_report import DEFAULT_TEMPLATE, _qa_rows_from_envelope, render
@@ -103,3 +105,14 @@ def test_qa_rows_from_envelope_unit() -> None:
     rows, complete = _qa_rows_from_envelope({"complete": False, "errors": 2, "rows": [_QA_ROW]})
     assert rows == [_QA_ROW]
     assert complete is False
+
+
+def test_per_type_rows_are_not_double_piped():
+    """Emitted per-type rows carry their own leading/trailing pipes; the template placeholder must
+    be bare, or every rendered row gains empty edge cells (`| | ... | |`) and the markdown table
+    misaligns (GH-bot P3)."""
+    template = Path("eval/REPORT.template.md").read_text()
+    assert "| {{PER_TYPE_ROWS}} |" not in template
+    assert "| {{QA_PER_TYPE_ROWS}} |" not in template
+    assert "{{PER_TYPE_ROWS}}" in template
+    assert "{{QA_PER_TYPE_ROWS}}" in template
