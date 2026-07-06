@@ -274,6 +274,8 @@ def test_export_seeded_wing_yields_exactly_seeded_memories(tmp_path):
 
     rc = main(["export", "--wing", "iris", "--store", str(store), "--out", str(out)])
     assert rc == 0
+    # The export holds raw memory contents → written 0600, not the umask default (GH-bot B4 P2).
+    assert out.stat().st_mode & 0o777 == 0o600
 
     lines = out.read_text(encoding="utf-8").strip().splitlines()
     assert len(lines) == 2

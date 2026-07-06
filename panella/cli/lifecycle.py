@@ -495,7 +495,15 @@ def _cmd_export(args: argparse.Namespace) -> int:
     text = "\n".join(out_lines) + ("\n" if out_lines else "")
     if args.out is not None:
         args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(text, encoding="utf-8")
+        # The export is raw memory contents + metadata — write it 0600, not the umask default
+        # (Path.write_text would leave 0644), so exported private memories aren't readable by other
+        # local users / shared-volume consumers (GH-bot B4 P2). Fresh 0600 fd + chmod, umask-proof.
+        fd = os.open(args.out, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        try:
+            os.write(fd, text.encode("utf-8"))
+        finally:
+            os.close(fd)
+        os.chmod(args.out, 0o600)
         print(f"exported {len(out_lines)} memor{'y' if len(out_lines) == 1 else 'ies'} to {args.out}")
     else:
         sys.stdout.write(text)
