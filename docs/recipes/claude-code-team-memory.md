@@ -9,7 +9,7 @@ new facts, one operator approves what becomes durable, and the audit trail shows
 - Every teammate's Claude Code connects over MCP: it can search the box and propose new facts.
 - Nothing becomes durable on its own — a human operator approves each candidate before it is
   recallable.
-- An audit trail (`panella audit tail`) shows who approved what, and when.
+- An audit trail (`panella audit tail`) shows what was approved and when; add `--json` for the full rows including the acting principal.
 
 This is NOT auto-consolidation. Panella never merges, summarizes, or promotes memories in the
 background — a fact becomes durable only when a named human approves it.
@@ -20,6 +20,12 @@ background — a fact becomes durable only when a named human approves it.
   loopback on a single machine (this recipe's shape); if your team is not all on that one machine,
   see [docs/SELF_HOST.md](../SELF_HOST.md) for LAN/tailnet hardening notes before you open the bind
   beyond `127.0.0.1` — that step is out of scope here.
+- **Native Linux only**: apply the uid override from
+  [docs/SELF_HOST.md](../SELF_HOST.md#running-as-your-own-uid-native-linux) BEFORE Step 4. Bind
+  mounts preserve host uids there and the image runs as uid `10001`, so without the override the
+  container cannot read the `0600` operator files `panella init` writes and Step 4's
+  `[container]` verify lines FAIL. (macOS Docker Desktop is unaffected — its file sharing maps
+  ownership for you.)
 - Docker and Docker Compose.
 - A clone of this repository (`git clone` + `python -m pip install .` from the checkout — see
   step 1 below).
@@ -255,8 +261,11 @@ re-issuing everyone.
   panella audit tail --limit 20
   ```
 
-  `stats` shows aggregate counts per wing; `audit tail` shows the most recent approval/reject
-  events with who and when.
+  `stats` shows aggregate counts per wing. `audit tail`'s table shows the most recent
+  approval/reject events (when, what, which tenant); the table does NOT print the acting
+  principal — use `panella audit tail --json --limit 20` when you need attribution fields on the
+  raw entries. (All teammates currently act as the shared owner principal — see §5's honesty
+  constraint — so per-person attribution is limited either way.)
 
 ## 7. Uninstall / reset
 
