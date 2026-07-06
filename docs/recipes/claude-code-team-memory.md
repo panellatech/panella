@@ -1,6 +1,3 @@
-> **DRAFT — do not publish.** This recipe targets `feat/c0-init-oneshot`; merge only after that
-> branch lands.
-
 # Recipe: Claude Code team memory
 
 Give a small team one governed memory box: every teammate's Claude Code can search it and propose
@@ -67,8 +64,6 @@ most common cause; `docker compose up -d --wait` again after fixing it.
 
 ### Step 4 — provision the box (one shot)
 
-<!-- CONTRACT: feat/c0-init-oneshot -->
-
 ```bash
 OWNER_BEARER="$(panella init --yes | tee /dev/stderr | sed -n '1p')"
 ```
@@ -91,11 +86,10 @@ reads `PASS`.
 panella connect --print claude-code
 ```
 
-<!-- CONTRACT: feat/c0-init-oneshot (reads .panella/owner-bearer automatically; today the CLI
-     still requires --token "$OWNER_BEARER" — see the "On failure" fallback below) -->
-
-**Expected:** one line —
-`claude mcp add --transport http panella http://127.0.0.1:8001/mcp --header "Authorization: Bearer <bearer>"`.
+**Expected:** one line on stdout —
+`claude mcp add --transport http panella http://127.0.0.1:8001/mcp --header "Authorization: Bearer <bearer>"`
+(the bearer is read from `.panella/owner-bearer` automatically) — plus a stderr warning that the
+output embeds a live credential.
 **On failure:** if the bearer in the printed line reads `PANELLA_BEARER_HERE`, the automatic
 owner-bearer read failed — fall back to
 `panella connect --print claude-code --token "$OWNER_BEARER"` using the bearer captured in Step 4.
