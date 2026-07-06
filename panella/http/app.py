@@ -29,10 +29,13 @@ from panella.store_probe import startup_self_check
 logger = logging.getLogger(__name__)
 
 # Routes the coherence gate refuses while incoherent (§1.5.3): the memory surface, the approval
-# surface (approving finalizes a durable write — never do that on an incoherent box, WP-B2a), and
-# the break-glass token mint (an elevation minted against a wrong-identity box is worthless and
-# confusing). /v1/health stays reachable so Doctor sees a live-but-refusing process.
-_GATED_PREFIXES = ("/v1/memory/", "/v1/approvals/")
+# surface (approving finalizes a durable write — never do that on an incoherent box, WP-B2a), the
+# break-glass token mint (an elevation minted against a wrong-identity box is worthless and
+# confusing), and the operator console (WP-B3): the console is an unauthenticated page into which
+# the operator PASTES the owner bearer + approval token, so an incoherent box must not serve it —
+# that would invite secrets into a process whose own self-check says it cannot serve. /v1/health is
+# the ONLY path that stays reachable while incoherent, so Doctor sees a live-but-refusing process.
+_GATED_PREFIXES = ("/v1/memory/", "/v1/approvals/", "/console")
 _GATED_EXACT = frozenset({"/v1/principal/break-glass"})
 
 

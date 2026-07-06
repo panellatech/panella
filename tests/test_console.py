@@ -233,7 +233,7 @@ def test_console_on_unknown_static_name_404(tmp_path, monkeypatch, asset_name):
     assert r.status_code == 404
 
 
-async def _raw_asgi_get(app, path: str, headers: dict[str, str]) -> tuple[int, bytes]:
+async def _raw_asgi_get(app, path: str, headers: dict[str, str], *, return_headers: bool = False):
     """Send a literal, non-normalized ``path`` directly through the ASGI ``app`` callable.
 
     httpx (and therefore ``TestClient``) normalizes RFC-3986 dot-segments (``..``) in the URL
@@ -288,8 +288,11 @@ async def _raw_asgi_get(app, path: str, headers: dict[str, str]) -> tuple[int, b
         with contextlib.suppress(asyncio.CancelledError, Exception):
             await lifespan_task
 
-    status = next(m["status"] for m in messages if m["type"] == "http.response.start")
+    start = next(m for m in messages if m["type"] == "http.response.start")
+    status = start["status"]
     body = b"".join(m.get("body", b"") for m in messages if m["type"] == "http.response.body")
+    if return_headers:
+        return status, body, dict(start.get("headers", []))
     return status, body
 
 
@@ -310,9 +313,13 @@ async def test_console_on_raw_dotdot_segment_is_rejected_server_side(tmp_path, m
 async def test_console_on_raw_dotdot_slash_segment_is_rejected_server_side(tmp_path, monkeypatch):
     monkeypatch.setenv("PANELLA_CONSOLE_ENABLED", "1")
     env = _build(tmp_path, monkeypatch)
-    status, body = await _raw_asgi_get(env.app, "/console/static/../app.py", {})
+    status, body, headers = await _raw_asgi_get(env.app, "/console/static/../app.py", {}, return_headers=True)
     assert status == 404
     assert b"create_app" not in body  # a snippet only present if app.py's source ever leaked
+    # CSP must be present even on a slash-bearing fall-through 404 (Codex B3 P2): the catch-all
+    # /console/{rest:path} route keeps the whole console namespace CSP-covered, not just the two
+    # exact routes. Without it this path falls to the app's CSP-less default 404 handler.
+    assert headers.get(b"content-security-policy") is not None
 
 
 # --- 3. HTML structural: no <script> with a body, no on*= handlers, no inline style= ----------------
@@ -430,18 +437,14 @@ def test_console_on_health_still_ok(tmp_path, monkeypatch):
     assert r.status_code == 200
 
 
-def test_console_on_incoherent_box_still_refuses_memory_routes(tmp_path, monkeypatch):
+def test_console_on_incoherent_box_is_gated_only_health_survives(tmp_path, monkeypatch):
     # The brief's explicit requirement: "ServingGateMiddleware must still gate the console... an
-    # incoherent box refuses everything but /v1/health -- do not exempt console from it." What that
-    # means concretely: mounting the console must NOT weaken ServingGateMiddleware's existing
-    # refusal of the memory/approval surface when the box is incoherent (identity-pinned overlay
-    # configured, but the store is missing with no PANELLA_FRESH_BOX=1 ack -- see
-    # panella/store_probe.py's overlay_pinned branch). /console itself is UNCHANGED by this gate
-    # either way: it was never one of ServingGateMiddleware's gated prefixes (_GATED_PREFIXES =
-    # "/v1/memory/", "/v1/approvals/"; _GATED_EXACT = "/v1/principal/break-glass") -- same as any
-    # other non-memory/approval route (e.g. /v1/health itself). The console shell has zero data and
-    # zero secrets (stated in the brief), so serving it while incoherent carries none of the risk
-    # the gate exists to prevent (a durable write or a data read against a wrong-identity store).
+    # incoherent box refuses everything but /v1/health -- do not exempt console from it." The
+    # console is NOT inert: it is the page into which the operator pastes the owner bearer + the
+    # approval token, so an incoherent box (identity-pinned overlay configured, store missing, no
+    # PANELLA_FRESH_BOX=1 ack -- see panella/store_probe.py's overlay_pinned branch) must refuse it
+    # with 503, exactly like the memory/approval surfaces (Codex B3 security review, P1). /console is
+    # in _GATED_PREFIXES; /v1/health is the ONE path that stays reachable while incoherent.
     monkeypatch.setenv("PANELLA_CONSOLE_ENABLED", "1")
     monkeypatch.delenv("PANELLA_FRESH_BOX", raising=False)
     overlay = tmp_path / "governance.yaml"
@@ -476,8 +479,9 @@ def test_console_on_incoherent_box_still_refuses_memory_routes(tmp_path, monkeyp
         r_console_js = c.get("/console/static/console.js")
         r_stats = c.get("/v1/memory/stats", headers={"Authorization": f"Bearer {bearer}"})
 
-    assert r_health.status_code == 200
-    assert r_console.status_code == 200  # unauthenticated shell -- unaffected by the coherence gate
-    assert r_console_js.status_code == 200
-    assert r_stats.status_code == 503  # the ACTUAL gated surface still refuses, exactly as before
+    assert r_health.status_code == 200  # the ONE always-reachable path -- Doctor sees a live process
+    assert r_console.status_code == 503  # the secret-collecting console is refused on an incoherent box
+    assert r_console.json()["code"] == "memory_not_serving"
+    assert r_console_js.status_code == 503  # ...including its assets
+    assert r_stats.status_code == 503  # the memory surface still refuses, exactly as before
     assert r_stats.json()["code"] == "memory_not_serving"

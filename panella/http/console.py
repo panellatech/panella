@@ -73,12 +73,24 @@ def build_console_router() -> APIRouter:
     def console_static(asset_name: str) -> Response:
         content_type = _ASSET_CONTENT_TYPES.get(asset_name)
         if content_type is None:
-            # Unknown name (typo, path-traversal attempt via a dotted/slashed segment FastAPI has
-            # already routed here as a single path param, an extension we don't ship) — 404, never
-            # a directory listing and never an attempt to resolve it against the filesystem.
+            # Unknown name (typo, an extension we don't ship) — 404, never a directory listing and
+            # never an attempt to resolve it against the filesystem.
             return PlainTextResponse("not found", status_code=404, headers={"Content-Security-Policy": _CSP})
         body = (STATIC_DIR / asset_name).read_text(encoding="utf-8")
         return Response(content=body, media_type=content_type, headers={"Content-Security-Policy": _CSP})
+
+    @router.api_route("/console/{rest:path}", include_in_schema=False,
+                      methods=["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+    def console_catch_all(rest: str) -> Response:
+        # A slash-bearing path under /console (e.g. ``/console/static/../app.py`` or
+        # ``/console/static//console.js``) never matches the single-segment ``{asset_name}`` route
+        # (Starlette's default converter is ``[^/]+``), so without this it would fall through to the
+        # app's default 404 handler, which emits NO Content-Security-Policy — falsifying the "CSP on
+        # every console-namespace response" invariant (Codex B3 security review, P2). This catch-all
+        # keeps the whole ``/console`` namespace CSP-covered and inert: always a 404, never resolves
+        # ``rest`` against the filesystem, never serves anything. It is registered LAST so the two
+        # real routes above win for their exact paths.
+        return PlainTextResponse("not found", status_code=404, headers={"Content-Security-Policy": _CSP})
 
     return router
 
@@ -102,9 +114,11 @@ def mount_console(app: FastAPI, *, auth_free_paths: set[str], auth_free_prefixes
       (see ``console_static`` above). This mirrors an ordinary static-asset directory on any web
       server: the directory is public, a 404 for a missing file doesn't require a login prompt first.
 
-    ``ServingGateMiddleware`` still applies to every path (neither ``/console`` nor
-    ``/console/static/`` is one of the memory/approval gated prefixes), so an incoherent box still
-    serves the shell — that is fine, it is static and inert either way.
+    ``ServingGateMiddleware`` gates the whole ``/console`` prefix (see ``_GATED_PREFIXES`` in
+    ``app.py``): an incoherent box refuses the console with 503, exactly like the memory/approval
+    surfaces. The console is NOT inert — it is where the operator pastes the owner bearer + approval
+    token — so a box whose own self-check says it cannot serve must not offer that page. ``/v1/health``
+    stays the single always-reachable path.
     """
     app.include_router(build_console_router())
     widened_paths = auth_free_paths | {CONSOLE_PATH}
