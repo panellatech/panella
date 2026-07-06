@@ -43,7 +43,7 @@ end to end. The owner bearer belongs in the MCP client config; the approval toke
 
 See [QUICKSTART.md](QUICKSTART.md) for the end-to-end submit, approve, and recall flow.
 
-### Token file must be readable by the container (native Linux)
+### Running as your own uid (native Linux)
 
 The approval token is a host file (mode `0600`) that the `panella-http` container also reads to
 verify a presented token. On Docker Desktop (macOS/Windows) it is readable inside the container
@@ -52,16 +52,24 @@ regardless of uid. On **native Linux**, bind mounts preserve host uid/gid and th
 approval silently fails. `panella init --verify` catches this — it runs the token check *inside* the
 running container, so a "looks fine on the host" false pass is impossible.
 
-The fix is to run the service under your own uid **and** make its data writable by that uid — the
-`panella-http` service also writes its token/audit/outbox DBs into the `panella-http-data` volume,
-which is initialized owned by the image uid `10001`, so changing only the process uid would leave it
-unable to write its state and the container would fail before verification:
+The fix is to run the service under your own uid and give it writable homes for the TWO places it
+writes: the `panella-http-data` volume (token/audit/outbox DBs) **and** `/app/dist-config`, which the
+entrypoint re-renders on every startup and is image-owned by uid `10001` — with only the `user:`
+override the container crashes at boot with `PermissionError: /app/dist-config/...` before it ever
+serves. Bind the rendered-config dir to a host-owned path alongside the uid override:
 
 ```yaml
 # docker-compose.override.yml
 services:
   panella-http:
     user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      # entrypoint re-renders config here each boot; must be writable by YOUR uid
+      - ./.panella/dist-config:/app/dist-config
+```
+
+```bash
+mkdir -p .panella/dist-config
 ```
 
 Compose reads `${UID}`/`${GID}` from the process environment or a `.env` file, and the shell's `UID`
@@ -73,17 +81,24 @@ the fallback `1000` is used and, unless you happen to be uid 1000, the container
 printf 'UID=%s\nGID=%s\n' "$(id -u)" "$(id -g)" >> .env
 ```
 
-Then, **before the first `docker compose up`** (or once, on an existing box), give that uid ownership
-of the data volume:
+Then fix the data volume's ownership. Order matters: Docker populates a named volume from the image
+on FIRST use and that copy carries the image's `10001:10001` ownership — a chown done *before* the
+first `up` is silently overwritten. So bring the stack up once, then chown the populated volume, then
+restart the service:
 
 ```bash
-# fresh box: create the volume and chown it to your uid before starting the stack.
-# The volume is namespaced by the compose project (docker-compose.yml sets name: panella-selfhost),
-# so its full name is panella-selfhost_panella-http-data.
-docker volume create panella-selfhost_panella-http-data
+docker compose up -d --wait || true   # first boot populates the volume (10001-owned)
+docker compose stop panella-http
+# volume name is namespaced by the compose project (name: panella-selfhost)
 docker run --rm -v panella-selfhost_panella-http-data:/app/data alpine \
   chown -R "$(id -u):$(id -g)" /app/data
+docker compose up -d --wait
 ```
 
-Now the container process shares your uid — it can both read the mounted `0600` token and write its
-own state. (Docker Desktop users can ignore all of this.)
+Now the container process shares your uid — it can read the mounted `0600` token, write its state,
+and render its config. Re-run `panella init --verify` and expect every check to PASS, including the
+two `[container]` lines. (Docker Desktop users can ignore all of this.)
+
+This sequence is exactly what a real native-Linux deployment exercised end-to-end (both failure modes
+above were hit and confirmed before this section was corrected). First-class arbitrary-uid support in
+the image — so none of this is needed — is tracked as a follow-up issue.
