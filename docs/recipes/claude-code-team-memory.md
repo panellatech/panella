@@ -1,7 +1,7 @@
 # Recipe: Claude Code team memory
 
 Give a small team one governed memory box: every teammate's Claude Code can search it and propose
-new facts, one operator approves what becomes durable, and the audit trail shows who approved what.
+new facts, one operator approves what becomes durable, and the audit trail records every approval.
 
 ## 1. What you get
 
