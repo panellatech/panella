@@ -85,6 +85,9 @@ def _provision(*, force: bool) -> int:
     # must not mint an owner bearer. Minting first would leak a live root-privilege token to stdout
     # on every re-run while the message says "keeping existing", and accumulate orphan bearers in
     # the token DB (code-reviewer B1 P2).
+    # These operator secrets live under ./.panella, which is excluded from the Docker build context
+    # by the repo's .dockerignore — so a later `docker compose build` / `up --build` never bakes the
+    # approval token or overlay into image layers (the secret boundary this command enforces).
     operator_dir = Path.cwd() / OPERATOR_DIR
     approval_token_path = operator_dir / APPROVAL_TOKEN_NAME
     overlay_path = operator_dir / GOVERNANCE_OVERLAY_NAME
@@ -144,7 +147,9 @@ def _provision(*, force: bool) -> int:
     print(f"  export PANELLA_GOVERNANCE_OVERLAY={overlay_pointer}")
     if compose_present:
         print("  export PANELLA_MCP_PROFILE=mcp-write")
-        print("  docker compose up -d")
+        # --wait: the facade has a 30s/45s healthcheck start period, so a bare `up -d` returns while
+        # it is still starting and the very next `--verify` would race a not-yet-serving /mcp.
+        print("  docker compose up -d --wait")
     print("  panella init --verify")
     return 0
 
@@ -239,19 +244,20 @@ def _mint_in_running_compose(principal_id: str) -> str:
 
 
 def _write_approval_token(path: Path) -> None:
-    # Write to a FRESH 0600 temp then atomically rename into place. An O_TRUNC directly over an
-    # existing loose-mode file would hold the new secret at the OLD (possibly world-readable) mode
-    # during the write and chmod only afterward — a window where the secret is exposed. Creating a
-    # new temp (0600 from birth, umask-proofed by an explicit chmod) and renaming means the secret is
-    # never visible at a wider mode (code-reviewer / Codex P2).
+    # Write to a FRESH 0600 temp then atomically rename into place. Unlink any STALE temp first, then
+    # O_EXCL-create: opening a pre-existing ``.new`` (e.g. from an interrupted/manual run) with
+    # O_TRUNC would hold the new secret at that file's OLD, possibly world-readable, mode until the
+    # later chmod — a real exposure window (Codex B1 P2). Unlink + O_CREAT|O_EXCL guarantees the
+    # secret is 0600 from birth; the rename then publishes it atomically, never at a wider mode.
     token = secrets.token_hex(32)
     tmp_path = path.with_name(path.name + ".new")
-    fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, APPROVAL_TOKEN_MODE)
+    tmp_path.unlink(missing_ok=True)
+    fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, APPROVAL_TOKEN_MODE)
     try:
         os.write(fd, f"{token}\n".encode("ascii"))
     finally:
         os.close(fd)
-    os.chmod(tmp_path, APPROVAL_TOKEN_MODE)
+    os.chmod(tmp_path, APPROVAL_TOKEN_MODE)  # umask-proof the fresh file
     os.replace(tmp_path, path)
 
 
