@@ -223,9 +223,22 @@ identity, they do NOT give per-teammate audit attribution (every bearer minted t
 the same owner/root principal — the `/mcp` surface requires it — and the audit trail records the
 *principal*, so all teammates' actions appear under that shared identity), and there is NO exposed
 revoke surface yet (`panella tokens` currently only mints; the token store schema supports
-revocation, but no CLI/HTTP operation performs it). If a teammate must lose access today, treat it
-as a box-level event: rotate `PANELLA_API_KEY`, re-provision with `panella init --force`, and
-re-issue bearers to the teammates who remain.
+revocation, but no CLI/HTTP operation performs it). If a teammate must lose access today, the ONLY
+thing that actually invalidates bearers is resetting the token database — rotating
+`PANELLA_API_KEY` or re-running `panella init --force` does NOT help (bearers resolve from the
+token DB alone, and old bearers stay valid after a re-provision). The reset kills EVERY bearer at
+once while preserving the audit trail and outbox (they live in separate files in the same volume):
+
+```bash
+docker compose exec -T panella-http sh -c 'rm /app/data/memory_tokens.db*'
+docker compose restart panella-http
+```
+
+(The glob matters: the token DB runs in SQLite WAL mode, so `-shm`/`-wal` sidecars sit next to it.)
+
+Then re-mint the operator's bearer and each remaining teammate's (§5 above), and reconnect every
+client. Blunt, but honest — until a real `tokens revoke` ships, offboarding one teammate costs
+re-issuing everyone.
 
 ## 6. Daily rhythm
 
