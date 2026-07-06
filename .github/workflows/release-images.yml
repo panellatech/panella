@@ -101,6 +101,21 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Free runner disk for the store image
+        # The store target's amd64 layer is ~3GB compressed (mcp-memory-service pulls the CUDA
+        # torch wheel on amd64; aarch64 wheels are CPU-only, so local Apple-Silicon/VPS builds
+        # never see this). A stock ubuntu runner then runs out of disk at the scan-proxy `load:`
+        # (proven: run 28818511823). Inline rm of the runner's known preinstalled toolchains
+        # (~25GB) — deliberately NOT a third-party cleanup action; this workflow's supply-chain
+        # bar is SHA-pinned-or-nothing. Slimming the image itself (CPU torch) is the C0-3 slice.
+        shell: bash
+        run: |
+          set -euo pipefail
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h / | tail -1
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
 
