@@ -5,8 +5,19 @@ set -euo pipefail
 # git-HISTORY half of the identity posture (check-rendered-identity.sh covers rendered
 # artifacts): a GitHub-UI merge stamps the pressing user as author (squash) or
 # "GitHub <noreply@github.com>" as committer (merge commit), which is exactly how a real
-# maintainer identity leaks into public history. Merges therefore happen locally under the
-# neutral identity and are pushed — the merge button stays RED here by design.
+# maintainer identity leaks into public history (it happened once on #12).
+#
+# What this gate is: a fast-catch BACKSTOP, not a pre-merge button block. The discipline is to
+# merge locally under the neutral identity and push; this job ENFORCES that discipline by making
+# any violation loud:
+#   - on push to a branch (incl. main): scans the pushed history — a GitHub-authored merge/squash
+#     commit that lands on main turns main RED immediately, so it is caught and amended before it
+#     is forgotten (the #12 save).
+#   - on pull_request: scans the PR's OWN commits (its head, not GitHub's synthetic merge commit),
+#     so a contributor who committed under a personal identity is caught before merge.
+# It cannot turn the GitHub merge BUTTON red: that merge/squash commit does not exist until the
+# button is clicked, so no PR check can pre-empt it — the push-to-main scan is the backstop, and
+# repo policy (merge locally / disable UI merges) is the prevention.
 #
 # The allowlist is public-safe: it names only the neutral project identity and GitHub's own
 # bot plumbing. It must never grow a personal name/email — that would leak the identity it
