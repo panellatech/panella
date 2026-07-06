@@ -44,6 +44,8 @@ did it come from?"*, the system has an answer.
 echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
 docker compose up -d --wait
 panella init            # provisions owner bearer + local approval token + governance overlay
+printf 'PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\nPANELLA_MCP_PROFILE=mcp-write\n' >> .env
+docker compose up -d --wait   # restart into the write-capable MCP profile
 panella init --verify   # confirms the box is serving and write-capable
 ```
 
