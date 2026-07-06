@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
 import stat
+import subprocess
+import sys
 import urllib.parse
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -26,6 +29,7 @@ from panella.profile import AgentProfile
 
 APPROVAL_TOKEN_PATH = Path(".panella/approval-token")
 OVERLAY_PATH = Path(".panella/governance.yaml")
+OWNER_BEARER_PATH = Path(".panella/owner-bearer")
 
 
 def _overlay_doc(path: Path = OVERLAY_PATH) -> dict:
@@ -48,6 +52,16 @@ def _assert_overlay_shape(tmp_path: Path) -> None:
     assert transport["kind"] == "local_cli"
     assert transport["config"]["token_mode"] == "0600"
     assert transport["config"]["token_file"] == str((tmp_path / APPROVAL_TOKEN_PATH).resolve())
+
+
+def _assert_compose_overlay_shape() -> None:
+    doc = _overlay_doc()
+    approval = doc["approval"]
+    assert approval["authorized_approvers"] == ["local_cli:owner"]
+    transport = approval["transport"]
+    assert transport["kind"] == "local_cli"
+    assert transport["config"]["token_mode"] == "0600"
+    assert transport["config"]["token_file"] == "/app/local/approval-token"
 
 
 class RecordingAdapter:
@@ -85,12 +99,12 @@ def _reset_governance():
     reset_governance_cache()
 
 
-def test_init_happy_path_idempotency_and_force(tmp_path, monkeypatch, capsys):
+def test_init_native_happy_path_owner_bearer_and_force(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     token_db = tmp_path / "tokens.db"
     monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(token_db))
 
-    rc = main(["init"])
+    rc = main(["init", "--yes"])
     captured = capsys.readouterr()
     owner_bearer = _first_bearer(captured.out)
     approval_token = APPROVAL_TOKEN_PATH.read_text(encoding="utf-8").strip()
@@ -99,37 +113,270 @@ def test_init_happy_path_idempotency_and_force(tmp_path, monkeypatch, capsys):
     assert TokenStore(token_db).resolve(owner_bearer, touch=False).principal_id == root_principal().id
     assert len(approval_token) == 64
     assert stat.S_IMODE(APPROVAL_TOKEN_PATH.stat().st_mode) == 0o600
+    assert OWNER_BEARER_PATH.read_text(encoding="utf-8").strip() == owner_bearer
+    assert stat.S_IMODE(OWNER_BEARER_PATH.stat().st_mode) == 0o600
     _assert_overlay_shape(tmp_path)
     assert "operator secret \u2014 never paste into agent config" in captured.out
     assert "not recoverable" in captured.err
+    assert "saved to .panella/owner-bearer (0600)" in captured.err
+    assert not Path(".env").exists()
 
-    rc = main(["init"])
-    captured = capsys.readouterr()
-    assert rc == 2
-    # The refused re-run has ZERO side effects (P2 fix — idempotency checked BEFORE mint): no bearer
-    # is minted or printed, so the token DB does not accumulate orphan owner-scoped tokens and the
-    # "already exists" message is not contradicted by a live token on stdout.
-    assert re.search(r"^m2_[^\s]+$", captured.out, flags=re.MULTILINE) is None
-    assert "already exists" in captured.err
-    assert APPROVAL_TOKEN_PATH.read_text(encoding="utf-8").strip() == approval_token
-    _assert_overlay_shape(tmp_path)
-
-    rc = main(["init", "--force"])
+    rc = main(["init", "--force", "--yes"])
     captured = capsys.readouterr()
     forced_bearer = _first_bearer(captured.out)
     assert rc == 0
+    assert forced_bearer != owner_bearer
+    assert TokenStore(token_db).resolve(owner_bearer, touch=False) is not None
     assert TokenStore(token_db).resolve(forced_bearer, touch=False) is not None
     assert APPROVAL_TOKEN_PATH.read_text(encoding="utf-8").strip() != approval_token
+    assert OWNER_BEARER_PATH.read_text(encoding="utf-8").strip() == forced_bearer
     assert stat.S_IMODE(APPROVAL_TOKEN_PATH.stat().st_mode) == 0o600
+    assert stat.S_IMODE(OWNER_BEARER_PATH.stat().st_mode) == 0o600
     _assert_overlay_shape(tmp_path)
+    assert "previously minted bearers remain valid" in captured.err
     assert "--force" in captured.err
+
+
+def test_init_compose_fresh_one_shot_writes_env_restarts_and_verifies(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    Path("docker-compose.yml").write_text("services: {}\n", encoding="utf-8")
+    Path(".env").write_bytes(b"PANELLA_API_KEY=abc\n# keep me\nNO_NEWLINE=1")
+    calls = _install_compose_harness(monkeypatch)
+
+    rc = main(["init", "--yes"])
+    captured = capsys.readouterr()
+
+    assert rc == 0
+    assert captured.out.splitlines()[0] == "m2_compose_owner"
+    assert calls["mint"] == [root_principal().id]
+    assert calls["up"] == [True]
+    assert calls["verify"] == [init_cli.DEFAULT_BASE_URL]
+    assert stat.S_IMODE(APPROVAL_TOKEN_PATH.stat().st_mode) == 0o600
+    assert stat.S_IMODE(OWNER_BEARER_PATH.stat().st_mode) == 0o600
+    assert OWNER_BEARER_PATH.read_text(encoding="utf-8").strip() == "m2_compose_owner"
+    _assert_compose_overlay_shape()
+    assert Path(".env").read_bytes() == (
+        b"PANELLA_API_KEY=abc\n# keep me\nNO_NEWLINE=1\n"
+        b"PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\n"
+        b"PANELLA_MCP_PROFILE=mcp-write\n"
+    )
+    assert "panella init: write-mode is active" in captured.out
+    assert "panella connect --print claude-code" in captured.out
+    assert "approval token is operator-only" in captured.out
+    assert "saved to .panella/owner-bearer (0600)" in captured.err
+
+
+def test_init_compose_converge_never_mints_and_env_is_idempotent(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    Path("docker-compose.yml").write_text("services: {}\n", encoding="utf-8")
+    _write_provisioned_files(owner_bearer="m2_existing_owner")
+    Path(".env").write_text(
+        "PANELLA_API_KEY=abc\n"
+        "export PANELLA_MCP_PROFILE=mcp-read\n"
+        "# keep\n"
+        "PANELLA_MCP_PROFILE=mcp-read-stale\n",
+        encoding="utf-8",
+    )
+    os.chmod(".env", 0o644)
+    approval_before = APPROVAL_TOKEN_PATH.read_text(encoding="utf-8")
+    overlay_before = OVERLAY_PATH.read_text(encoding="utf-8")
+    os.utime(APPROVAL_TOKEN_PATH, (1234567890, 1234567890))
+    os.utime(OVERLAY_PATH, (1234567890, 1234567890))
+    approval_stat = APPROVAL_TOKEN_PATH.stat()
+    overlay_stat = OVERLAY_PATH.stat()
+    calls = _install_compose_harness(monkeypatch, verify_rc=0)
+
+    assert main(["init", "--yes"]) == 0
+    first = capsys.readouterr()
+    first_env = Path(".env").read_bytes()
+    assert main(["init", "--yes"]) == 0
+    second = capsys.readouterr()
+
+    assert calls["mint"] == []
+    assert calls["up"] == [True, True]
+    assert calls["verify"] == [init_cli.DEFAULT_BASE_URL, init_cli.DEFAULT_BASE_URL]
+    assert APPROVAL_TOKEN_PATH.read_text(encoding="utf-8") == approval_before
+    assert OVERLAY_PATH.read_text(encoding="utf-8") == overlay_before
+    assert APPROVAL_TOKEN_PATH.stat().st_mtime == approval_stat.st_mtime
+    assert OVERLAY_PATH.stat().st_mtime == overlay_stat.st_mtime
+    assert Path(".env").read_bytes() == first_env
+    assert stat.S_IMODE(Path(".env").stat().st_mode) == 0o644
+    assert first_env == (
+        b"PANELLA_API_KEY=abc\n"
+        b"PANELLA_MCP_PROFILE=mcp-write\n"
+        b"# keep\n"
+        b"PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\n"
+    )
+    assert "already provisioned \u2014 converged" in first.out
+    assert "already provisioned \u2014 converged" in second.out
+
+
+def test_init_compose_legacy_converge_missing_owner_bearer_warns_without_mint(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    Path("docker-compose.yml").write_text("services: {}\n", encoding="utf-8")
+    _write_provisioned_files(owner_bearer=None)
+    calls = _install_compose_harness(monkeypatch)
+
+    rc = main(["init", "--yes"])
+    captured = capsys.readouterr()
+
+    assert rc == 0
+    assert calls["mint"] == []
+    assert not OWNER_BEARER_PATH.exists()
+    assert "panella connect cannot auto-read the bearer" in captured.err
+    assert "docker compose exec -T panella-http panella tokens mint --principal <root>" in captured.err
+    assert ".panella/owner-bearer" in captured.err
+    assert "panella init --force" in captured.err
+
+
+@pytest.mark.parametrize(
+    "present",
+    [
+        {"approval"},
+        {"overlay"},
+        {"owner"},
+        {"approval", "owner"},
+        {"overlay", "owner"},
+    ],
+)
+def test_init_partial_panella_state_refuses_without_side_effects(tmp_path, monkeypatch, capsys, present):
+    monkeypatch.chdir(tmp_path)
+    Path("docker-compose.yml").write_text("services: {}\n", encoding="utf-8")
+    Path(".panella").mkdir()
+    if "approval" in present:
+        APPROVAL_TOKEN_PATH.write_text("approval\n", encoding="utf-8")
+    if "overlay" in present:
+        OVERLAY_PATH.write_text("schema_version: 1\n", encoding="utf-8")
+    if "owner" in present:
+        OWNER_BEARER_PATH.write_text("m2_owner\n", encoding="utf-8")
+    calls = _install_compose_harness(monkeypatch)
+
+    rc = main(["init", "--yes"])
+    captured = capsys.readouterr()
+
+    assert rc == 2
+    assert calls["mint"] == []
+    assert calls["up"] == []
+    assert calls["verify"] == []
+    assert not Path(".env").exists()
+    assert "partial .panella state" in captured.err
+    assert "found:" in captured.err
+    assert "missing:" in captured.err
+    assert "--force" in captured.err
+    assert "manually clean up" in captured.err
+
+
+def test_init_prompt_matrix_and_stdout_first_line(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(tmp_path / "tokens.db"))
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda: "")
+
+    assert main(["init"]) == 0
+    captured = capsys.readouterr()
+    assert captured.err.count("[Y/n]") == 1
+    assert captured.out.splitlines()[0].startswith("m2_")
+
+    next_dir = tmp_path / "abort"
+    next_dir.mkdir()
+    monkeypatch.chdir(next_dir)
+    monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(next_dir / "tokens.db"))
+    monkeypatch.setattr("builtins.input", lambda: "n")
+    assert main(["init"]) == 1
+    captured = capsys.readouterr()
+    assert captured.err.count("[Y/n]") == 1
+    assert "aborted" in captured.err
+    assert not Path(".panella").exists()
+
+    non_tty_dir = tmp_path / "non-tty"
+    non_tty_dir.mkdir()
+    monkeypatch.chdir(non_tty_dir)
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: False)
+    assert main(["init"]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "stdin is not a TTY; pass --yes to run non-interactively\n"
+    assert not Path(".panella").exists()
+
+    yes_dir = tmp_path / "yes"
+    yes_dir.mkdir()
+    monkeypatch.chdir(yes_dir)
+    monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(yes_dir / "tokens.db"))
+    assert main(["init", "--yes"]) == 0
+    captured = capsys.readouterr()
+    assert "[Y/n]" not in captured.err
+    assert captured.out.splitlines()[0].startswith("m2_")
+
+
+def test_init_compose_restart_failure_skips_verify(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    Path("docker-compose.yml").write_text("services: {}\n", encoding="utf-8")
+    calls = _install_compose_harness(monkeypatch, up_ok=False)
+
+    rc = main(["init", "--yes"])
+    captured = capsys.readouterr()
+
+    assert rc == 2
+    assert calls["mint"] == [root_principal().id]
+    assert calls["up"] == [True]
+    assert calls["verify"] == []
+    assert captured.out.splitlines()[0] == "m2_compose_owner"
+    assert "PASS" not in captured.out
+    assert "docker compose up -d --wait failed" in captured.err
+
+
+def test_init_compose_verify_failure_prints_activation_banner(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    Path("docker-compose.yml").write_text("services: {}\n", encoding="utf-8")
+    _install_compose_harness(monkeypatch, verify_rc=2, verify_lines=["FAIL /v1/health expected 200, got 0"])
+
+    rc = main(["init", "--yes"])
+    captured = capsys.readouterr()
+
+    assert rc == 2
+    assert "FAIL /v1/health expected 200" in captured.out
+    assert "activation applied but verification FAILED; the box may be write-enabled but unusable" in captured.err
+    assert "set PANELLA_MCP_PROFILE=mcp-read in .env" in captured.err
+    assert "docker compose up -d --wait" in captured.err
+    assert "container uid 10001 cannot read a host-owned 0600 token" in captured.err
+
+
+def test_compose_env_upsert_canonicalizes_duplicates_and_preserves_mode(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    env_path = Path(".env")
+    env_path.write_bytes(
+        b"PANELLA_API_KEY=abc\n"
+        b"  export PANELLA_GOVERNANCE_OVERLAY = /old\n"
+        b"# comment\n"
+        b"export PANELLA_MCP_PROFILE=mcp-read\n"
+        b"PANELLA_MCP_PROFILE=stale\n"
+    )
+    os.chmod(env_path, 0o644)
+
+    init_cli._upsert_compose_env(env_path)
+
+    assert stat.S_IMODE(env_path.stat().st_mode) == 0o644
+    assert env_path.read_bytes() == (
+        b"PANELLA_API_KEY=abc\n"
+        b"PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\n"
+        b"# comment\n"
+        b"PANELLA_MCP_PROFILE=mcp-write\n"
+    )
+
+    missing = tmp_path / "new.env"
+    init_cli._upsert_compose_env(missing)
+    assert stat.S_IMODE(missing.stat().st_mode) == 0o600
+    assert missing.read_bytes() == (
+        b"PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\n"
+        b"PANELLA_MCP_PROFILE=mcp-write\n"
+    )
 
 
 def test_init_never_prints_approval_token_and_connect_never_reads_it(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(tmp_path / "tokens.db"))
 
-    assert main(["init"]) == 0
+    assert main(["init", "--yes"]) == 0
     captured = capsys.readouterr()
     owner_bearer = _first_bearer(captured.out)
     approval_value = APPROVAL_TOKEN_PATH.read_text(encoding="utf-8").strip()
@@ -195,14 +442,12 @@ def test_compose_mint_binds_the_resolved_principal(tmp_path, monkeypatch):
     # On the compose path the owner bearer must be minted FOR the principal init resolved (a custom
     # identity from the host overlay), not the container's current default — else it is rejected once
     # /mcp requires the new root after restart (Codex B1 P2). Assert --principal is passed through.
-    import subprocess as sp
-
     monkeypatch.setattr(init_cli, "_compose_service_running", lambda service: True)
     calls = []
 
     def fake_run(cmd, **kwargs):
         calls.append(cmd)
-        return sp.CompletedProcess(cmd, 0, stdout="m2_minted_token\n", stderr="")
+        return subprocess.CompletedProcess(cmd, 0, stdout="m2_minted_token\n", stderr="")
 
     monkeypatch.setattr(init_cli.shutil, "which", lambda name: "/usr/bin/docker")
     monkeypatch.setattr(init_cli.subprocess, "run", fake_run)
@@ -261,7 +506,7 @@ def test_init_custom_root_identity_still_produces_approvable_box(tmp_path, monke
     reset_governance_cache()
     assert root_principal().id == "human:alice"  # precondition: the custom id is in effect
 
-    assert main(["init"]) == 0
+    assert main(["init", "--yes"]) == 0
     capsys.readouterr()
     doc = _overlay_doc()
     # The approver is the fixed literal regardless of the custom root id (NOT local_cli:alice).
@@ -300,7 +545,7 @@ def test_init_warns_on_custom_identity_bearer_binding(tmp_path, monkeypatch, cap
     )
     monkeypatch.setenv("PANELLA_GOVERNANCE_OVERLAY", str(base_overlay))
     reset_governance_cache()
-    assert main(["init"]) == 0
+    assert main(["init", "--yes"]) == 0
     captured = capsys.readouterr()
     assert "WARNING: a custom identity/tenant is configured" in captured.err
     assert "re-mint it with `panella tokens mint`" in captured.err
@@ -311,7 +556,7 @@ def test_init_generic_box_prints_no_custom_identity_warning(tmp_path, monkeypatc
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(tmp_path / "tokens.db"))
     reset_governance_cache()
-    assert main(["init"]) == 0
+    assert main(["init", "--yes"]) == 0
     captured = capsys.readouterr()
     assert "custom identity/tenant" not in captured.err
 
@@ -353,10 +598,46 @@ def test_secret_boundary_http_and_mcp_do_not_exfiltrate_operator_token(tmp_path,
     assert '"path"' not in serialized
 
 
+def _write_provisioned_files(*, owner_bearer: str | None) -> None:
+    Path(".panella").mkdir(exist_ok=True)
+    APPROVAL_TOKEN_PATH.write_text("approval-secret\n", encoding="utf-8")
+    OVERLAY_PATH.write_text("schema_version: 1\n", encoding="utf-8")
+    if owner_bearer is not None:
+        OWNER_BEARER_PATH.write_text(f"{owner_bearer}\n", encoding="utf-8")
+
+
+def _install_compose_harness(monkeypatch, *, verify_rc: int = 0, up_ok: bool = True, verify_lines: list[str] | None = None):
+    calls = {"mint": [], "up": [], "verify": []}
+    monkeypatch.setattr(init_cli.shutil, "which", lambda name: "/usr/bin/docker" if name == "docker" else None)
+    monkeypatch.setattr(init_cli, "_compose_service_running", lambda service: service == init_cli.COMPOSE_SERVICE)
+
+    def fake_mint(principal_id: str, *, compose_present: bool) -> str:
+        assert compose_present
+        calls["mint"].append(principal_id)
+        return "m2_compose_owner"
+
+    def fake_up() -> bool:
+        calls["up"].append(True)
+        if not up_ok:
+            print("panella init: docker compose up -d --wait failed", file=sys.stderr)
+        return up_ok
+
+    def fake_verify(base_url: str) -> int:
+        calls["verify"].append(base_url)
+        for line in verify_lines or ["PASS /v1/health returned 200"]:
+            print(line)
+        return verify_rc
+
+    monkeypatch.setattr(init_cli, "_mint_owner_bearer", fake_mint)
+    monkeypatch.setattr(init_cli, "_run_compose_up_wait", fake_up)
+    monkeypatch.setattr(init_cli, "_verify", fake_verify)
+    return calls
+
+
 def _build_mcp_app(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(tmp_path / "init-tokens.db"))
-    assert main(["init"]) == 0
+    assert main(["init", "--yes"]) == 0
     capsys.readouterr()
 
     monkeypatch.setenv("PANELLA_GOVERNANCE_OVERLAY", str(tmp_path / OVERLAY_PATH))

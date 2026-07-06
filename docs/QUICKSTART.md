@@ -24,29 +24,30 @@ the next step creates the local approval overlay.
 
 Run `panella init` from the checkout on the host. It mints the owner bearer in
 the running `panella-http` container when compose is up, writes
-`.panella/approval-token` with mode `0600`, and writes
-`.panella/governance.yaml`.
+`.panella/approval-token` and `.panella/owner-bearer` with mode `0600`, writes
+`.panella/governance.yaml`, updates `.env` for write-capable MCP, restarts
+compose, and verifies the running box.
 
 ```bash
-OWNER_BEARER="$(panella init | tee /dev/stderr | sed -n '1p')"
+OWNER_BEARER="$(panella init --yes | tee /dev/stderr | sed -n '1p')"
 ```
 
 Store the owner bearer now. It is printed once and is not recoverable from the
-token database later.
+token database later. It is also saved to `.panella/owner-bearer` so
+`panella connect` can read it automatically.
 
 The approval token value is not printed. Keep `.panella/approval-token` local and
 operator-only.
 
 ## 5-7 min: restart with write-capable MCP
 
-```bash
-export PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml
-export PANELLA_MCP_PROFILE=mcp-write
-docker compose up -d --wait
-```
+`panella init --yes` writes these compose dotenv lines and runs
+`docker compose up -d --wait` for you:
 
-The overlay path is the container-visible path for the host `.panella/` mount in
-`docker-compose.yml`.
+```dotenv
+PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml
+PANELLA_MCP_PROFILE=mcp-write
+```
 
 Verify the running box:
 
@@ -63,19 +64,19 @@ Print the snippet for your client and paste it into that client.
 Claude Code:
 
 ```bash
-panella connect --print claude-code --token "$OWNER_BEARER"
+panella connect --print claude-code
 ```
 
 Claude Desktop:
 
 ```bash
-panella connect --print claude-desktop --token "$OWNER_BEARER"
+panella connect --print claude-desktop
 ```
 
 Cursor:
 
 ```bash
-panella connect --print cursor --token "$OWNER_BEARER"
+panella connect --print cursor
 ```
 
 Each snippet contains only the owner bearer for

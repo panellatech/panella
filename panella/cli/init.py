@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import secrets
 import shutil
 import sqlite3
@@ -19,12 +20,16 @@ from typing import Any, Iterator
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8001"
 OVERLAY_ENV = "PANELLA_GOVERNANCE_OVERLAY"
+MCP_PROFILE_ENV = "PANELLA_MCP_PROFILE"
 OPERATOR_DIR = Path(".panella")
+COMPOSE_ENV_FILE = Path(".env")
 APP_LOCAL_DIR = Path("/app/local")
 APPROVAL_TOKEN_NAME = "approval-token"
 GOVERNANCE_OVERLAY_NAME = "governance.yaml"
+OWNER_BEARER_NAME = "owner-bearer"
 APPROVAL_TOKEN_MODE = 0o600
 COMPOSE_SERVICE = "panella-http"
+WRITE_MCP_PROFILE = "mcp-write"
 
 # The canonical approver id the local_cli transport stamps for a valid presser is the FIXED literal
 # ``local_cli:owner`` — NOT a value derived from ``root_principal.id``. ``verify_presser`` returns
@@ -55,6 +60,11 @@ def register(subparsers: argparse._SubParsersAction) -> None:
         help=f"Facade base URL for --verify (default: {DEFAULT_BASE_URL}).",
     )
     init.add_argument(
+        "--yes",
+        action="store_true",
+        help="Run non-interactively without prompting before writing files or restarting compose.",
+    )
+    init.add_argument(
         "--verify-transport",
         action="store_true",
         help=argparse.SUPPRESS,  # internal: run ONLY the transport+token check from THIS process's
@@ -75,40 +85,52 @@ def _init(args: argparse.Namespace) -> int:
         return 0 if all(p for p, _ in results) else 2
     if args.verify:
         return _verify(args.base_url)
-    return _provision(force=args.force)
+    return _provision(force=args.force, yes=args.yes, base_url=args.base_url)
 
 
-def _provision(*, force: bool) -> int:
+def _provision(*, force: bool, yes: bool, base_url: str) -> int:
     from panella.governance import GovernanceConfigError
 
-    # Idempotency check BEFORE any side effect: a refused run (files already present, no --force)
-    # must not mint an owner bearer. Minting first would leak a live root-privilege token to stdout
-    # on every re-run while the message says "keeping existing", and accumulate orphan bearers in
-    # the token DB (code-reviewer B1 P2).
+    consent_rc = _require_consent_or_fail_fast(yes)
+    if consent_rc is not None:
+        return consent_rc
+
+    # State check BEFORE any side effect: partial operator-secret debris must not mint a bearer,
+    # rewrite .env, or restart compose. A complete prior provisioning converges instead of refusing.
     # These operator secrets live under ./.panella, which is excluded from the Docker build context
     # by the repo's .dockerignore — so a later `docker compose build` / `up --build` never bakes the
     # approval token or overlay into image layers (the secret boundary this command enforces).
     operator_dir = Path.cwd() / OPERATOR_DIR
     approval_token_path = operator_dir / APPROVAL_TOKEN_NAME
     overlay_path = operator_dir / GOVERNANCE_OVERLAY_NAME
-    if not force:
-        blockers = []
-        if approval_token_path.exists():
-            blockers.append(
-                f"{_display_path(approval_token_path)} already exists; keeping existing operator secret "
-                "(rerun with --force to regenerate)"
-            )
-        if overlay_path.exists():
-            blockers.append(
-                f"{_display_path(overlay_path)} already exists; refusing to merge or overwrite "
-                "(rerun with --force to replace it)"
-            )
-        if blockers:
-            for blocker in blockers:
-                print(f"panella init: {blocker}", file=sys.stderr)
-            return 2
-
+    owner_bearer_path = operator_dir / OWNER_BEARER_NAME
     compose_present = (Path.cwd() / "docker-compose.yml").exists()
+    if not force:
+        state = _provisioning_state(
+            approval_token_path=approval_token_path,
+            overlay_path=overlay_path,
+            owner_bearer_path=owner_bearer_path,
+        )
+        if state == "partial":
+            _print_partial_state(
+                approval_token_path=approval_token_path,
+                overlay_path=overlay_path,
+                owner_bearer_path=owner_bearer_path,
+            )
+            return 2
+        if state == "provisioned":
+            return _converge_provisioned(
+                yes=yes,
+                base_url=base_url,
+                compose_present=compose_present,
+                owner_bearer_path=owner_bearer_path,
+            )
+
+    if compose_present and not _compose_preconditions_ok():
+        return 2
+    if not _confirm_init(yes):
+        return 1
+
     try:
         root = _load_root_principal()
         token = _mint_owner_bearer(root.id, compose_present=compose_present)
@@ -118,6 +140,11 @@ def _provision(*, force: bool) -> int:
 
     print(token)
     print("Store this owner bearer token now; it is not recoverable.", file=sys.stderr)
+    if force:
+        print(
+            "WARNING: --force minted a new owner bearer; previously minted bearers remain valid in the token DB.",
+            file=sys.stderr,
+        )
     _warn_if_custom_identity(root, compose_present=compose_present)
 
     operator_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -134,10 +161,34 @@ def _provision(*, force: bool) -> int:
 
     if force and approval_token_path.exists():
         print("Regenerating local_cli approval token because --force was supplied.", file=sys.stderr)
-    _write_approval_token(approval_token_path)
     if force and overlay_path.exists():
         print("Replacing governance overlay because --force was supplied.", file=sys.stderr)
-    _write_governance_overlay(overlay_path, token_file=overlay_token_file)
+    try:
+        _write_approval_token(approval_token_path)
+        _write_governance_overlay(overlay_path, token_file=overlay_token_file)
+        _write_secret_file(owner_bearer_path, token)
+    except OSError as exc:
+        print(f"panella init: could not write local activation files: {exc}", file=sys.stderr)
+        return 2
+    print(
+        f"saved to {_display_path(owner_bearer_path)} (0600) — panella connect reads it automatically",
+        file=sys.stderr,
+    )
+
+    if compose_present:
+        try:
+            _upsert_compose_env(Path.cwd() / COMPOSE_ENV_FILE)
+        except OSError as exc:
+            print(f"panella init: could not update {_display_path(Path.cwd() / COMPOSE_ENV_FILE)}: {exc}", file=sys.stderr)
+            return 2
+        if not _run_compose_up_wait():
+            return 2
+        verify_rc = _verify(base_url)
+        if verify_rc != 0:
+            _print_activation_verify_failed()
+            return 2
+        _print_compose_summary(already_provisioned=False)
+        return 0
 
     print(f"approval token file: {_display_path(approval_token_path)}")
     print("operator secret \u2014 never paste into agent config")
@@ -152,6 +203,101 @@ def _provision(*, force: bool) -> int:
         print("  docker compose up -d --wait")
     print("  panella init --verify")
     return 0
+
+
+def _provisioning_state(*, approval_token_path: Path, overlay_path: Path, owner_bearer_path: Path) -> str:
+    approval_exists = approval_token_path.exists()
+    overlay_exists = overlay_path.exists()
+    owner_exists = owner_bearer_path.exists()
+    if approval_exists and overlay_exists:
+        return "provisioned"
+    if not approval_exists and not overlay_exists and not owner_exists:
+        return "fresh"
+    return "partial"
+
+
+def _print_partial_state(*, approval_token_path: Path, overlay_path: Path, owner_bearer_path: Path) -> None:
+    paths = [approval_token_path, overlay_path, owner_bearer_path]
+    found = [_display_path(path) for path in paths if path.exists()]
+    missing = [_display_path(path) for path in paths if not path.exists()]
+    print(
+        "panella init: partial .panella state; "
+        f"found: {', '.join(found) if found else '(none)'}; "
+        f"missing: {', '.join(missing) if missing else '(none)'}. No changes made.",
+        file=sys.stderr,
+    )
+    print(
+        "panella init: remedies: rerun with --force to re-provision, or manually clean up the partial .panella files and rerun.",
+        file=sys.stderr,
+    )
+
+
+def _converge_provisioned(*, yes: bool, base_url: str, compose_present: bool, owner_bearer_path: Path) -> int:
+    consent_rc = _require_consent_or_fail_fast(yes)
+    if consent_rc is not None:
+        return consent_rc
+    if compose_present and not _compose_preconditions_ok():
+        return 2
+    if not _confirm_init(yes):
+        return 1
+    if not owner_bearer_path.exists():
+        _warn_legacy_missing_owner_bearer(owner_bearer_path)
+    if not compose_present:
+        print("panella init: already provisioned — converged")
+        print()
+        print("Next steps:")
+        print(f"  export PANELLA_GOVERNANCE_OVERLAY={_host_path_for_operator_file(GOVERNANCE_OVERLAY_NAME).resolve()}")
+        print("  panella init --verify")
+        return 0
+    try:
+        _upsert_compose_env(Path.cwd() / COMPOSE_ENV_FILE)
+    except OSError as exc:
+        print(f"panella init: could not update {_display_path(Path.cwd() / COMPOSE_ENV_FILE)}: {exc}", file=sys.stderr)
+        return 2
+    if not _run_compose_up_wait():
+        return 2
+    verify_rc = _verify(base_url)
+    if verify_rc != 0:
+        _print_activation_verify_failed()
+        return 2
+    _print_compose_summary(already_provisioned=True)
+    return 0
+
+
+def _require_consent_or_fail_fast(yes: bool) -> int | None:
+    if yes or sys.stdin.isatty():
+        return None
+    print("stdin is not a TTY; pass --yes to run non-interactively", file=sys.stderr)
+    return 2
+
+
+def _confirm_init(yes: bool) -> bool:
+    if yes:
+        return True
+    sys.stderr.write("panella init will write activation files and may restart docker compose. Continue? [Y/n] ")
+    sys.stderr.flush()
+    try:
+        answer = input().strip().lower()
+    except EOFError:
+        print(file=sys.stderr)
+        answer = "n"
+    if answer in {"", "y", "yes"}:
+        return True
+    print("panella init: aborted by operator", file=sys.stderr)
+    return False
+
+
+def _warn_legacy_missing_owner_bearer(owner_bearer_path: Path) -> None:
+    print(
+        f"WARNING: {_display_path(owner_bearer_path)} is missing; panella connect cannot auto-read the bearer.",
+        file=sys.stderr,
+    )
+    print(
+        "Remedy 1: docker compose exec -T panella-http panella tokens mint --principal <root> "
+        f"and save the output to {_display_path(owner_bearer_path)} with mode 0600.",
+        file=sys.stderr,
+    )
+    print("Remedy 2: run panella init --force to re-provision.", file=sys.stderr)
 
 
 def _load_root_principal():
@@ -217,11 +363,21 @@ def _compose_service_running(service: str) -> bool:
     return service in {line.strip() for line in ps.stdout.splitlines()}
 
 
+def _compose_preconditions_ok() -> bool:
+    if shutil.which("docker") is None:
+        print("panella init: docker command not found; run docker compose up -d --wait first", file=sys.stderr)
+        return False
+    if not _compose_service_running(COMPOSE_SERVICE):
+        print(f"panella init: {COMPOSE_SERVICE} is not running; run docker compose up -d --wait first", file=sys.stderr)
+        return False
+    return True
+
+
 def _mint_in_running_compose(principal_id: str) -> str:
     if shutil.which("docker") is None:
-        raise subprocess.SubprocessError("docker command not found; run panella init after docker compose up --wait")
+        raise subprocess.SubprocessError("docker command not found; run docker compose up -d --wait first")
     if not _compose_service_running(COMPOSE_SERVICE):
-        raise subprocess.SubprocessError("panella-http is not running; run docker compose up --wait first")
+        raise subprocess.SubprocessError("panella-http is not running; run docker compose up -d --wait first")
     # Mint FOR the principal init resolved (the effective root, incl. a custom identity from the
     # host overlay), not the container's current default. Without --principal the bearer would be
     # bound to the old/generic principal and rejected once /mcp requires the new root after restart
@@ -249,16 +405,120 @@ def _write_approval_token(path: Path) -> None:
     # O_TRUNC would hold the new secret at that file's OLD, possibly world-readable, mode until the
     # later chmod — a real exposure window (Codex B1 P2). Unlink + O_CREAT|O_EXCL guarantees the
     # secret is 0600 from birth; the rename then publishes it atomically, never at a wider mode.
-    token = secrets.token_hex(32)
+    _write_secret_file(path, secrets.token_hex(32))
+
+
+def _write_secret_file(path: Path, content: str) -> None:
     tmp_path = path.with_name(path.name + ".new")
     tmp_path.unlink(missing_ok=True)
     fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, APPROVAL_TOKEN_MODE)
     try:
-        os.write(fd, f"{token}\n".encode("ascii"))
+        os.write(fd, f"{content}\n".encode("ascii"))
     finally:
         os.close(fd)
     os.chmod(tmp_path, APPROVAL_TOKEN_MODE)  # umask-proof the fresh file
     os.replace(tmp_path, path)
+
+
+def _upsert_compose_env(path: Path) -> None:
+    target_values = {
+        OVERLAY_ENV: str(APP_LOCAL_DIR / GOVERNANCE_OVERLAY_NAME),
+        MCP_PROFILE_ENV: WRITE_MCP_PROFILE,
+    }
+    original = path.read_bytes() if path.exists() else b""
+    mode = stat.S_IMODE(path.stat().st_mode) if path.exists() else 0o600
+    seen = {key: False for key in target_values}
+    patterns = {
+        key: re.compile(rb"^\s*(export\s+)?" + re.escape(key.encode("ascii")) + rb"\s*=")
+        for key in target_values
+    }
+    rewritten: list[bytes] = []
+    for line in original.splitlines(keepends=True):
+        matched_key = next((key for key, pattern in patterns.items() if pattern.match(line)), None)
+        if matched_key is None:
+            rewritten.append(line)
+            continue
+        if seen[matched_key]:
+            continue
+        rewritten.append(f"{matched_key}={target_values[matched_key]}\n".encode())
+        seen[matched_key] = True
+    for key, value in target_values.items():
+        if seen[key]:
+            continue
+        if rewritten and not rewritten[-1].endswith(b"\n"):
+            rewritten[-1] += b"\n"
+        rewritten.append(f"{key}={value}\n".encode())
+        seen[key] = True
+    _atomic_write_bytes(path, b"".join(rewritten), mode)
+
+
+def _atomic_write_bytes(path: Path, content: bytes, mode: int) -> None:
+    tmp_path = path.with_name(path.name + ".new")
+    tmp_path.unlink(missing_ok=True)
+    fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
+    try:
+        os.write(fd, content)
+    finally:
+        os.close(fd)
+    os.chmod(tmp_path, mode)
+    os.replace(tmp_path, path)
+
+
+def _run_compose_up_wait() -> bool:
+    try:
+        proc = subprocess.run(
+            ["docker", "compose", "up", "-d", "--wait"],
+            cwd=Path.cwd(),
+            capture_output=True,
+            text=True,
+            timeout=300,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        print(f"panella init: docker compose up -d --wait failed: {exc}", file=sys.stderr)
+        return False
+    if proc.returncode == 0:
+        return True
+    print("panella init: docker compose up -d --wait failed", file=sys.stderr)
+    detail = (proc.stderr or proc.stdout).strip()
+    if detail:
+        for line in detail.splitlines()[-20:]:
+            print(line, file=sys.stderr)
+    return False
+
+
+def _print_activation_verify_failed() -> None:
+    print(
+        "panella init: activation applied but verification FAILED; the box may be write-enabled but unusable",
+        file=sys.stderr,
+    )
+    print("Manual revert:", file=sys.stderr)
+    print("  set PANELLA_MCP_PROFILE=mcp-read in .env", file=sys.stderr)
+    print("  docker compose up -d --wait", file=sys.stderr)
+    print(
+        "Common native-Linux cause: container uid 10001 cannot read a host-owned 0600 token; "
+        "see docs/SELF_HOST.md's uid section.",
+        file=sys.stderr,
+    )
+
+
+def _print_compose_summary(*, already_provisioned: bool) -> None:
+    if already_provisioned:
+        print("panella init: already provisioned — converged")
+    else:
+        print("panella init: write-mode is active")
+    print("Wrote:")
+    if already_provisioned:
+        print(f"  {_display_path(Path.cwd() / COMPOSE_ENV_FILE)}")
+    else:
+        print(f"  {_display_path(Path.cwd() / OPERATOR_DIR / APPROVAL_TOKEN_NAME)}")
+        print(f"  {_display_path(Path.cwd() / OPERATOR_DIR / GOVERNANCE_OVERLAY_NAME)}")
+        print(f"  {_display_path(Path.cwd() / OPERATOR_DIR / OWNER_BEARER_NAME)}")
+        print(f"  {_display_path(Path.cwd() / COMPOSE_ENV_FILE)}")
+    print("Write-mode is active.")
+    print("Next step:")
+    print("  panella connect --print claude-code")
+    print("Governance reminder: approval token is operator-only — never paste into agent config.")
 
 
 def _write_governance_overlay(path: Path, *, token_file: str) -> None:
