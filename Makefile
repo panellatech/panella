@@ -20,6 +20,13 @@ DATASET_FILE = eval/data/longmemeval_s_cleaned.json
 # it. If HuggingFace ever republishes the file with a legitimate content change, update this
 # constant deliberately (never silently, and never with an invented hash).
 DATASET_NAME = longmemeval_s_cleaned.json
+# Run-shape knobs, stamped into the report artifact (override per run: make eval-retrieve EVAL_N_PER_TYPE=8).
+# Empty EVAL_N_PER_TYPE = the harness default subset; the stamp records whichever was used.
+EVAL_N_PER_TYPE ?=
+EVAL_READER_MODEL ?= gpt-4o-mini
+EVAL_JUDGE_MODEL ?= gpt-4o
+EVAL_READER_TRANSPORT ?= openai
+EVAL_JUDGE_TRANSPORT ?= openai
 DATASET_SHA256 = d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442
 
 .PHONY: eval-dataset eval-up eval-down eval-retrieve eval-qa eval-report eval-smoke eval-selftest eval-isolation-check eval-public-scan eval-visibility-canary
@@ -85,16 +92,19 @@ eval-down:
 eval-retrieve: eval-selftest
 	@set -a; . eval/out/compose.env; . eval/out/state.env; set +a; \
 	PANELLA_EVAL_API_KEY="$$PANELLA_API_KEY" $(PYTHON) -m eval.longmemeval.ingest_retrieve \
-		--lane store --data "$(DATASET_FILE)" --out eval/out/stage_a_retrieval.store.json
+		--lane store --data "$(DATASET_FILE)" $(if $(EVAL_N_PER_TYPE),--n-per-type $(EVAL_N_PER_TYPE),) --out eval/out/stage_a_retrieval.store.json
 	@set -a; . eval/out/compose.env; . eval/out/state.env; set +a; \
 	PANELLA_EVAL_API_KEY="$$PANELLA_API_KEY" $(PYTHON) -m eval.longmemeval.ingest_retrieve \
-		--lane facade --data "$(DATASET_FILE)" --out eval/out/stage_a_retrieval.facade.json
+		--lane facade --data "$(DATASET_FILE)" $(if $(EVAL_N_PER_TYPE),--n-per-type $(EVAL_N_PER_TYPE),) --out eval/out/stage_a_retrieval.facade.json
 	$(PYTHON) -m eval.longmemeval.compare_lanes \
 		--store eval/out/stage_a_retrieval.store.json --facade eval/out/stage_a_retrieval.facade.json \
 		--out eval/out/lane_comparison.json
 
 eval-qa:
-	$(PYTHON) -m eval.longmemeval.qa --retr eval/out/stage_a_retrieval.facade.json --out eval/out/stage_a_qa.json
+	$(PYTHON) -m eval.longmemeval.qa --retr eval/out/stage_a_retrieval.facade.json \
+		--reader-model "$(EVAL_READER_MODEL)" --judge-model "$(EVAL_JUDGE_MODEL)" \
+		--reader-transport "$(EVAL_READER_TRANSPORT)" --judge-transport "$(EVAL_JUDGE_TRANSPORT)" \
+		--out eval/out/stage_a_qa.json
 
 eval-report:
 	$(PYTHON) -m eval.render_report \
@@ -106,6 +116,9 @@ eval-report:
 		--dataset-sha256 "$(DATASET_SHA256)" \
 		--panella-commit "$$(git rev-parse --short=12 HEAD)" \
 		--compose-project panella-eval \
+		--n-per-type "$(if $(EVAL_N_PER_TYPE),$(EVAL_N_PER_TYPE),harness-default)" \
+		--reader-model "$(EVAL_READER_MODEL)" --judge-model "$(EVAL_JUDGE_MODEL)" \
+		--reader-transport "$(EVAL_READER_TRANSPORT)" --judge-transport "$(EVAL_JUDGE_TRANSPORT)" \
 		--out eval/out/report.md
 	@echo "eval-report: wrote eval/out/report.md (numbers land ONLY under eval/out/, never printed here)"
 

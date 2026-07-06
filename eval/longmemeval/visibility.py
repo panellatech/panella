@@ -39,7 +39,15 @@ def eval_box_governance_env():
     edges so neither direction serves a stale resolution."""
     saved = {
         key: os.environ.pop(key)
-        for key in ("PANELLA_GOVERNANCE_OVERLAY", "PANELLA_CONFIG_DIR")
+        for key in (
+            "PANELLA_GOVERNANCE_OVERLAY",
+            "PANELLA_CONFIG_DIR",
+            # The eval facade runs with the reader/reranker flags unset (neither compose file sets
+            # them → "off" defaults); a host-shell export must not be reported as "this run".
+            "PANELLA_READER",
+            "PANELLA_RERANKER",
+            "PANELLA_RERANKER_MODEL",
+        )
         if key in os.environ
     }
     reset_governance_cache()

@@ -140,11 +140,16 @@ def test_lane_deltas_ignore_host_shell_governance_overlay(monkeypatch):
     config instead of the generic governance the eval box actually runs."""
     monkeypatch.setenv("PANELLA_GOVERNANCE_OVERLAY", "/nonexistent/host-box-governance.yaml")
     monkeypatch.setenv("PANELLA_CONFIG_DIR", "/nonexistent/host-config-dir")
+    monkeypatch.setenv("PANELLA_READER", "readerpp")  # host export ≠ this run (round-4 P2)
+    monkeypatch.setenv("PANELLA_RERANKER", "cross-encoder")
 
     rows = _derive_intentional_lane_deltas()
 
     by_name = {row["delta"]: row for row in rows}
     assert "read_allowlist: ['owner/*']" in by_name["tenant/read allowlist (ABAC)"]["shipped_default"]
+    reader_row = by_name["reader++ / cross-encoder reranking"]["shipped_default"]
+    assert "readerpp" not in reader_row and "cross-encoder" not in reader_row.split("(")[0]
+    assert "off" in reader_row
     # the derivation restored the operator's env afterwards
     assert os.environ["PANELLA_GOVERNANCE_OVERLAY"] == "/nonexistent/host-box-governance.yaml"
     assert os.environ["PANELLA_CONFIG_DIR"] == "/nonexistent/host-config-dir"

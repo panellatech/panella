@@ -66,9 +66,12 @@ def _derive_intentional_lane_deltas(governance: Any | None = None) -> list[dict[
         gov = governance
         profile = yaml.safe_load(render_serving_profile(gov))
     else:
+        # The WHOLE default derivation must run under the eval-box env — the governance resolve
+        # AND the reader/reranker flag reads below (a host-shell PANELLA_READER export would
+        # otherwise stamp the operator's setting as "this run"; GH-bot round-4 P2, third member
+        # of the host-drift family). eval_box_governance_env also clears those flags.
         with eval_box_governance_env():
-            gov = current_governance()
-            profile = yaml.safe_load(render_serving_profile(gov))
+            return _derive_intentional_lane_deltas(current_governance())
 
     max_query_k = profile["max_query_k"]
     read_allowlist = profile["read_allowlist"]
