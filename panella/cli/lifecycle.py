@@ -364,10 +364,14 @@ def _post_restore_verify(data_dir: Path, files: list[dict[str, Any]]) -> int:
     ok = True
     for entry in files:
         role = entry.get("role")
-        name = entry.get("name")
+        # Files were RESTORED under target_name (the original basename, e.g. sqlite_vec.db), NOT the
+        # archive member/role name (store_db). Validate the file that was actually placed — using the
+        # role name here would probe a nonexistent path (store) or a fresh empty DB (audit) and
+        # mis-report a successful restore (GH-bot B4 P2, introduced by the unique-member-name fix).
+        target_name = entry.get("target_name", entry.get("name"))
         if role not in {"store_db", "audit_db"}:
             continue
-        target = data_dir / str(name)
+        target = data_dir / str(target_name)
         failure = _validate_snapshot(str(role), target)
         if failure:
             print(f"  FAIL  {role}: {failure}")

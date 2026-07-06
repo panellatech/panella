@@ -156,14 +156,21 @@ def test_backup_aborts_on_audit_chain_tamper(tmp_path, monkeypatch):
 # --------------------------------------------------------------------------------------------- #
 
 
-def test_restore_happy_path_into_empty_dir(tmp_path, monkeypatch):
+def test_restore_happy_path_into_empty_dir(tmp_path, monkeypatch, capsys):
     _seed_env(monkeypatch, tmp_path)
     backup = tmp_path / "backup.tar.gz"
     assert main(["backup", "--out", str(backup)]) == 0
+    capsys.readouterr()
 
     data_dir = tmp_path / "restored"
     rc = main(["restore", "--from", str(backup), "--data-dir", str(data_dir)])
+    out = capsys.readouterr().out
     assert rc == 0
+    # Post-restore verify must validate the RESTORED files (target_name basenames), not the archive
+    # member/role names — else it probes a nonexistent store path / a fresh empty audit DB and
+    # mis-reports success (GH-bot B4 P2). The PASS lines therefore name the real restored files.
+    assert str(data_dir / "sqlite_vec.db") in out
+    assert str(data_dir / "audit.sqlite") in out
     assert (data_dir / "sqlite_vec.db").exists()
     assert (data_dir / "tokens.db").exists()
     assert (data_dir / "audit.sqlite").exists()
