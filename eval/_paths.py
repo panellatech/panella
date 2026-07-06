@@ -33,10 +33,12 @@ def assert_eval_out(path: str | Path) -> Path:
     try:
         resolved.relative_to(EVAL_OUT_DIR)
     except ValueError:
-        sys.exit(
+        print(
             f"REFUSING to write metric output to {resolved} — it is not under {EVAL_OUT_DIR} "
             "(the brief's hard constraint: ALL numeric output lands ONLY under eval/out/, which "
             "is gitignored). Pass an --out path under eval/out/, e.g. "
-            f"eval/out/{Path(path).name}."
+            f"eval/out/{Path(path).name}.",
+            file=sys.stderr,
         )
+        raise SystemExit(2) from None
     return resolved

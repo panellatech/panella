@@ -116,9 +116,10 @@ def test_single_transport_error_marks_incomplete_and_exits_nonzero(scratch_out, 
     assert len(envelope["rows"]) == 3  # all rows still written, including the errored one
 
 
-def test_all_rows_error_is_the_severe_fatal_path_exit_2(scratch_out, monkeypatch):
-    """The pre-existing "0 scored" fatal case must still exit specifically 2 (distinct from the
-    NEW partial-incompleteness exit code) — a regression guard for the fatal path."""
+def test_all_rows_error_exits_4_like_any_transport_error(scratch_out, monkeypatch):
+    """The all-rows-errored case keeps its louder FATAL stderr wording but must NOT carve out a
+    different exit code: the contract is ANY transport error -> exit 4 (review r2 P2 — a caller
+    switching on the code must not treat total failure as a different class than partial)."""
     rows = [_retrieval_row("q1")]
     retr_path = _write_retrieval(scratch_out, rows)
     out_path = scratch_out / "qa.json"
@@ -132,7 +133,7 @@ def test_all_rows_error_is_the_severe_fatal_path_exit_2(scratch_out, monkeypatch
         ["--retr", str(retr_path), "--out", str(out_path), "--reader-transport", "openai", "--judge-transport", "openai"]
     )
 
-    assert exit_code == 2
+    assert exit_code == 4
     envelope = json.loads(out_path.read_text(encoding="utf-8"))
     assert envelope["complete"] is False
     assert envelope["errors"] == 1

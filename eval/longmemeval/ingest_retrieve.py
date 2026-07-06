@@ -85,13 +85,15 @@ def _assert_isolated_urls(store_url: str, facade_url: str) -> None:
         host = parsed.hostname or ""
         port = parsed.port
         if host not in _ALLOWED_LOOPBACK_HOSTS or port != expected_port:
-            sys.exit(
+            print(
                 f"REFUSING to run: --{label}-url={url!r} is not the isolated eval box "
                 f"(must be loopback host in {sorted(_ALLOWED_LOOPBACK_HOSTS)!r} on port {expected_port}). "
                 "This script bulk-ingests and bulk-deletes; it must NEVER point at a real box. "
                 "There is no flag to bypass this check — stand up `make eval-up`'s isolated box "
-                "(store 18000 / facade 18001) and use its URLs."
+                "(store 18000 / facade 18001) and use its URLs.",
+                file=sys.stderr,
             )
+            raise SystemExit(2)
 
 
 def _env_or_file(env_name: str, file_env_name: str) -> str:

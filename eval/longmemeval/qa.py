@@ -291,7 +291,9 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
             flush=True,
         )
-        return 2
+        # Same exit-code contract as the partial case below: ANY transport error -> 4. The all-
+        # error case keeps its louder FATAL wording but must not carve out a different code.
+        return 4
     if not complete:
         # FAIL CLOSED: at least one row transport-errored. The written envelope already records
         # "complete": false + "errors": N — exit nonzero so a caller's `make`/CI/dispatcher chain

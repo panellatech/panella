@@ -23,31 +23,40 @@ def test_bare_filename_resolves_relative_to_cwd_and_is_refused() -> None:
     """A bare filename (no eval/out/ prefix) resolves relative to CWD, which is virtually never
     eval/out/ itself — this is exactly the ingest_retrieve.py/qa.py bug this guard exists to catch
     (their OLD defaults were bare filenames that landed wherever the operator's shell CWD was)."""
-    with pytest.raises(SystemExit, match=r"REFUSING to write"):
+    with pytest.raises(SystemExit) as exc_info:
         assert_eval_out("stage_a_retrieval.json")
+    assert exc_info.value.code == 2
 
 
 def test_absolute_path_outside_eval_out_is_refused() -> None:
-    with pytest.raises(SystemExit, match=r"REFUSING to write"):
+    with pytest.raises(SystemExit) as exc_info:
         assert_eval_out("/tmp/stage_a_retrieval.json")
+    assert exc_info.value.code == 2
 
 
 def test_dot_dot_escape_is_refused() -> None:
     """A relative path that `..`s its way back out of eval/out/ must be caught by the RESOLVED
     (absolute, symlink/`..`-collapsed) comparison, not a naive string-prefix check."""
-    with pytest.raises(SystemExit, match=r"REFUSING to write"):
+    with pytest.raises(SystemExit) as exc_info:
         assert_eval_out("eval/out/../../escaped.json")
+    assert exc_info.value.code == 2
 
 
 def test_sibling_dir_that_shares_a_string_prefix_is_refused() -> None:
     """`eval/out_evil/` shares the STRING prefix `eval/out` with `eval/out/` but is NOT a
     subdirectory of it — a naive `str.startswith()` guard would wrongly accept this; the real
     guard must use `Path.relative_to`, which correctly rejects it."""
-    with pytest.raises(SystemExit, match=r"REFUSING to write"):
+    with pytest.raises(SystemExit) as exc_info:
         assert_eval_out("eval/out_evil/report.json")
+    assert exc_info.value.code == 2
 
 
-def test_refusal_message_names_the_offending_path() -> None:
+def test_refusal_message_names_the_offending_path(capsys) -> None:
+    # The documented refusal contract: explanatory message on STDERR + hard exit code 2 (a bare
+    # sys.exit(str) would exit 1 — review r2 P2).
     with pytest.raises(SystemExit) as exc_info:
         assert_eval_out("/tmp/leaked.json")
-    assert "leaked.json" in str(exc_info.value)
+    assert exc_info.value.code == 2
+    err = capsys.readouterr().err
+    assert "REFUSING to write" in err
+    assert "leaked.json" in err

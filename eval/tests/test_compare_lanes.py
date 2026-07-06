@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 
 from eval.longmemeval.compare_lanes import STORE_LANE_DESCRIPTION, _derive_intentional_lane_deltas, compare
 from panella.governance import load_governance
@@ -122,3 +123,21 @@ def test_intentional_lane_deltas_reflect_the_real_reader_env(monkeypatch) -> Non
     reader_row = next(d for d in deltas if d["delta"] == "reader++ / cross-encoder reranking")
     assert "readerpp" in reader_row["shipped_default"]
     assert "cross-encoder" in reader_row["shipped_default"]
+
+
+def test_lane_deltas_ignore_host_shell_governance_overlay(monkeypatch):
+    """A lingering host-shell PANELLA_GOVERNANCE_OVERLAY export must not leak into the "this run"
+    delta table: the eval facade runs with that env CLEARED (eval/compose.eval.yml), so the
+    derivation clears it too (review r2 P1). A bogus overlay path makes the failure mode loud —
+    without the clearing, current_governance() would try (and fail) to load the operator's box
+    config instead of the generic governance the eval box actually runs."""
+    monkeypatch.setenv("PANELLA_GOVERNANCE_OVERLAY", "/nonexistent/host-box-governance.yaml")
+    monkeypatch.setenv("PANELLA_CONFIG_DIR", "/nonexistent/host-config-dir")
+
+    rows = _derive_intentional_lane_deltas()
+
+    by_name = {row["delta"]: row for row in rows}
+    assert "read_allowlist: ['owner/*']" in by_name["tenant/read allowlist (ABAC)"]["shipped_default"]
+    # the derivation restored the operator's env afterwards
+    assert os.environ["PANELLA_GOVERNANCE_OVERLAY"] == "/nonexistent/host-box-governance.yaml"
+    assert os.environ["PANELLA_CONFIG_DIR"] == "/nonexistent/host-config-dir"
