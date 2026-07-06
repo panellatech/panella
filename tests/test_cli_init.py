@@ -341,6 +341,29 @@ def test_init_compose_verify_failure_prints_activation_banner(tmp_path, monkeypa
     assert "container uid 10001 cannot read a host-owned 0600 token" in captured.err
 
 
+def test_compose_up_forces_activation_env_over_shell_exports(tmp_path, monkeypatch):
+    # Compose gives a caller's shell exports precedence over .env, so a stale
+    # `export PANELLA_MCP_PROFILE=mcp-read` (the pre-one-shot QUICKSTART pattern) would override
+    # the lines init just persisted and restart the box read-only again (GH-bot P2). The real
+    # _run_compose_up_wait must force the activation values into the subprocess env.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PANELLA_MCP_PROFILE", "mcp-read")
+    monkeypatch.setenv("PANELLA_GOVERNANCE_OVERLAY", "/stale/host/governance.yaml")
+    captured = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["env"] = kwargs.get("env")
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(init_cli.subprocess, "run", fake_run)
+    assert init_cli._run_compose_up_wait() is True
+    assert captured["cmd"] == ["docker", "compose", "up", "-d", "--wait"]
+    assert captured["env"] is not None
+    assert captured["env"]["PANELLA_MCP_PROFILE"] == "mcp-write"
+    assert captured["env"]["PANELLA_GOVERNANCE_OVERLAY"] == "/app/local/governance.yaml"
+
+
 def test_compose_env_upsert_canonicalizes_duplicates_and_preserves_mode(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     env_path = Path(".env")

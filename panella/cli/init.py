@@ -465,6 +465,15 @@ def _atomic_write_bytes(path: Path, content: bytes, mode: int) -> None:
 
 
 def _run_compose_up_wait() -> bool:
+    # Force the activation values into the compose interpolation env: compose gives a caller's
+    # shell exports priority over .env, so a stale `export PANELLA_MCP_PROFILE=mcp-read` (exactly
+    # what the pre-one-shot QUICKSTART taught) would silently override the lines init just wrote
+    # and restart the box read-only again (GH-bot P2). The restart must apply what init persisted.
+    env = {
+        **os.environ,
+        OVERLAY_ENV: str(APP_LOCAL_DIR / GOVERNANCE_OVERLAY_NAME),
+        MCP_PROFILE_ENV: WRITE_MCP_PROFILE,
+    }
     try:
         proc = subprocess.run(
             ["docker", "compose", "up", "-d", "--wait"],
@@ -473,6 +482,7 @@ def _run_compose_up_wait() -> bool:
             text=True,
             timeout=300,
             check=False,
+            env=env,
         )
     except (OSError, subprocess.SubprocessError) as exc:
         print(f"panella init: docker compose up -d --wait failed: {exc}", file=sys.stderr)
