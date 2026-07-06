@@ -1,0 +1,58 @@
+[
+  {
+    "question_id": "smoke-q1",
+    "question_type": "single-session-user",
+    "question": "What code editor does the user use?",
+    "answer": "Vertex IDE",
+    "answer_session_ids": ["smoke-s1"],
+    "question_date": "2024/10/01 (Tue) 09:00",
+    "haystack_session_ids": ["smoke-s1", "smoke-s2"],
+    "haystack_dates": ["2024/09/01 (Sun) 16:45", "2024/09/15 (Sun) 10:00"],
+    "haystack_sessions": [
+      [{"role": "user", "content": "Switched over to Vertex IDE a couple months back, loving it so far."}],
+      [{"role": "user", "content": "What's the weather like in Fairhaven today?"}]
+    ]
+  },
+  {
+    "question_id": "smoke-q2",
+    "question_type": "single-session-user",
+    "question": "Where does the user currently live?",
+    "answer": "Lakeside",
+    "answer_session_ids": ["smoke-s3"],
+    "question_date": "2024/04/01 (Mon) 09:00",
+    "haystack_session_ids": ["smoke-s3", "smoke-s4"],
+    "haystack_dates": ["2024/03/15 (Fri) 18:30", "2024/03/20 (Wed) 12:00"],
+    "haystack_sessions": [
+      [{"role": "user", "content": "Just moved to Lakeside last month, still unpacking boxes."}],
+      [{"role": "user", "content": "Can you help me debug this stack trace?"}]
+    ]
+  },
+  {
+    "question_id": "smoke-q3",
+    "question_type": "single-session-user",
+    "question": "What is the user's favorite programming language?",
+    "answer": "Umbra-lang",
+    "answer_session_ids": ["smoke-s5"],
+    "question_date": "2024/08/01 (Thu) 09:00",
+    "haystack_session_ids": ["smoke-s5", "smoke-s6"],
+    "haystack_dates": ["2024/07/09 (Tue) 09:40", "2024/07/20 (Sat) 14:00"],
+    "haystack_sessions": [
+      [{"role": "user", "content": "Honestly Umbra-lang has become my favorite language this year."}],
+      [{"role": "user", "content": "Thanks, that fixed it!"}]
+    ]
+  },
+  {
+    "question_id": "smoke-q4",
+    "question_type": "single-session-user",
+    "question": "How does the user take their coffee?",
+    "answer": "oat-milk lattes",
+    "answer_session_ids": ["smoke-s7"],
+    "question_date": "2024/11/01 (Fri) 09:00",
+    "haystack_session_ids": ["smoke-s7", "smoke-s8"],
+    "haystack_dates": ["2024/10/03 (Thu) 07:50", "2024/10/10 (Thu) 08:00"],
+    "haystack_sessions": [
+      [{"role": "user", "content": "These days I mostly drink oat-milk lattes instead of black coffee."}],
+      [{"role": "user", "content": "What time is it in Fairhaven right now?"}]
+    ]
+  }
+]
