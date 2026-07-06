@@ -75,7 +75,8 @@ eval-up:
 eval-down:
 	$(EVAL_COMPOSE) down -v
 	@rm -rf eval/out/panella-local
-	@echo "eval-down: torn down (compose project volumes removed via -v, never a volume-name pattern match)"
+	@rm -f eval/out/state.env eval/out/compose.env
+	@echo "eval-down: torn down (volumes via -v; per-box scratch state.env/compose.env removed — a stale bearer for deleted volumes must not make eval-selftest treat the box as up)"
 
 # --------------------------------------------------------------------------------------------
 # Pipeline (requires eval-up + eval-dataset)

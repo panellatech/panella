@@ -107,12 +107,14 @@ def test_qa_rows_from_envelope_unit() -> None:
     assert complete is False
 
 
-def test_per_type_rows_are_not_double_piped():
-    """Emitted per-type rows carry their own leading/trailing pipes; the template placeholder must
-    be bare, or every rendered row gains empty edge cells (`| | ... | |`) and the markdown table
-    misaligns (GH-bot P3)."""
+def test_rows_are_not_double_piped_anywhere():
+    """Emitted table rows carry their own leading/trailing pipes; neither the template placeholders
+    nor the row JOIN may add more, or every rendered row gains empty edge cells (`| | ... | |`) and
+    the markdown tables misalign (GH-bot P3, two rounds: wrapped placeholders, then the ` |\n| `
+    join)."""
     template = Path("eval/REPORT.template.md").read_text()
-    assert "| {{PER_TYPE_ROWS}} |" not in template
-    assert "| {{QA_PER_TYPE_ROWS}} |" not in template
-    assert "{{PER_TYPE_ROWS}}" in template
-    assert "{{QA_PER_TYPE_ROWS}}" in template
+    for placeholder in ("PER_TYPE_ROWS", "QA_PER_TYPE_ROWS", "INTENTIONAL_LANE_DELTAS_ROWS"):
+        assert f"| {{{{{placeholder}}}}} |" not in template
+        assert f"{{{{{placeholder}}}}}" in template
+    source = Path("eval/render_report.py").read_text()
+    assert " |\\n| " not in source.replace("'", '"')

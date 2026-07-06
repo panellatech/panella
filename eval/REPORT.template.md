@@ -31,7 +31,7 @@ with its actual config value in THIS run:
 
 | Delta | Shipped default (this run) | Effect |
 | --- | --- | --- |
-| {{INTENTIONAL_LANE_DELTAS_ROWS}} |
+{{INTENTIONAL_LANE_DELTAS_ROWS}}
 
 ## QA-accuracy (if run)
 

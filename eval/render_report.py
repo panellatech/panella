@@ -131,7 +131,7 @@ def render(
                 overall = row
             else:
                 per_type_rows.append(line)
-        subs["PER_TYPE_ROWS"] = " |\n| ".join(per_type_rows) if per_type_rows else "(no per-type rows)"
+        subs["PER_TYPE_ROWS"] = "\n".join(per_type_rows) if per_type_rows else "(no per-type rows)"
         subs["OVERALL_STORE_N"] = str(overall.get("store_n", "n/a"))
         subs["OVERALL_FACADE_N"] = str(overall.get("facade_n", "n/a"))
         subs["OVERALL_STORE_R1"] = _fmt(overall.get("store_recall@1"))
@@ -146,7 +146,7 @@ def render(
         delta_rows = [
             f"| {d['delta']} | {d['shipped_default']} | {d['effect']} |" for d in lane_comparison["intentional_lane_deltas"]
         ]
-        subs["INTENTIONAL_LANE_DELTAS_ROWS"] = " |\n| ".join(delta_rows)
+        subs["INTENTIONAL_LANE_DELTAS_ROWS"] = "\n".join(delta_rows)
     else:
         subs["PER_TYPE_ROWS"] = "(lane comparison not run)"
         for k in (
@@ -169,7 +169,7 @@ def render(
     elif qa_rows:
         agg = _qa_agg(qa_rows)
         rows = [f"| {t} | {v['n']} | {_fmt(v['acc'])} |" for t, v in sorted(agg.items()) if t != "OVERALL"]
-        subs["QA_PER_TYPE_ROWS"] = " |\n| ".join(rows) if rows else "(no scored rows)"
+        subs["QA_PER_TYPE_ROWS"] = "\n".join(rows) if rows else "(no scored rows)"
         subs["QA_OVERALL_N"] = str(agg.get("OVERALL", {}).get("n", "n/a"))
         subs["QA_OVERALL_ACC"] = _fmt(agg.get("OVERALL", {}).get("acc"))
     else:
