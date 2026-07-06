@@ -36,11 +36,28 @@ with mode `0600`. The store runs with local SQLite embeddings and no provider AP
 
 ## Approval Setup
 
-The shipped default governance is inert-closed for approvals. To enable MCP writes, create a local
-overlay that sets `approval.authorized_approvers`, writes a `local_cli` token file with mode `0600`,
-sets `PANELLA_GOVERNANCE_OVERLAY` to that overlay, and starts the facade with
-`PANELLA_MCP_PROFILE=mcp-write`. The owner bearer belongs in the MCP client config; the approval
-token is operator-only and is passed only as the `credential` argument to the shipped
-`memory.approve_candidate` MCP tool.
+The shipped default governance is inert-closed for approvals. `panella init` does the whole setup in
+one command (mints the owner bearer, writes the `local_cli` token file at mode `0600`, writes the
+approver overlay, enabling `PANELLA_MCP_PROFILE=mcp-write`); `panella init --verify` then confirms it
+end to end. The owner bearer belongs in the MCP client config; the approval token is operator-only.
 
 See [QUICKSTART.md](QUICKSTART.md) for the end-to-end submit, approve, and recall flow.
+
+### Token file must be readable by the container (native Linux)
+
+The approval token is a host file (mode `0600`) that the `panella-http` container also reads to
+verify a presented token. On Docker Desktop (macOS/Windows) it is readable inside the container
+regardless of uid. On **native Linux**, bind mounts preserve host uid/gid and the image runs as uid
+`10001`, so a `0600` file owned by your host user is unreadable inside the container and every
+approval silently fails. `panella init --verify` catches this — it runs the token check *inside* the
+running container, so a "looks fine on the host" false pass is impossible — and points to the fix:
+run the stack under your own uid, e.g.
+
+```yaml
+# docker-compose.override.yml
+services:
+  panella-http:
+    user: "${UID:-1000}:${GID:-1000}"
+```
+
+so the container process shares your uid and can read the mounted `0600` token.

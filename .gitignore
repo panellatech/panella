@@ -11,3 +11,6 @@ data/
 .wp3-evidence/
 dist-config/
 .wp5-evidence/
+
+# WP-B1 local evidence run (transcripts contain host paths + throwaway tokens)
+.b1-evidence/
