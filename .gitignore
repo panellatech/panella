@@ -16,3 +16,4 @@ dist-config/
 .b1-evidence/
 .b2b-evidence/
 eval/out/
+eval/data/

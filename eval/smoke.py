@@ -102,7 +102,7 @@ def main() -> int:
             status,
             "render_report",
             [
-                sys.executable, "eval/render_report.py",
+                sys.executable, "-m", "eval.render_report",
                 "--lane-comparison", "eval/out/smoke_lane_comparison.json",
                 "--out", "eval/out/smoke_report.md",
             ],

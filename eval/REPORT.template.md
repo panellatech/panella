@@ -66,6 +66,10 @@ Reader: `{{READER_MODEL}}` (`{{READER_TRANSPORT}}`) -- Judge: `{{JUDGE_MODEL}}` 
 false_merge_count: `{{SUP_FALSE_MERGE_COUNT}}` (predicted supersede/coexist where gold says
 unrelated -- the dangerous cross-slot confusion)
 
+coverage: `{{SUP_COVERAGE}}` (predicted pairs / gold pairs -- a gold pair with NO matching
+prediction counts against recall on its label AND deflates this separately; a missing pair is
+never scored as a vacuous pass)
+
 ## Dataset & reproduction
 
 Reproduce this exact run: `eval/README.md`. Dataset download + sha256 verification:

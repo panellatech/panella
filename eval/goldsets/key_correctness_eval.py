@@ -38,6 +38,7 @@ from dataclasses import dataclass, field
 from itertools import combinations
 from pathlib import Path
 
+from eval._paths import assert_eval_out
 from eval.goldsets.preference_extraction import ChatFn, PreferenceCandidate, extract_preferences, normalize_domain
 
 _FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -629,18 +630,19 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, default=None, help="write the JSON report here")
     args = ap.parse_args(argv)
 
-    chat_fn = _codex_chat_fn(args.model) if args.backend == "codex" else _openai_chat_fn(args.model or "gpt-4o-mini")
-    result = run_eval(chat_fn, goldset_path=args.goldset, fixture_path=args.fixture)
-    text = json.dumps(result, indent=2, sort_keys=True)
-    if args.out:
-        args.out.write_text(text + "\n", encoding="utf-8")
-    else:
+    if not args.out:
         # HARD CONSTRAINT compliance: printing the full report to stdout would put metric values on
         # stdout when --out is omitted. Require --out for a real run; only tests call run_eval()
         # directly and handle the dict themselves.
         print("no --out given: report NOT printed (numeric output must land under eval/out/ only); pass --out eval/out/<name>.json", file=sys.stderr)
         return 2
-    print(f"wrote {args.out} (verdict + numbers inside; not printed to stdout)", file=sys.stderr)
+    out_path = assert_eval_out(args.out)
+
+    chat_fn = _codex_chat_fn(args.model) if args.backend == "codex" else _openai_chat_fn(args.model or "gpt-4o-mini")
+    result = run_eval(chat_fn, goldset_path=args.goldset, fixture_path=args.fixture)
+    text = json.dumps(result, indent=2, sort_keys=True)
+    out_path.write_text(text + "\n", encoding="utf-8")
+    print(f"wrote {out_path} (verdict + numbers inside; not printed to stdout)", file=sys.stderr)
     return 0
 
 

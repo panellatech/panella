@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from eval.render_report import DEFAULT_TEMPLATE, render
+from eval.render_report import DEFAULT_TEMPLATE, _qa_rows_from_envelope, render
 
 
 def test_render_with_no_inputs_fills_every_placeholder(tmp_path) -> None:
@@ -52,3 +52,54 @@ def test_render_writes_only_to_out_path(tmp_path, capsys) -> None:
     assert out_path.exists()
     # Nothing else should have been created alongside it in tmp_path (no stray artifact).
     assert list(tmp_path.iterdir()) == [tmp_path / "nested"]
+
+
+_QA_ROW = {"qid": "q1", "type": "single-session", "lane": "facade", "correct": True, "errored": False}
+
+
+def test_incomplete_qa_envelope_refuses_to_report_accuracy(tmp_path) -> None:
+    """qa.py's fail-closed envelope marks "complete": false whenever any reader/judge row
+    transport-errored. render_report.py MUST refuse to report a QA-accuracy number from it —
+    printing an incomplete-run notice instead of a (silently-deflated-n) accuracy figure."""
+    out_path = tmp_path / "report.md"
+    qa_data = {"complete": False, "errors": 1, "rows": [_QA_ROW]}
+    rendered = render(template_path=DEFAULT_TEMPLATE, out_path=out_path, qa_data=qa_data)
+    assert "QA incomplete" in rendered
+
+
+def test_incomplete_qa_envelope_does_not_render_a_per_type_table(tmp_path) -> None:
+    """A more precise check than substring-presence: the per-type QA rows placeholder must carry
+    the incomplete notice, not a rendered `| single-session | N | acc |` row."""
+    out_path = tmp_path / "report.md"
+    qa_data = {"complete": False, "errors": 1, "rows": [_QA_ROW]}
+    rendered = render(template_path=DEFAULT_TEMPLATE, out_path=out_path, qa_data=qa_data)
+    assert "| single-session |" not in rendered
+
+
+def test_complete_qa_envelope_renders_accuracy_normally(tmp_path) -> None:
+    """The counterpart: a "complete": true envelope (or the old bare-list shape, for back-compat)
+    renders the QA-accuracy table exactly as before — the incomplete-refusal path must not
+    swallow legitimate complete runs."""
+    out_path = tmp_path / "report.md"
+    qa_data = {"complete": True, "errors": 0, "rows": [_QA_ROW]}
+    rendered = render(template_path=DEFAULT_TEMPLATE, out_path=out_path, qa_data=qa_data)
+    assert "QA incomplete" not in rendered
+    assert "| single-session | 1 | 1.000 |" in rendered
+
+
+def test_legacy_bare_list_qa_shape_is_treated_as_complete(tmp_path) -> None:
+    """Back-compat: a qa_data that is still the OLD bare-list shape (no envelope wrapper) is
+    treated as complete — only the NEW envelope shape can ever declare itself incomplete."""
+    out_path = tmp_path / "report.md"
+    rendered = render(template_path=DEFAULT_TEMPLATE, out_path=out_path, qa_data=[_QA_ROW])
+    assert "QA incomplete" not in rendered
+    assert "| single-session | 1 | 1.000 |" in rendered
+
+
+def test_qa_rows_from_envelope_unit() -> None:
+    """Direct unit coverage of the small envelope-unwrapping helper."""
+    assert _qa_rows_from_envelope(None) == (None, True)
+    assert _qa_rows_from_envelope([_QA_ROW]) == ([_QA_ROW], True)
+    rows, complete = _qa_rows_from_envelope({"complete": False, "errors": 2, "rows": [_QA_ROW]})
+    assert rows == [_QA_ROW]
+    assert complete is False

@@ -10,7 +10,10 @@ Inputs (all optional — a section renders "not run" if its input is missing):
   --store-retrieval   eval/out/stage_a_retrieval.store.json  (ingest_retrieve.py --lane store)
   --facade-retrieval  eval/out/stage_a_retrieval.facade.json (ingest_retrieve.py --lane facade)
   --lane-comparison   eval/out/lane_comparison.json           (compare_lanes.py)
-  --qa                eval/out/stage_a_qa.json                (qa.py)
+  --qa                eval/out/stage_a_qa.json                (qa.py; a
+                       `{"complete": bool, "errors": int, "rows": [...]}` envelope — a
+                       "complete": false file refuses to render an accuracy number, see
+                       _qa_rows_from_envelope)
   --key-correctness   eval/out/key_correctness_report.json    (key_correctness_eval.py --out)
   --supersede-report  eval/out/supersede_report.json          (score_supersede.py --out)
 """
@@ -21,6 +24,8 @@ import json
 from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
+
+from eval._paths import assert_eval_out
 
 _HERE = Path(__file__).resolve().parent
 DEFAULT_TEMPLATE = _HERE / "REPORT.template.md"
@@ -58,12 +63,25 @@ def _qa_agg(qa_rows: list[dict]) -> dict[str, dict[str, float]]:
     return out
 
 
+def _qa_rows_from_envelope(qa_data: dict | list | None) -> tuple[list[dict] | None, bool]:
+    """qa.py's --out is a `{"complete": bool, "errors": int, "rows": [...]}` envelope (fail-closed
+    shape: ANY reader/judge transport error marks a run incomplete — see qa.py's main()). Returns
+    (rows_or_None, is_complete). A file that is still the OLD bare-list shape (pre-envelope; e.g. a
+    hand-built test fixture) is treated as complete for backward compatibility — only the NEW
+    envelope shape can ever declare itself incomplete."""
+    if qa_data is None:
+        return None, True
+    if isinstance(qa_data, list):  # pragma: no cover - legacy bare-list shape, kept for tests/back-compat
+        return qa_data, True
+    return qa_data.get("rows"), bool(qa_data.get("complete", True))
+
+
 def render(
     *,
     template_path: Path = DEFAULT_TEMPLATE,
     out_path: Path = DEFAULT_OUT,
     lane_comparison: dict | None = None,
-    qa_rows: list[dict] | None = None,
+    qa_data: dict | list | None = None,
     key_correctness: dict | None = None,
     supersede_report: dict | None = None,
     dataset_name: str = "n/a",
@@ -137,10 +155,18 @@ def render(
             "OVERALL_DELTA_R10",
         ):
             subs[k] = "n/a"
-        subs["INTENTIONAL_LANE_DELTAS_ROWS"] = "(lane comparison not run — see compare_lanes.py's INTENTIONAL_LANE_DELTAS)"
+        subs["INTENTIONAL_LANE_DELTAS_ROWS"] = "(lane comparison not run — see compare_lanes.py's _derive_intentional_lane_deltas)"
 
-    # QA-accuracy table.
-    if qa_rows:
+    # QA-accuracy table. FAIL CLOSED: qa.py's envelope marks "complete": false whenever ANY
+    # reader/judge row transport-errored — this MUST refuse to report an accuracy number for an
+    # incomplete run (a partial/flaky-transport run would otherwise silently read as a real,
+    # if slightly-smaller-n, benchmark result).
+    qa_rows, qa_complete = _qa_rows_from_envelope(qa_data)
+    if qa_rows and not qa_complete:
+        subs["QA_PER_TYPE_ROWS"] = "QA incomplete — no accuracy reported"
+        subs["QA_OVERALL_N"] = "n/a"
+        subs["QA_OVERALL_ACC"] = "QA incomplete — no accuracy reported"
+    elif qa_rows:
         agg = _qa_agg(qa_rows)
         rows = [f"| {t} | {v['n']} | {_fmt(v['acc'])} |" for t, v in sorted(agg.items()) if t != "OVERALL"]
         subs["QA_PER_TYPE_ROWS"] = " |\n| ".join(rows) if rows else "(no scored rows)"
@@ -173,11 +199,17 @@ def render(
             subs[f"SUP_PRECISION_{label.upper()}"] = _fmt(precision.get(label))
             subs[f"SUP_RECALL_{label.upper()}"] = _fmt(recall.get(label))
         subs["SUP_FALSE_MERGE_COUNT"] = str(supersede_report.get("false_merge_count", "n/a"))
+        # coverage (predicted pairs / gold pairs) is a DISTINCT signal from recall — a gold pair
+        # with no matching prediction deflates recall on its label, but coverage reports the raw
+        # attempted-vs-total fraction independent of per-label correctness (see
+        # score_supersede.py's module docstring for why the two must not be conflated).
+        subs["SUP_COVERAGE"] = _fmt(supersede_report.get("coverage"))
     else:
         for label in ("SUPERSEDE", "COEXIST", "UNRELATED"):
             subs[f"SUP_PRECISION_{label}"] = "n/a (not run)"
             subs[f"SUP_RECALL_{label}"] = "n/a (not run)"
         subs["SUP_FALSE_MERGE_COUNT"] = "n/a (not run)"
+        subs["SUP_COVERAGE"] = "n/a (not run)"
 
     for key, value in subs.items():
         text = text.replace("{{" + key + "}}", str(value))
@@ -210,12 +242,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--judge-transport", default="n/a")
     ap.add_argument("--reader-k", default="n/a")
     a = ap.parse_args(argv)
+    a.out = assert_eval_out(a.out)
 
     render(
         template_path=a.template,
         out_path=a.out,
         lane_comparison=_load_json(a.lane_comparison),
-        qa_rows=_load_json(a.qa),
+        qa_data=_load_json(a.qa),
         key_correctness=_load_json(a.key_correctness),
         supersede_report=_load_json(a.supersede_report),
         dataset_name=a.dataset_name,

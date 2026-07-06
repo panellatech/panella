@@ -2,8 +2,8 @@
 """The supersede confusion-matrix scorer CONTRACT the construction-rung work will consume.
 
 Pure function: (goldset, predictions) -> per-label precision/recall + confusion matrix +
-false-merge count. No I/O beyond the two inputs it is handed, no network, no store access —
-callers own loading the goldset JSON and producing predictions in the documented shape.
+false-merge count + coverage. No I/O beyond the two inputs it is handed, no network, no store
+access — callers own loading the goldset JSON and producing predictions in the documented shape.
 
 Prediction shape (a list of dicts, or a dict keyed by case_id — both accepted, see
 `_normalize_predictions`):
@@ -14,10 +14,16 @@ Prediction shape (a list of dicts, or a dict keyed by case_id — both accepted,
       "predicted_label": "supersede"   # one of supersede|coexist|unrelated
     }
 
-A prediction is matched to its gold pair by (case_id, earlier_id, later_id). Pairs the predictions
-do not cover are counted as "missing" (excluded from precision/recall, reported separately) rather
-than silently treated as a correct/incorrect guess — a scorer that fabricated a verdict for an
-uncovered pair would misrepresent classifier coverage as classifier accuracy.
+A prediction is matched to its gold pair by (case_id, earlier_id, later_id). A gold pair the
+predictions do NOT cover is a real scoring miss, not a neutral non-event: it is counted as a false
+negative for its gold label (confusion[gold_label]["missing"], a dedicated fourth column alongside
+the three real predicted labels) — a classifier that predicts NOTHING for a slot must NOT score
+recall=1.0 on that label merely because it never guessed wrong. `coverage` (n_covered /
+n_gold_pairs) is reported separately from recall, since coverage and per-label correctness are
+different failure modes a caller needs to distinguish (a scorer with high coverage but wrong
+guesses, vs. one with low coverage but correct guesses where it did guess, look identical under
+recall alone). The per-pair `missing_pairs` list (unchanged from before) still reports the raw
+(case_id, earlier_id, later_id) tuples for anyone auditing individual gaps.
 
 The "false-merge count" is the count of predicted `supersede` or `coexist` labels where gold says
 `unrelated` — the dangerous confusion this whole goldset exists to catch (see SCHEMA.md's
@@ -33,15 +39,25 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from eval._paths import assert_eval_out
+
 LABELS = ("supersede", "coexist", "unrelated")
+# The confusion matrix's predicted-side columns: the three real labels PLUS "missing" (a gold pair
+# with no matching prediction at all — see module docstring). "missing" is never a value
+# `predicted_label` can legally hold (see `score`'s validation), so it cannot collide with a real
+# prediction; it exists ONLY to give a coverage gap a slot in the SAME table real errors live in.
+_PREDICTED_COLUMNS = (*LABELS, "missing")
 
 
 @dataclass
 class ConfusionMatrixReport:
-    # confusion[gold_label][predicted_label] = count
-    confusion: dict[str, dict[str, int]] = field(default_factory=lambda: {g: {p: 0 for p in LABELS} for g in LABELS})
+    # confusion[gold_label][predicted_label_or_"missing"] = count
+    confusion: dict[str, dict[str, int]] = field(
+        default_factory=lambda: {g: {p: 0 for p in _PREDICTED_COLUMNS} for g in LABELS}
+    )
     precision: dict[str, float] = field(default_factory=dict)
     recall: dict[str, float] = field(default_factory=dict)
+    coverage: float = 0.0
     false_merge_count: int = 0
     n_covered: int = 0
     n_gold_pairs: int = 0
@@ -55,6 +71,7 @@ class ConfusionMatrixReport:
             "confusion": self.confusion,
             "precision": {k: round(v, 4) for k, v in self.precision.items()},
             "recall": {k: round(v, 4) for k, v in self.recall.items()},
+            "coverage": round(self.coverage, 4),
             "false_merge_count": self.false_merge_count,
             "n_covered": self.n_covered,
             "n_gold_pairs": self.n_gold_pairs,
@@ -117,6 +134,16 @@ def score(goldset: dict[str, Any], predictions: Any) -> ConfusionMatrixReport:
         if g_label == "unrelated" and p_label in ("supersede", "coexist"):
             report.false_merge_count += 1
 
+    # A gold pair with NO matching prediction is a real scoring miss, not a neutral non-event —
+    # count it as a false negative for its gold label in the SAME confusion table real errors
+    # live in (the "missing" column). Without this, a scorer that predicts nothing for an entire
+    # label would score recall=1.0 on it (an empty gold_total in the OLD code's `if gold_total else
+    # 1.0` fallback), which is exactly backwards: zero coverage is the WORST case, not a vacuous
+    # pass.
+    for key in sorted(missing_keys):
+        g_label = gold[key]
+        report.confusion[g_label]["missing"] += 1
+
     report.n_covered = len(covered_keys)
     report.n_missing = len(missing_keys)
     report.missing_pairs = [
@@ -126,13 +153,23 @@ def score(goldset: dict[str, Any], predictions: Any) -> ConfusionMatrixReport:
     report.extra_predictions = [
         {"case_id": k[0], "earlier_id": k[1], "later_id": k[2]} for k in sorted(extra_keys)
     ]
+    # Coverage: of every gold pair, how many had ANY prediction at all (right or wrong) — a
+    # DIFFERENT failure mode than recall (a scorer can have perfect coverage with wrong guesses,
+    # or partial coverage with correct guesses where it did guess; recall alone conflates the two).
+    report.coverage = (report.n_covered / report.n_gold_pairs) if report.n_gold_pairs else 1.0
 
     for label in LABELS:
-        # Precision: of every pair PREDICTED this label, how many were actually this label.
+        # Precision: of every pair PREDICTED this label, how many were actually this label. Sums
+        # ONLY over the real LABELS columns (excludes "missing" — a pair with no prediction was
+        # never predicted as `label`, so it must never inflate or deflate any label's precision
+        # denominator).
         predicted_total = sum(report.confusion[g][label] for g in LABELS)
         true_positive = report.confusion[label][label]
         report.precision[label] = (true_positive / predicted_total) if predicted_total else 1.0
-        # Recall: of every pair GOLD-labeled this label, how many were predicted correctly.
+        # Recall: of every pair GOLD-labeled this label, how many were predicted correctly. The
+        # row sum now naturally includes the "missing" column (populated above), so a label with
+        # gold pairs the predictions never covered correctly reports a DEFLATED recall instead of
+        # the old vacuous 1.0 — a missing gold pair is scored as a miss, not excluded.
         gold_total = sum(report.confusion[label].values())
         report.recall[label] = (true_positive / gold_total) if gold_total else 1.0
 
@@ -143,18 +180,28 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--goldset", type=Path, required=True)
     ap.add_argument("--predictions", type=Path, required=True, help="JSON file: list of prediction dicts or {case_id: [predictions]}")
-    ap.add_argument("--out", type=Path, default=None, help="write the JSON report here (default: stdout)")
+    ap.add_argument("--out", type=Path, default=None, help="write the JSON report here (REQUIRED — must be under eval/out/; same pattern as key_correctness_eval.py)")
     args = ap.parse_args(argv)
+
+    if not args.out:
+        # HARD CONSTRAINT compliance: printing the report to stdout would put precision/recall
+        # metric values on stdout. Require --out for a real run (same pattern as
+        # key_correctness_eval.py); only tests call score() directly and handle the report object
+        # themselves.
+        print(
+            "no --out given: report NOT printed (numeric output must land under eval/out/ only); "
+            "pass --out eval/out/<name>.json",
+            file=sys.stderr,
+        )
+        return 2
+    out_path = assert_eval_out(args.out)
 
     goldset = json.loads(args.goldset.read_text(encoding="utf-8"))
     predictions = json.loads(args.predictions.read_text(encoding="utf-8"))
     report = score(goldset, predictions)
     text = json.dumps(report.to_dict(), indent=2, sort_keys=True)
-    if args.out:
-        args.out.write_text(text + "\n", encoding="utf-8")
-        print(f"wrote {args.out}", file=sys.stderr)
-    else:
-        print(text)
+    out_path.write_text(text + "\n", encoding="utf-8")
+    print(f"wrote {out_path} (report inside; not printed to stdout)", file=sys.stderr)
     return 0
 
 

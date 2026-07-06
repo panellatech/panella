@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import json
 
-from eval.longmemeval.compare_lanes import INTENTIONAL_LANE_DELTAS, compare
+from eval.longmemeval.compare_lanes import STORE_LANE_DESCRIPTION, _derive_intentional_lane_deltas, compare
+from panella.governance import load_governance
 
 
 def _write_dump(path, rows) -> None:
@@ -24,7 +25,7 @@ def test_compare_computes_per_type_delta(tmp_path) -> None:
     _write_dump(store_path, store_rows)
     _write_dump(facade_path, facade_rows)
 
-    result = compare(store_path, facade_path)
+    result = compare(store_path, facade_path, governance=load_governance())
     row = next(r for r in result["per_type"] if r["type"] == "single-session")
     assert row["store_n"] == 2
     assert row["facade_n"] == 2
@@ -39,7 +40,7 @@ def test_compare_includes_overall_row(tmp_path) -> None:
     facade_path = tmp_path / "facade.json"
     _write_dump(store_path, rows)
     _write_dump(facade_path, rows)
-    result = compare(store_path, facade_path)
+    result = compare(store_path, facade_path, governance=load_governance())
     types = {r["type"] for r in result["per_type"]}
     assert "OVERALL" in types
 
@@ -52,7 +53,72 @@ def test_intentional_lane_deltas_always_present(tmp_path) -> None:
     facade_path = tmp_path / "facade.json"
     _write_dump(store_path, rows)
     _write_dump(facade_path, rows)
-    result = compare(store_path, facade_path)
-    assert result["intentional_lane_deltas"] == INTENTIONAL_LANE_DELTAS
+    gov = load_governance()
+    result = compare(store_path, facade_path, governance=gov)
+    assert result["intentional_lane_deltas"] == _derive_intentional_lane_deltas(gov)
     assert len(result["intentional_lane_deltas"]) >= 5
     assert "leaderboard" in result["framing"].lower()
+
+
+def test_store_lane_description_is_honest_and_present(tmp_path) -> None:
+    """The finding's exact fix: the store lane must be described as "raw store search (no
+    governance semantics)" — not silently implied to share the facade's profile/ABAC/lifecycle
+    machinery."""
+    rows = [{"type": "t1", "recall@1": 1.0, "recall@5": 1.0, "recall@10": 1.0}]
+    store_path = tmp_path / "store.json"
+    facade_path = tmp_path / "facade.json"
+    _write_dump(store_path, rows)
+    _write_dump(facade_path, rows)
+    result = compare(store_path, facade_path, governance=load_governance())
+    assert result["store_lane"] == STORE_LANE_DESCRIPTION
+    assert result["store_lane"] == "raw store search (no governance semantics)"
+
+
+def test_intentional_lane_deltas_reflect_the_real_rendered_serving_profile() -> None:
+    """No hardcoded config values in the emitted table — every delta's `shipped_default` must
+    match what `render_serving_profile` ACTUALLY renders for the given governance, proving the
+    table is derived, not copy-pasted."""
+    import yaml
+
+    from panella.config_render import render_serving_profile
+
+    gov = load_governance()
+    profile = yaml.safe_load(render_serving_profile(gov))
+    deltas = _derive_intentional_lane_deltas(gov)
+
+    top_k_row = next(d for d in deltas if d["delta"] == "profile top-k cap")
+    assert str(profile["max_query_k"]) in top_k_row["shipped_default"]
+
+    allowlist_row = next(d for d in deltas if d["delta"] == "tenant/read allowlist (ABAC)")
+    assert repr(profile["read_allowlist"]) in allowlist_row["shipped_default"]
+
+    boost_row = next(d for d in deltas if d["delta"] == "wing soft-boost")
+    assert str(profile["wing_boost"]["default"]) in boost_row["shipped_default"]
+
+
+def test_intentional_lane_deltas_reflect_the_real_adapter_constants() -> None:
+    """The overfetch/lifecycle-status deltas must match the REAL panella_adapter.py module
+    constants at the time of the call — proving they are imported live, not hand-copied strings
+    that could silently drift from a future change to those constants."""
+    from panella import panella_adapter
+
+    deltas = _derive_intentional_lane_deltas(load_governance())
+
+    overfetch_row = next(d for d in deltas if d["delta"] == "overfetch + backfill")
+    assert str(panella_adapter.PANELLA_OVERFETCH_N) in overfetch_row["shipped_default"]
+
+    lifecycle_row = next(d for d in deltas if d["delta"] == "lifecycle validity filtering")
+    assert repr(sorted(panella_adapter.EXCLUDED_RECALL_STATUSES)) in lifecycle_row["shipped_default"]
+
+
+def test_intentional_lane_deltas_reflect_the_real_reader_env(monkeypatch) -> None:
+    """The reader++/reranker delta must reflect whatever THIS run's actual environment has set —
+    proving it is read live from os.environ, not a hardcoded "off" string."""
+    from panella.reader import ENV_READER, ENV_RERANKER
+
+    monkeypatch.setenv(ENV_READER, "readerpp")
+    monkeypatch.setenv(ENV_RERANKER, "cross-encoder")
+    deltas = _derive_intentional_lane_deltas(load_governance())
+    reader_row = next(d for d in deltas if d["delta"] == "reader++ / cross-encoder reranking")
+    assert "readerpp" in reader_row["shipped_default"]
+    assert "cross-encoder" in reader_row["shipped_default"]

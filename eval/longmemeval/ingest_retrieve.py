@@ -33,10 +33,13 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+
+from eval._paths import assert_eval_out
 
 try:
     import tiktoken
@@ -58,6 +61,37 @@ SEP = "\n\n---\n\n"
 # The visibility-canary marker content — a fixed, greppable string so a facade-lane miss is
 # unambiguous ("did the marker come back?"), never a coincidental semantic near-hit.
 CANARY_MARKER = "panella-eval-visibility-canary-3f9c1a"
+
+# Isolation guard (mandatory, no escape hatch): the ONLY store/facade ports this harness may ever
+# target. `eval/compose.eval.yml` publishes the eval box on these EXACT loopback ports specifically
+# so a real box (8000/8001) can never collide with — or be silently targeted by — an eval run. A
+# `--store-url`/`--facade-url` flag or `PANELLA_EVAL_*_URL` env override pointed at 127.0.0.1:8000
+# (a REAL box's port) would otherwise let this script's bulk-ingest/bulk-delete calls mutate
+# production data. See `_assert_isolated_urls` — runs before any network call, no bypass flag.
+_ALLOWED_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost"})
+_EVAL_STORE_PORT = 18000
+_EVAL_FACADE_PORT = 18001
+
+
+def _assert_isolated_urls(store_url: str, facade_url: str) -> None:
+    """Hard-fail (exit 2) unless BOTH URLs are loopback AND use the eval box's dedicated ports
+    (store 18000 / facade 18001). No escape hatch — this check has no flag to disable it, and it
+    must run before ANY network call this script makes (ingest/search/clear/canary all POST to
+    these URLs). A store URL pointed at 127.0.0.1:8000 or a non-loopback host is a REAL box —
+    this script bulk-ingests and bulk-deletes, and NEVER points at a real box (brief's mandatory
+    isolation mechanics, same rule as the Makefile's $(EVAL_COMPOSE) wrapper)."""
+    for label, url, expected_port in (("store", store_url, _EVAL_STORE_PORT), ("facade", facade_url, _EVAL_FACADE_PORT)):
+        parsed = urllib.parse.urlsplit(url)
+        host = parsed.hostname or ""
+        port = parsed.port
+        if host not in _ALLOWED_LOOPBACK_HOSTS or port != expected_port:
+            sys.exit(
+                f"REFUSING to run: --{label}-url={url!r} is not the isolated eval box "
+                f"(must be loopback host in {sorted(_ALLOWED_LOOPBACK_HOSTS)!r} on port {expected_port}). "
+                "This script bulk-ingests and bulk-deletes; it must NEVER point at a real box. "
+                "There is no flag to bypass this check — stand up `make eval-up`'s isolated box "
+                "(store 18000 / facade 18001) and use its URLs."
+            )
 
 
 def _env_or_file(env_name: str, file_env_name: str) -> str:
@@ -332,9 +366,24 @@ def main(argv: list[str] | None = None) -> int:
     )
     ap.add_argument("--room", default=os.environ.get("PANELLA_EVAL_ROOM"), help="room stamp override; default = derived from visibility.py")
     ap.add_argument("--data", default=os.environ.get("PANELLA_EVAL_DATA", "longmemeval_s_cleaned.json"))
-    ap.add_argument("--out", default="stage_a_retrieval.json")
-    ap.add_argument("--skip-canary", action="store_true", help="skip the visibility canary (facade lane only; NOT recommended)")
+    ap.add_argument("--out", default="eval/out/stage_a_retrieval.json")
+    ap.add_argument(
+        "--canary-only",
+        action="store_true",
+        help="run ONLY the facade visibility canary (ingest one marker, confirm facade retrieves it, clean up) then exit — no dataset/--data needed. Used by `make eval-visibility-canary`.",
+    )
     a = ap.parse_args(argv)
+    if a.canary_only and a.lane != "facade":
+        sys.exit("--canary-only requires --lane facade (the canary only exercises the facade read path)")
+
+    # Isolation guard — MUST run before any network call (before even reading credentials, since
+    # the point is to refuse before this script can act at all). No flag disables this.
+    _assert_isolated_urls(a.store_url, a.facade_url)
+    # Metric-output guard: --out (and its .jsonl sidecar) must land under eval/out/ — resolve to an
+    # absolute path now so every later use (jsonl sidecar, final JSON, print) is unambiguously
+    # inside the gitignored dir regardless of CWD.
+    a.out = str(assert_eval_out(a.out))
+
     store_key = _api_key()
     bearer = _bearer() if a.lane == "facade" else ""
 
@@ -349,7 +398,7 @@ def main(argv: list[str] | None = None) -> int:
         a.room = a.room or derived_room
     print(f"ingest stamp: wing={a.wing!r} room={a.room!r} (derived from config_render.py unless overridden)", flush=True)
 
-    if a.lane == "facade" and not a.skip_canary:
+    if a.lane == "facade":
         from eval.longmemeval.visibility import assert_serving_profile_reads
 
         assert_serving_profile_reads(a.wing, a.room)
@@ -367,6 +416,10 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 3
         print("visibility canary: PASS (marker row retrieved via facade)", flush=True)
+
+    if a.canary_only:
+        # `make eval-visibility-canary` — the canary itself already ran above; nothing left to do.
+        return 0
 
     data = json.loads(Path(a.data).read_text(encoding="utf-8"))
     sub = select(data, a.n_per_type)

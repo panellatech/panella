@@ -27,6 +27,8 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from eval._paths import assert_eval_out
+
 try:
     import tiktoken
 
@@ -207,7 +209,7 @@ def grade(
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--retr", default="stage_a_retrieval.json")
+    ap.add_argument("--retr", default="eval/out/stage_a_retrieval.json")
     ap.add_argument("--reader-k", type=int, default=5, help="top-N sessions to feed the reader (budget control)")
     ap.add_argument("--reader-model", default="gpt-4o-mini")
     ap.add_argument("--judge-model", default="gpt-4o")
@@ -230,8 +232,9 @@ def main(argv: list[str] | None = None) -> int:
         help="ABLATION (contamination probe): STRIP the retrieved haystack — feed the reader the question only",
     )
     ap.add_argument("--workers", type=int, default=6)
-    ap.add_argument("--out", default="stage_a_qa.json")
+    ap.add_argument("--out", default="eval/out/stage_a_qa.json")
     a = ap.parse_args(argv)
+    a.out = str(assert_eval_out(a.out))
     key = _openai_key() if "openai" in (a.reader_transport, a.judge_transport) else ""
     data = json.loads(Path(a.retr).read_text(encoding="utf-8"))
     if a.no_context:
@@ -256,7 +259,6 @@ def main(argv: list[str] | None = None) -> int:
                 data,
             )
         )
-    Path(a.out).write_text(json.dumps(graded, ensure_ascii=False, indent=1), encoding="utf-8")
     # EXCLUDE errored rows (reader/judge API failures) from accuracy — an infra failure must
     # not count as a wrong answer (it would deflate the reported accuracy).
     errs = [g for g in graded if g.get("errored")]
@@ -264,11 +266,24 @@ def main(argv: list[str] | None = None) -> int:
     by = defaultdict(list)
     for g in scored:
         by[g["type"]].append(g)
+
+    # FAIL CLOSED (envelope shape, not a bare list): ANY transport error makes this run's accuracy
+    # number unreliable — a partial QA run silently reads as a real (if slightly smaller-n)
+    # benchmark unless something marks it incomplete. "complete" is false and "errors" carries the
+    # count whenever errs is non-empty, regardless of how many rows still scored successfully
+    # (the OLD behavior only failed when ALL rows errored — a single flaky transport call used to
+    # exit 0 with a quietly-deflated-n accuracy number). render_report.py refuses to render an
+    # accuracy row from an incomplete file (see its qa_rows handling).
+    complete = len(errs) == 0
+    envelope = {"complete": complete, "errors": len(errs), "rows": graded}
+    Path(a.out).write_text(json.dumps(envelope, ensure_ascii=False, indent=1), encoding="utf-8")
+
     # HARD CONSTRAINT: no metric values on stdout — per-type/overall breakdowns go ONLY to --out.
     print(f"graded {len(scored)}/{len(graded)} rows (excluded {len(errs)} transport errors); per-type breakdown in {a.out}", flush=True)
     if not scored:
-        # FAIL CLOSED: every reader/judge call errored (bad key / model / quota outage). Do NOT
-        # emit a successful-looking "0/0" benchmark artifact — a published number needs real grades.
+        # Every reader/judge call errored (bad key / model / quota outage) — the most severe case
+        # of incompleteness. Do NOT emit a successful-looking "0/0" benchmark artifact framing;
+        # the FATAL message below is a stronger signal than the generic incomplete-run case.
         print(
             f"FATAL: 0/{len(graded)} rows scored — all reader/judge calls errored "
             f"(check OPENAI_API_KEY / model / quota, or --reader-transport/--judge-transport codex). "
@@ -277,6 +292,19 @@ def main(argv: list[str] | None = None) -> int:
             flush=True,
         )
         return 2
+    if not complete:
+        # FAIL CLOSED: at least one row transport-errored. The written envelope already records
+        # "complete": false + "errors": N — exit nonzero so a caller's `make`/CI/dispatcher chain
+        # observes the failure instead of silently treating a partial run as a clean pass.
+        print(
+            f"INCOMPLETE: {len(errs)}/{len(graded)} row(s) transport-errored (reader/judge API "
+            "failure). The written envelope is marked \"complete\": false — render_report.py will "
+            "refuse to report a QA-accuracy number from it. Fix the transport and re-run for a "
+            "complete result.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return 4
     print(f"wrote {a.out}", flush=True)
     return 0
 

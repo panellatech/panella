@@ -13,24 +13,26 @@ EVAL_COMPOSE = docker compose -p panella-eval --env-file eval/out/compose.env -f
 
 PYTHON ?= python3
 DATASET_URL = https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned/resolve/main/longmemeval_s_cleaned.json
-DATASET_FILE = eval/out/longmemeval_s_cleaned.json
-# sha256 of the file at DATASET_URL as of this brief's writing (2026-07-07) — `make eval-dataset`
-# verifies the download against this before anything reads it. If HuggingFace ever republishes the
-# file with a legitimate content change, update this constant deliberately (never silently).
-DATASET_SHA256 = UNVERIFIED_PIN_ON_FIRST_REAL_DOWNLOAD
+DATASET_FILE = eval/data/longmemeval_s_cleaned.json
+# sha256 of the file at DATASET_URL, pinned from a REAL verified download (2026-07-07: 277,383,467
+# bytes, 500 questions, independently re-hashed with `shasum -a 256` outside this Makefile to
+# confirm) — `make eval-dataset` verifies every future download against this before anything reads
+# it. If HuggingFace ever republishes the file with a legitimate content change, update this
+# constant deliberately (never silently, and never with an invented hash).
+DATASET_SHA256 = d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442
 
-.PHONY: eval-dataset eval-up eval-down eval-retrieve eval-qa eval-report eval-smoke eval-selftest eval-isolation-check eval-public-scan
+.PHONY: eval-dataset eval-up eval-down eval-retrieve eval-qa eval-report eval-smoke eval-selftest eval-isolation-check eval-public-scan eval-visibility-canary
 
 # --------------------------------------------------------------------------------------------
 # Dataset
 
 eval-dataset:
-	@mkdir -p eval/out
+	@mkdir -p eval/data
 	@if [ -f "$(DATASET_FILE)" ]; then \
 		echo "eval-dataset: $(DATASET_FILE) already present, verifying sha256"; \
 	else \
-		echo "eval-dataset: downloading LongMemEval dataset (~277MB) — this is NOT committed (eval/out/ is gitignored)"; \
-		curl -sL -o "$(DATASET_FILE)" "$(DATASET_URL)"; \
+		echo "eval-dataset: downloading LongMemEval dataset (~277MB) — this is NOT committed (eval/data/ is gitignored)"; \
+		curl -fL --retry 3 -o "$(DATASET_FILE)" "$(DATASET_URL)"; \
 	fi
 	@actual_sha=$$(shasum -a 256 "$(DATASET_FILE)" | awk '{print $$1}'); \
 	if [ "$(DATASET_SHA256)" = "UNVERIFIED_PIN_ON_FIRST_REAL_DOWNLOAD" ]; then \
@@ -93,7 +95,7 @@ eval-qa:
 	$(PYTHON) -m eval.longmemeval.qa --retr eval/out/stage_a_retrieval.facade.json --out eval/out/stage_a_qa.json
 
 eval-report:
-	$(PYTHON) eval/render_report.py \
+	$(PYTHON) -m eval.render_report \
 		--lane-comparison eval/out/lane_comparison.json \
 		--qa eval/out/stage_a_qa.json \
 		--key-correctness eval/out/key_correctness_report.json \
@@ -111,12 +113,36 @@ eval-smoke: eval-selftest
 
 
 # --------------------------------------------------------------------------------------------
-# Self-test: unit tests + visibility canary (when a box is up) + isolation proof
+# Visibility canary -- runs the make-or-break check against the LIVE eval box on its own (the
+# canary is not skippable inside ingest_retrieve.py's --lane facade path; this target lets an
+# operator/CI re-run JUST the canary without a full retrieval pass). Requires `make eval-up` to
+# have already minted eval/out/state.env -- if it hasn't, this target fails loudly (it does NOT
+# silently skip; skipping is eval-selftest's job when no box is up, see below).
+
+eval-visibility-canary:
+	@if [ ! -f eval/out/state.env ]; then \
+		echo "eval-visibility-canary: eval/out/state.env missing -- run 'make eval-up' first (this target requires a live eval box, it does not skip)" >&2; \
+		exit 1; \
+	fi
+	@set -a; . eval/out/compose.env; . eval/out/state.env; set +a; \
+	PANELLA_EVAL_API_KEY="$$PANELLA_API_KEY" $(PYTHON) -m eval.longmemeval.ingest_retrieve \
+		--lane facade --canary-only
+
+# --------------------------------------------------------------------------------------------
+# Self-test: unit tests + isolation proof + visibility canary IFF a live box is up (eval/out/state.env
+# exists, i.e. `make eval-up` has run) -- when no box is up, this prints an explicit SKIPPED line
+# rather than silently omitting the canary (a comment here promising a skip-with-notice, and no
+# other behavior, is the only way this target is allowed to not run the canary).
 
 eval-selftest: eval-isolation-check
 	ruff check eval/
 	$(PYTHON) -m pytest eval/tests -q
 	$(PYTHON) eval/goldsets/synth_supersede.py --check
+	@if [ -f eval/out/state.env ]; then \
+		$(MAKE) eval-visibility-canary; \
+	else \
+		echo "canary: SKIPPED (no live eval box)"; \
+	fi
 
 eval-isolation-check:
 	@echo "eval-isolation-check: asserting the eval compose project is fully eval-scoped (mechanical proof, not prose)"
