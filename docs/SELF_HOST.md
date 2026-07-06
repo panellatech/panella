@@ -64,6 +64,15 @@ services:
     user: "${UID:-1000}:${GID:-1000}"
 ```
 
+Compose reads `${UID}`/`${GID}` from the process environment or a `.env` file, and the shell's `UID`
+is **not exported by default** — so persist your real uid/gid where Compose will see them (otherwise
+the fallback `1000` is used and, unless you happen to be uid 1000, the container still can't read the
+0600 token):
+
+```bash
+printf 'UID=%s\nGID=%s\n' "$(id -u)" "$(id -g)" >> .env
+```
+
 Then, **before the first `docker compose up`** (or once, on an existing box), give that uid ownership
 of the data volume:
 

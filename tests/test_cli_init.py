@@ -286,6 +286,36 @@ def test_init_custom_root_identity_still_produces_approvable_box(tmp_path, monke
     assert transport.verify_presser(token) in merged.approval.authorized_approvers
 
 
+def test_init_warns_on_custom_identity_bearer_binding(tmp_path, monkeypatch, capsys):
+    # For a custom identity/tenant, init's one-shot mint binds the bearer to the pre-overlay
+    # principal/tenant, so init must WARN to re-mint after restart (Codex B1 P2) — it does not
+    # pretend to atomically provision across a restart it cannot control.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(tmp_path / "tokens.db"))
+    base_overlay = tmp_path / "custom-identity.yaml"
+    base_overlay.write_text(
+        "identity:\n  root_principal:\n    id: \"human:alice\"\n    subject_id: \"u_alice\"\n"
+        "  default_tenant_id: \"t_alice_custom\"\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("PANELLA_GOVERNANCE_OVERLAY", str(base_overlay))
+    reset_governance_cache()
+    assert main(["init"]) == 0
+    captured = capsys.readouterr()
+    assert "WARNING: a custom identity/tenant is configured" in captured.err
+    assert "re-mint it with `panella tokens mint`" in captured.err
+
+
+def test_init_generic_box_prints_no_custom_identity_warning(tmp_path, monkeypatch, capsys):
+    # The launch-bar path (generic root + tenant) must stay quiet — no spurious warning.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(tmp_path / "tokens.db"))
+    reset_governance_cache()
+    assert main(["init"]) == 0
+    captured = capsys.readouterr()
+    assert "custom identity/tenant" not in captured.err
+
+
 def test_secret_boundary_http_and_mcp_do_not_exfiltrate_operator_token(tmp_path, monkeypatch, capsys):
     env = _build_mcp_app(tmp_path, monkeypatch, capsys)
     approval_value = APPROVAL_TOKEN_PATH.read_text(encoding="utf-8").strip()

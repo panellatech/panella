@@ -115,6 +115,7 @@ def _provision(*, force: bool) -> int:
 
     print(token)
     print("Store this owner bearer token now; it is not recoverable.", file=sys.stderr)
+    _warn_if_custom_identity(root, compose_present=compose_present)
 
     operator_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     # The server reads the token from the path baked into the overlay, so bake the path that server
@@ -153,6 +154,32 @@ def _load_root_principal():
         from panella.principal import root_principal
 
         return root_principal()
+
+
+def _warn_if_custom_identity(root, *, compose_present: bool) -> None:
+    """init's one-shot provisioning is guaranteed only for the GENERIC box. For a customized root
+    identity or tenant, the bearer was minted under the CURRENTLY-RUNNING governance (on the compose
+    path, inside a container that has not yet reloaded the new overlay), so it binds to the old
+    principal/tenant scope and REST routes reject it after restart (Codex B1 P2). Rather than pretend
+    to atomically mint across a restart init cannot control, warn loudly and tell the operator to
+    re-mint once the custom overlay is active. Generic boxes (the launch-bar path) print nothing."""
+    from panella.governance import _GENERIC_ROOT_PRINCIPAL_ID, _GENERIC_TENANT_ID, current_governance
+
+    try:
+        with _host_overlay_env_if_needed():
+            tenant = current_governance().identity.default_tenant_id
+    except Exception:
+        tenant = _GENERIC_TENANT_ID
+    if root.id == _GENERIC_ROOT_PRINCIPAL_ID and tenant == _GENERIC_TENANT_ID:
+        return
+    where = "inside the panella-http container (still on the old governance)" if compose_present else "under the current governance"
+    print(
+        f"WARNING: a custom identity/tenant is configured (root={root.id!r}, tenant={tenant!r}). The "
+        f"owner bearer above was minted {where}, so it is bound to the pre-overlay principal/tenant. "
+        "After you restart with the new overlay, re-mint it with `panella tokens mint` so it binds to "
+        "the custom root and tenant — one-shot provisioning is guaranteed only for the generic box.",
+        file=sys.stderr,
+    )
 
 
 def _mint_owner_bearer(principal_id: str, *, compose_present: bool) -> str:
