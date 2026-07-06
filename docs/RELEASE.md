@@ -109,7 +109,9 @@ Order is load-bearing.
    gh run list --workflow release-images.yml --limit 1
    gh run watch <run-id>
    gh run download <run-id> -n compose-pinned
-   docker compose -f compose.pinned.yml config
+   # Placeholder is interpolation-only: the pinned file keeps the required
+   # ${PANELLA_API_KEY:?} vars, and `config` fails without a value or .env.
+   PANELLA_API_KEY=verify-placeholder docker compose -f compose.pinned.yml config
    ```
 
 4. Dispatch real PyPI from the tag ref and approve the `pypi` environment.
@@ -152,7 +154,8 @@ APP_DIGEST="$(docker buildx imagetools inspect ghcr.io/panellatech/panella-app:$
 CERT_IDENTITY_RE='^https://github\.com/panellatech/panella/\.github/workflows/release-images\.yml@refs/(tags/v.*|heads/main)$'
 cosign verify --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp "${CERT_IDENTITY_RE}" "ghcr.io/panellatech/panella-store@${STORE_DIGEST}"
 cosign verify --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp "${CERT_IDENTITY_RE}" "ghcr.io/panellatech/panella-app@${APP_DIGEST}"
-docker compose -f compose.pinned.yml config
+# Placeholder is interpolation-only (required ${PANELLA_API_KEY:?} vars in the pinned file).
+PANELLA_API_KEY=verify-placeholder docker compose -f compose.pinned.yml config
 ```
 
 Expected identity: `https://github.com/panellatech/panella/.github/workflows/release-images.yml@refs/heads/main`.
