@@ -212,7 +212,7 @@ def test_restore_refuses_before_placing_files_on_corrupt_snapshot(tmp_path, monk
     assert main(["backup", "--out", str(backup)]) == 0
 
     corrupt = tmp_path / "backup-corrupt.tar.gz"
-    _corrupt_one_byte(backup, corrupt, "sqlite_vec.db")
+    _corrupt_one_byte(backup, corrupt, "store_db")  # tar members are keyed by role, not basename
 
     data_dir = tmp_path / "restored"
     rc = main(["restore", "--from", str(corrupt), "--data-dir", str(data_dir)])
@@ -276,6 +276,62 @@ def test_export_seeded_wing_yields_exactly_seeded_memories(tmp_path):
         assert record["memory_type"] == "observation"
         assert "embedding" not in record
         assert "vector" not in record
+
+
+def test_export_multiple_wing_tags_resolves_last_wins(tmp_path):
+    # A row can carry more than one wing: tag. The live adapter (_parse_namespaced_tag) resolves
+    # them LAST-wins; export must agree, or `--wing` would include/omit different rows than the read
+    # path (GH-bot B4 P2). Row h1 has wing:first then wing:last → belongs to "last", not "first".
+    store = tmp_path / "sqlite_vec.db"
+    multi = (
+        "h1", "multi-wing memory", "status:active,tenant:t_owner_personal,wing:first,wing:last",
+        "{}", None, "observation", 1.0, "2026-01-01T00:00:00Z", 1.0, "2026-01-01T00:00:00Z",
+    )
+    _seed_store(store, [multi, _row("h2", "plain last memory", "last")])
+
+    out_last = tmp_path / "last.jsonl"
+    assert main(["export", "--wing", "last", "--store", str(store), "--out", str(out_last)]) == 0
+    last_ids = {json.loads(line)["id"] for line in out_last.read_text().strip().splitlines()}
+    assert last_ids == {"h1", "h2"}  # the multi-wing row lands in its LAST wing
+
+    out_first = tmp_path / "first.jsonl"
+    assert main(["export", "--wing", "first", "--store", str(store), "--out", str(out_first)]) == 0
+    assert out_first.read_text().strip() == ""  # ...and NOT in its first wing
+
+
+def test_backup_same_basename_sources_do_not_collide(tmp_path, monkeypatch):
+    # Two durable files sharing a basename in different dirs must each be captured correctly — the
+    # archive keys members by unique role, not basename, so neither snapshot overwrites the other
+    # (GH-bot B4 P2). Point the token + audit DBs at same-named files in separate dirs.
+    store = tmp_path / "sqlite_vec.db"
+    _seed_store(store, [_row("h1", "hello", "iris")])
+    monkeypatch.setenv("PANELLA_STORE_PATH", str(store))
+    from panella.http.tokens import TokenStore
+
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    token_db = tmp_path / "a" / "state.db"
+    TokenStore(token_db).mint(principal_id=root_principal().id, label="seed")
+    monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(token_db))
+    audit_db = tmp_path / "b" / "state.db"  # SAME basename, different dir
+    audit_write(principal=root_principal(), tenant_accessed="*", op="search", db_path=audit_db)
+    monkeypatch.setenv("PANELLA_HTTP_AUDIT_DB", str(audit_db))
+
+    archive = tmp_path / "backup.tar.gz"
+    assert main(["backup", "--out", str(archive)]) == 0
+    manifest = _read_manifest(archive)
+    by_role = {f["role"]: f for f in manifest["files"]}
+    # Distinct unique member names (roles), both original basenames preserved as target_name.
+    assert by_role["token_db"]["name"] != by_role["audit_db"]["name"]
+    assert by_role["token_db"]["target_name"] == "state.db"
+    assert by_role["audit_db"]["target_name"] == "state.db"
+    # Distinct snapshots (token DB vs audit DB have different content) → no collision/overwrite.
+    assert by_role["token_db"]["sha256"] != by_role["audit_db"]["sha256"]
+
+    # And restore into a single flat dir refuses loudly rather than overwriting one with the other.
+    dest = tmp_path / "restored"
+    rc = main(["restore", "--from", str(archive), "--data-dir", str(dest)])
+    assert rc == 2
 
 
 def test_export_other_wing_rows_absent(tmp_path):

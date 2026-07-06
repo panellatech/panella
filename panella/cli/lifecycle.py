@@ -177,7 +177,12 @@ def _cmd_backup(args: argparse.Namespace) -> int:
         tmp_dir = Path(tmp_name)
         manifest_files: list[dict[str, Any]] = []
         for source in sources:
-            snapshot_path = tmp_dir / source.path.name
+            # The archive MEMBER name is the role (unique per source), NOT the basename: two
+            # configured durable files can share a basename (e.g. token + audit DBs both named
+            # state.db in different dirs), which would collide in tmp_dir and silently overwrite one
+            # snapshot with another → an unrestorable or wrong backup (GH-bot B4 P2). ``target_name``
+            # carries the original basename so restore places each file back under its real name.
+            snapshot_path = tmp_dir / source.role
             if source.role == "governance_overlay":
                 # A plain YAML file — copy2 preserves mtime/mode; the SQLite backup API does not
                 # apply here (it is not a database).
@@ -193,7 +198,8 @@ def _cmd_backup(args: argparse.Namespace) -> int:
                     return 1
             manifest_files.append(
                 {
-                    "name": snapshot_path.name,
+                    "name": source.role,
+                    "target_name": source.path.name,
                     "sha256": _sha256_file(snapshot_path),
                     "role": source.role,
                     "size": snapshot_path.stat().st_size,
@@ -222,7 +228,7 @@ def _cmd_backup(args: argparse.Namespace) -> int:
     size = out_path.stat().st_size
     print(f"backup written: {out_path} ({size} bytes)")
     for manifest_file in manifest_files:
-        print(f"  {manifest_file['role']:<20} {manifest_file['name']} ({manifest_file['size']} bytes)")
+        print(f"  {manifest_file['role']:<20} {manifest_file['target_name']} ({manifest_file['size']} bytes)")
     return 0
 
 
@@ -272,10 +278,30 @@ def _cmd_restore(args: argparse.Namespace) -> int:
         targets: list[tuple[dict[str, Any], Path]] = []
         for entry in files:
             name = entry.get("name")
-            if not isinstance(name, str) or not name or "/" in name or name in {".", ".."}:
-                print(f"invalid backup archive: unsafe file name in manifest: {name!r}", file=sys.stderr)
-                return 1
-            targets.append((entry, data_dir / name))
+            # ``name`` is the tar member (unique role); ``target_name`` is the original basename the
+            # file is restored under (fallback to name for a manifest written before the split). Both
+            # must be single-segment — no traversal into or out of data_dir.
+            target_name = entry.get("target_name", name)
+            for candidate in (name, target_name):
+                if not isinstance(candidate, str) or not candidate or "/" in candidate or candidate in {".", ".."}:
+                    print(f"invalid backup archive: unsafe file name in manifest: {candidate!r}", file=sys.stderr)
+                    return 1
+            targets.append((entry, data_dir / target_name))
+
+        # Two backed-up files can share a basename (different source dirs). The archive holds both
+        # (unique role members), but a flat --data-dir cannot — placing both would silently overwrite
+        # one with the other. Refuse loudly instead of restoring wrong data.
+        seen: dict[Path, str] = {}
+        for entry, target in targets:
+            if target in seen:
+                print(
+                    f"restore refused — the {seen[target]} and {entry.get('role')} files share the "
+                    f"basename {target.name!r}, which a single --data-dir cannot hold both of; restore "
+                    "into separate directories (one --from per role) or rename the sources.",
+                    file=sys.stderr,
+                )
+                return 2
+            seen[target] = str(entry.get("role"))
 
         existing = [str(target) for _entry, target in targets if target.exists()]
         if existing and not args.force:
@@ -381,11 +407,18 @@ def _row_wing(tags: str | None, metadata: dict[str, Any]) -> str:
     meta_wing = metadata.get("wing")
     if isinstance(meta_wing, str) and meta_wing:
         return meta_wing
+    # A row can carry multiple wing: tags; the live adapter (_parse_namespaced_tag) resolves them
+    # LAST-wins, not first. Export MUST match, or `panella export --wing X` would include/omit
+    # different rows than the read path classifies for that wing (GH-bot B4 P2). Scan ALL wing tags
+    # and keep the last non-empty value.
+    wing = None
     for tag in (tags or "").replace(" ", "").split(","):
         if tag.startswith("wing:"):
             value = tag[len("wing:"):]
             if value:
-                return value
+                wing = value
+    if wing is not None:
+        return wing
     return "knowledge"  # LEGACY_FALLBACK_WING (panella_adapter.py) — no hard import (fence-light).
 
 
