@@ -19,6 +19,7 @@ DATASET_FILE = eval/data/longmemeval_s_cleaned.json
 # confirm) — `make eval-dataset` verifies every future download against this before anything reads
 # it. If HuggingFace ever republishes the file with a legitimate content change, update this
 # constant deliberately (never silently, and never with an invented hash).
+DATASET_NAME = longmemeval_s_cleaned.json
 DATASET_SHA256 = d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442
 
 .PHONY: eval-dataset eval-up eval-down eval-retrieve eval-qa eval-report eval-smoke eval-selftest eval-isolation-check eval-public-scan eval-visibility-canary
@@ -101,6 +102,10 @@ eval-report:
 		--qa eval/out/stage_a_qa.json \
 		--key-correctness eval/out/key_correctness_report.json \
 		--supersede-report eval/out/supersede_report.json \
+		--dataset-name "$(DATASET_NAME)" \
+		--dataset-sha256 "$(DATASET_SHA256)" \
+		--panella-commit "$$(git rev-parse --short=12 HEAD)" \
+		--compose-project panella-eval \
 		--out eval/out/report.md
 	@echo "eval-report: wrote eval/out/report.md (numbers land ONLY under eval/out/, never printed here)"
 

@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -135,11 +136,42 @@ def _agg_recall(rows: list[dict]) -> dict[str, dict[str, float]]:
     return out
 
 
+def _assert_comparable(store_rows: list[dict], facade_rows: list[dict]) -> None:
+    """Refuse to compute a delta between dumps that do not describe the SAME run: a stale or
+    rerun-with-different-subset file would otherwise produce a silently meaningless comparison
+    (GH-bot P2). Two checks: every row carries the lane it claims (catches swapped/stale files),
+    and both dumps cover the identical question-id set."""
+    for rows, expected_lane, name in ((store_rows, "store", "store"), (facade_rows, "facade", "facade")):
+        wrong = sorted({r.get("lane", "?") for r in rows} - {expected_lane})
+        if wrong:
+            print(
+                f"REFUSING to compare: the {name} dump contains lane={wrong!r} rows — the files are "
+                "swapped or stale; re-run eval-retrieve for both lanes.",
+                file=sys.stderr,
+            )
+            raise SystemExit(2)
+    store_qids = {r["qid"] for r in store_rows}
+    facade_qids = {r["qid"] for r in facade_rows}
+    if store_qids != facade_qids:
+        only_store = sorted(store_qids - facade_qids)[:5]
+        only_facade = sorted(facade_qids - store_qids)[:5]
+        print(
+            "REFUSING to compare: the two dumps cover different question sets "
+            f"(store={len(store_qids)} qids, facade={len(facade_qids)}; "
+            f"only-store sample={only_store!r}, only-facade sample={only_facade!r}). "
+            "One file is stale or was rerun with a different subset — re-run eval-retrieve for "
+            "BOTH lanes from the same dataset/subset.",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+
+
 def compare(store_path: Path, facade_path: Path, *, governance: Any | None = None) -> dict:
     """`governance` accepts an explicit override for tests (see `_derive_intentional_lane_deltas`);
     a real run leaves it None and resolves the box's actual live governance."""
     store_rows = _load(store_path)
     facade_rows = _load(facade_path)
+    _assert_comparable(store_rows, facade_rows)
     store_agg = _agg_recall(store_rows)
     facade_agg = _agg_recall(facade_rows)
     types = sorted(set(store_agg) | set(facade_agg))

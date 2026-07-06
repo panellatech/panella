@@ -12,6 +12,13 @@ def _write_dump(path, rows) -> None:
     path.write_text(json.dumps(rows), encoding="utf-8")
 
 
+def _write_lane_dump(path, lane, rows) -> None:
+    """Real dumps always carry qid + lane (ingest_retrieve writes both); the comparability guard
+    requires them, so fixtures model the real shape."""
+    stamped = [{**r, "lane": lane, "qid": r.get("qid", f"q{i}")} for i, r in enumerate(rows)]
+    path.write_text(json.dumps(stamped), encoding="utf-8")
+
+
 def test_compare_computes_per_type_delta(tmp_path) -> None:
     store_rows = [
         {"type": "single-session", "recall@1": 1.0, "recall@5": 1.0, "recall@10": 1.0},
@@ -23,8 +30,8 @@ def test_compare_computes_per_type_delta(tmp_path) -> None:
     ]
     store_path = tmp_path / "store.json"
     facade_path = tmp_path / "facade.json"
-    _write_dump(store_path, store_rows)
-    _write_dump(facade_path, facade_rows)
+    _write_lane_dump(store_path, "store", store_rows)
+    _write_lane_dump(facade_path, "facade", facade_rows)
 
     result = compare(store_path, facade_path, governance=load_governance())
     row = next(r for r in result["per_type"] if r["type"] == "single-session")
@@ -39,8 +46,8 @@ def test_compare_includes_overall_row(tmp_path) -> None:
     rows = [{"type": "t1", "recall@1": 1.0, "recall@5": 1.0, "recall@10": 1.0}]
     store_path = tmp_path / "store.json"
     facade_path = tmp_path / "facade.json"
-    _write_dump(store_path, rows)
-    _write_dump(facade_path, rows)
+    _write_lane_dump(store_path, "store", rows)
+    _write_lane_dump(facade_path, "facade", rows)
     result = compare(store_path, facade_path, governance=load_governance())
     types = {r["type"] for r in result["per_type"]}
     assert "OVERALL" in types
@@ -52,8 +59,8 @@ def test_intentional_lane_deltas_always_present(tmp_path) -> None:
     rows = [{"type": "t1", "recall@1": 1.0, "recall@5": 1.0, "recall@10": 1.0}]
     store_path = tmp_path / "store.json"
     facade_path = tmp_path / "facade.json"
-    _write_dump(store_path, rows)
-    _write_dump(facade_path, rows)
+    _write_lane_dump(store_path, "store", rows)
+    _write_lane_dump(facade_path, "facade", rows)
     gov = load_governance()
     result = compare(store_path, facade_path, governance=gov)
     assert result["intentional_lane_deltas"] == _derive_intentional_lane_deltas(gov)
@@ -68,8 +75,8 @@ def test_store_lane_description_is_honest_and_present(tmp_path) -> None:
     rows = [{"type": "t1", "recall@1": 1.0, "recall@5": 1.0, "recall@10": 1.0}]
     store_path = tmp_path / "store.json"
     facade_path = tmp_path / "facade.json"
-    _write_dump(store_path, rows)
-    _write_dump(facade_path, rows)
+    _write_lane_dump(store_path, "store", rows)
+    _write_lane_dump(facade_path, "facade", rows)
     result = compare(store_path, facade_path, governance=load_governance())
     assert result["store_lane"] == STORE_LANE_DESCRIPTION
     assert result["store_lane"] == "raw store search (no governance semantics)"
@@ -141,3 +148,47 @@ def test_lane_deltas_ignore_host_shell_governance_overlay(monkeypatch):
     # the derivation restored the operator's env afterwards
     assert os.environ["PANELLA_GOVERNANCE_OVERLAY"] == "/nonexistent/host-box-governance.yaml"
     assert os.environ["PANELLA_CONFIG_DIR"] == "/nonexistent/host-config-dir"
+
+
+def _rows(lane, qids):
+    return [
+        {"qid": q, "type": "single-session-user", "lane": lane,
+         "recall@1": 1.0, "recall@5": 1.0, "recall@10": 1.0}
+        for q in qids
+    ]
+
+
+def test_compare_refuses_mismatched_question_sets(tmp_path, capsys):
+    """Dumps covering different question sets (stale file / different --n-per-type rerun) must be
+    refused, not silently averaged into a meaningless delta (GH-bot P2)."""
+    import json
+
+    import pytest
+
+    from eval.longmemeval.compare_lanes import compare
+
+    store = tmp_path / "store.json"
+    facade = tmp_path / "facade.json"
+    store.write_text(json.dumps(_rows("store", ["q1", "q2"])))
+    facade.write_text(json.dumps(_rows("facade", ["q1", "q3"])))
+    with pytest.raises(SystemExit) as exc_info:
+        compare(store, facade)
+    assert exc_info.value.code == 2
+    assert "different question sets" in capsys.readouterr().err
+
+
+def test_compare_refuses_swapped_lane_files(tmp_path, capsys):
+    import json
+
+    import pytest
+
+    from eval.longmemeval.compare_lanes import compare
+
+    store = tmp_path / "store.json"
+    facade = tmp_path / "facade.json"
+    store.write_text(json.dumps(_rows("facade", ["q1"])))  # swapped
+    facade.write_text(json.dumps(_rows("facade", ["q1"])))
+    with pytest.raises(SystemExit) as exc_info:
+        compare(store, facade)
+    assert exc_info.value.code == 2
+    assert "swapped or stale" in capsys.readouterr().err
