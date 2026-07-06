@@ -1,4 +1,4 @@
-"""Top-level ``panella`` CLI."""
+"""``panella tokens`` — manage HTTP/MCP bearer tokens."""
 
 from __future__ import annotations
 
@@ -8,13 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="panella",
-        description="Panella operator utilities.",
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
+def register(subparsers: argparse._SubParsersAction) -> None:
     tokens = subparsers.add_parser("tokens", help="Manage HTTP/MCP bearer tokens.")
     token_subparsers = tokens.add_subparsers(dest="tokens_command", required=True)
 
@@ -36,12 +30,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Unique token label (default: generated owner label).",
     )
     mint.set_defaults(func=_tokens_mint)
-    return parser
-
-
-def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    return args.func(args)
 
 
 def _tokens_mint(args: argparse.Namespace) -> int:
@@ -75,7 +63,3 @@ def _tokens_mint(args: argparse.Namespace) -> int:
 def _default_token_label() -> str:
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     return f"owner-{stamp}"
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
