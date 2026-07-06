@@ -29,6 +29,8 @@ For a copy-paste path from fresh box to first approved, recalled memory, see
 
 See [docs/SELF_HOST.md](docs/SELF_HOST.md) for configuration and the Docker topology.
 
+See [docs/UPGRADE.md](docs/UPGRADE.md) for backing up, upgrading, and rolling back.
+
 The HTTP approval API (`/v1/approvals`) ships with a double-factor trust chain: the owner bearer is
 routing admission only, and a `local_cli` approval token (header-only) is the approver identity that
 the finalizer independently re-verifies. Deferred surfaces intentionally absent from this public

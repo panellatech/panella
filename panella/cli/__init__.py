@@ -11,10 +11,10 @@ from __future__ import annotations
 
 import argparse
 
-from panella.cli import tokens
+from panella.cli import lifecycle, tokens
 
 # Command modules in help-display order. Each exposes register(subparsers) -> None.
-_COMMAND_MODULES = (tokens,)
+_COMMAND_MODULES = (tokens, lifecycle)
 
 
 def build_parser() -> argparse.ArgumentParser:
