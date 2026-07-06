@@ -1,0 +1,132 @@
+{
+  "gate": "key-correctness-eval-v0",
+  "not_longmemeval_comparable": true,
+  "note": "Synthetic per-session fixture for key_correctness_eval.py. Every entity/value below (company, city, tool, food, name) is a FICTIONAL placeholder — no real user data. 'lifecycles' group sessions that describe the SAME slot updating over time (an ADD then a SUPERSEDE); extraction_goldset_v0.json's 'labels' annotate each session by its 'sid'.",
+  "lifecycles": [
+    {
+      "id": "employer-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "emp-s1",
+          "date": "2024/01/10 (Wed) 09:00",
+          "turns": [
+            { "role": "user", "content": "I just started at Northwind Traders as a backend engineer." }
+          ]
+        },
+        {
+          "sid": "emp-s2",
+          "date": "2024/06/22 (Sat) 14:00",
+          "turns": [
+            { "role": "user", "content": "Big update — I left Northwind and joined Contoso Labs last week." }
+          ]
+        }
+      ],
+      "query": "Where does the user currently work?",
+      "current_answer": "Contoso Labs",
+      "stale_answer": "Northwind Traders",
+      "current_sid": "emp-s2",
+      "stale_sid": "emp-s1"
+    },
+    {
+      "id": "editor-tool-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "tool-s1",
+          "date": "2024/03/12 (Tue) 10:15",
+          "turns": [
+            { "role": "user", "content": "I've been using Nimbus Editor for all my coding lately." }
+          ]
+        },
+        {
+          "sid": "tool-s2",
+          "date": "2024/09/01 (Sun) 16:45",
+          "turns": [
+            { "role": "user", "content": "Switched over to Vertex IDE a couple months back, loving it so far." }
+          ]
+        }
+      ],
+      "query": "What code editor does the user currently use?",
+      "current_answer": "Vertex IDE",
+      "stale_answer": "Nimbus Editor",
+      "current_sid": "tool-s2",
+      "stale_sid": "tool-s1"
+    },
+    {
+      "id": "language-preference",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "lang-s1",
+          "date": "2024/01/25 (Thu) 13:20",
+          "turns": [
+            { "role": "user", "content": "My favorite programming language is Solstice-lang, hands down." }
+          ]
+        },
+        {
+          "sid": "lang-s2",
+          "date": "2024/07/09 (Tue) 09:40",
+          "turns": [
+            { "role": "user", "content": "Honestly Umbra-lang has become my favorite language this year." }
+          ]
+        }
+      ],
+      "query": "What is the user's favorite programming language?",
+      "current_answer": "Umbra-lang",
+      "stale_answer": "Solstice-lang",
+      "current_sid": "lang-s2",
+      "stale_sid": "lang-s1"
+    },
+    {
+      "id": "coffee-preference",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "coffee-s1",
+          "date": "2024/02/18 (Sun) 08:05",
+          "turns": [
+            { "role": "user", "content": "I always drink my coffee black, no sugar, no cream." }
+          ]
+        },
+        {
+          "sid": "coffee-s2",
+          "date": "2024/10/03 (Thu) 07:50",
+          "turns": [
+            { "role": "user", "content": "These days I mostly drink oat-milk lattes instead of black coffee." }
+          ]
+        }
+      ],
+      "query": "How does the user currently take their coffee?",
+      "current_answer": "oat-milk lattes",
+      "stale_answer": "black coffee, no sugar",
+      "current_sid": "coffee-s2",
+      "stale_sid": "coffee-s1"
+    },
+    {
+      "id": "home-city-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "city-s1",
+          "date": "2023/11/02 (Thu) 12:00",
+          "turns": [
+            { "role": "user", "content": "I live in Rivertown, have for a few years now." }
+          ]
+        },
+        {
+          "sid": "city-s2",
+          "date": "2024/03/15 (Fri) 18:30",
+          "turns": [
+            { "role": "user", "content": "Just moved to Lakeside last month, still unpacking boxes." }
+          ]
+        }
+      ],
+      "query": "Where does the user currently live?",
+      "current_answer": "Lakeside",
+      "stale_answer": "Rivertown",
+      "current_sid": "city-s2",
+      "stale_sid": "city-s1"
+    }
+  ]
+}

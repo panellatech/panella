@@ -18,3 +18,8 @@
 dist/
 build/
 *.egg-info/
+
+# The eval/ harness is dev/research tooling, never a shipped-app concern — the wheel/sdist are
+# already safe via pyproject's explicit allowlists, but the Dockerfile's `COPY . /app` would
+# otherwise bake this whole directory (incl. eval/out/'s scratch state) into the image.
+eval/

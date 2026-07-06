@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://panella.tech/eval/goldsets/supersede.schema.json",
+  "title": "Panella supersede confusion-matrix goldset",
+  "description": "A synthetic goldset for scoring a fact-supersede/confusion-matrix classifier: given pairs of facts, does the classifier correctly label each pair supersede/coexist/unrelated, and does it correctly identify the currently-true fact set? See eval/goldsets/SCHEMA.md for label definitions and worked examples. Deterministic ordering: cases sorted by case_id; pairs within a case sorted by (earlier_id, later_id).",
+  "type": "object",
+  "required": ["goldset", "version", "cases"],
+  "additionalProperties": false,
+  "properties": {
+    "goldset": {
+      "type": "string",
+      "const": "panella-supersede-confusion-matrix"
+    },
+    "version": {
+      "type": "string",
+      "description": "Goldset version stamp, e.g. 'v0'."
+    },
+    "seed": {
+      "type": "integer",
+      "description": "The fixed PRNG seed synth_supersede.py used to generate this file (determinism proof)."
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/case" }
+    }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "required": ["case_id", "facts", "pairs", "current_truth"],
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "description": "Stable, deterministic identifier for this case (e.g. 'sc-employer-0007').",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+        },
+        "facts": {
+          "type": "array",
+          "description": "Ordered list of facts in this case, oldest-observed first.",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/fact" }
+        },
+        "pairs": {
+          "type": "array",
+          "description": "Every judged pair among this case's facts. A case with N facts need not judge all C(N,2) pairs — only the pairs that matter for the scenario — but every judged pair MUST reference fact_ids present in `facts`.",
+          "items": { "$ref": "#/$defs/pair" }
+        },
+        "current_truth": {
+          "type": "array",
+          "description": "The fact_ids an IDEAL system reports as currently true for this case (i.e. not superseded by any later fact), each with a one-line rationale.",
+          "items": { "$ref": "#/$defs/current_truth_entry" }
+        }
+      }
+    },
+    "fact": {
+      "type": "object",
+      "required": ["fact_id", "content", "date"],
+      "additionalProperties": false,
+      "properties": {
+        "fact_id": {
+          "type": "string",
+          "description": "Stable identifier for this fact, unique within the case.",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+        },
+        "content": {
+          "type": "string",
+          "description": "Synthetic fact content — NEVER real names/data (see SCHEMA.md)."
+        },
+        "date": {
+          "type": "string",
+          "description": "ISO-8601 UTC timestamp this fact was observed/stated.",
+          "format": "date-time"
+        }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "required": ["earlier_id", "later_id", "label"],
+      "additionalProperties": false,
+      "properties": {
+        "earlier_id": {
+          "type": "string",
+          "description": "fact_id of the chronologically earlier fact in the pair (date <= later_id's date)."
+        },
+        "later_id": {
+          "type": "string",
+          "description": "fact_id of the chronologically later fact in the pair."
+        },
+        "label": {
+          "type": "string",
+          "enum": ["supersede", "coexist", "unrelated"],
+          "description": "supersede = later_id replaces earlier_id as the current truth for the same slot; coexist = both remain true simultaneously (not a slot update); unrelated = the two facts share no slot/subject (a classifier merging them would be a false collision)."
+        }
+      }
+    },
+    "current_truth_entry": {
+      "type": "object",
+      "required": ["fact_id", "rationale"],
+      "additionalProperties": false,
+      "properties": {
+        "fact_id": { "type": "string" },
+        "rationale": {
+          "type": "string",
+          "description": "One line explaining why this fact is currently true (e.g. 'latest employer-update fact, not superseded by any later pair')."
+        }
+      }
+    }
+  }
+}

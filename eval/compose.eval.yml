@@ -1,0 +1,46 @@
+# Isolated eval compose overlay (brief's mandatory isolation mechanics). Every eval Makefile target
+# invokes compose ONLY through $(EVAL_COMPOSE) (see Makefile), which layers this file over the base
+# docker-compose.yml under project name `panella-eval` with a scratch --env-file. This file alone
+# supplies the three isolation properties the brief requires:
+#
+#   1. DISTINCT loopback host ports (18000/18001) -- the base compose binds 8000/8001, so an eval box
+#      would otherwise collide with a real box on the same host. `!override` (Compose Spec merge tag)
+#      is REQUIRED here, not just a new `ports:` list -- Compose merges sequence keys ADDITIVELY by
+#      default, so a plain override would publish 8000+18000 (and 8001+18001) side by side, defeating
+#      the whole point. Verified: `docker compose ... config` with a plain list keeps BOTH port
+#      bindings; `!override` replaces the list outright (confirmed empirically before shipping this).
+#   2. The `./.panella:/app/local:ro` bind OVERRIDDEN to an eval-scratch directory -- the base bind
+#      would hand the eval facade the OPERATOR'S REAL approval token/overlay (a governance/secrecy
+#      violation, not just a naming collision). Compose's volumes merge DOES replace-by-target (unlike
+#      ports), so a plain list entry is sufficient here -- verified via the same config dry-run.
+#   3. PANELLA_GOVERNANCE_OVERLAY and PANELLA_MCP_PROFILE cleared/pinned to eval-appropriate values --
+#      the eval box runs the shipped GENERIC governance (no owner overlay) so its serving profile's
+#      wing/room allowlist is provably the same one eval/longmemeval/visibility.py derives.
+#
+# Volumes are PROJECT-SCOPED named volumes (Docker namespaces every volume name below by the
+# `-p panella-eval` project, e.g. `panella-eval_panella-store`) -- `make eval-down` tears them down via
+# `$(EVAL_COMPOSE) down -v`, never by a volume-name pattern match that could reach a real box's data.
+
+services:
+  panella:
+    ports: !override
+      - "127.0.0.1:18000:8000"
+
+  panella-http:
+    environment:
+      # Cleared: the eval box serves the shipped GENERIC governance identity, never an operator
+      # overlay. This is what makes eval/longmemeval/visibility.py's derived wing/room provably
+      # correct -- it reads the SAME generic governance this box boots with.
+      PANELLA_GOVERNANCE_OVERLAY: ""
+      # Pinned to the shipped default read-only network MCP profile -- the eval harness talks to
+      # /v1/memory/search over REST, never /mcp, but a box that came up with a stray mcp-write
+      # profile would be a governance-drift smell worth pinning away regardless.
+      PANELLA_MCP_PROFILE: "mcp-read"
+    volumes:
+      # Overrides the base compose's `./.panella:/app/local:ro` bind (replace-by-target -- verified,
+      # see header) -- the base mount would hand the eval facade the OPERATOR'S real approval
+      # token/overlay. eval/out/panella-local/ is created by `make eval-up` (gitignored scratch dir)
+      # and is always empty, so the box boots with the inert-closed default approval posture.
+      - ./eval/out/panella-local:/app/local:ro
+    ports: !override
+      - "127.0.0.1:18001:8001"
