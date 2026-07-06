@@ -97,6 +97,8 @@ def test_backup_happy_path_manifest_and_store_probe(tmp_path, monkeypatch):
     rc = main(["backup", "--out", str(out)])
     assert rc == 0
     assert out.exists()
+    # The archive bundles bearer tokens + store memory contents → created 0600, not the umask default.
+    assert out.stat().st_mode & 0o777 == 0o600
 
     manifest = _read_manifest(out)
     assert manifest["format_version"] == 1
@@ -175,7 +177,8 @@ def test_restore_happy_path_into_empty_dir(tmp_path, monkeypatch, capsys):
     assert (data_dir / "tokens.db").exists()
     assert (data_dir / "audit.sqlite").exists()
     assert (data_dir / "memory_outbox.db").exists()
-    # sensitive files land 0600
+    # ALL restored files land 0600 — including the store DB, which holds the memory contents.
+    assert (data_dir / "sqlite_vec.db").stat().st_mode & 0o777 == 0o600
     assert (data_dir / "audit.sqlite").stat().st_mode & 0o777 == 0o600
     assert (data_dir / "tokens.db").stat().st_mode & 0o777 == 0o600
     assert (data_dir / "memory_outbox.db").stat().st_mode & 0o777 == 0o600

@@ -39,7 +39,11 @@ MANIFEST_FORMAT_VERSION = 1
 # Files placed by restore that hold sensitive/durable state and should never be group/world
 # readable — mirrors the 0600 convention panella.audit / panella.http.tokens already apply to
 # their own DBs (audit.py:_ensure schema, http/tokens.py TokenStore.__init__).
-_SENSITIVE_ROLES = {"token_db", "audit_db", "outbox_db", "governance_overlay"}
+# Every restored role is sensitive: token/audit/outbox hold bearer tokens + the audit chain, and
+# store_db holds the actual memory CONTENTS — a restored store left at the umask default (0644) would
+# make private memories group/world-readable to other local users or containers sharing the dir
+# (GH-bot B4 P2). All restored files land 0600.
+_SENSITIVE_ROLES = {"store_db", "token_db", "audit_db", "outbox_db", "governance_overlay"}
 
 
 def register(subparsers: argparse._SubParsersAction) -> None:
@@ -218,7 +222,13 @@ def _cmd_backup(args: argparse.Namespace) -> int:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         # Build the archive at a temp path in the SAME directory as --out, then atomically rename
         # into place — a crash mid-tar never leaves a half-written file at the requested --out path.
+        # The archive bundles bearer tokens + the store's memory contents, so create it 0600 (not the
+        # umask default 0644): on a multi-user host or a shared backup dir, other local readers must
+        # not be able to extract tokens/private memories (GH-bot B4 P2).
         tmp_archive = out_path.with_suffix(out_path.suffix + ".tmp")
+        fd = os.open(tmp_archive, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        os.close(fd)
+        os.chmod(tmp_archive, 0o600)  # umask-proof the fresh file
         with tarfile.open(tmp_archive, "w:gz") as tar:
             for manifest_file in manifest_files:
                 tar.add(tmp_dir / manifest_file["name"], arcname=manifest_file["name"])
