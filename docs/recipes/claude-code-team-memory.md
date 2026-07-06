@@ -33,8 +33,18 @@ background — a fact becomes durable only when a named human approves it.
 
 ## 3. AGENT RUNBOOK
 
-Paste this section at your agent (or follow it yourself) on the host that will run the box. Each
-step is one command, its expected output, and a one-line triage if it doesn't match.
+This runbook is run **by the box operator** (or the operator's own agent) on the host that will run
+the box. Teammates never run it — they only connect their clients later (§5). Each step is one
+command, its expected output, and a one-line triage if it doesn't match.
+
+**One boundary caveat before you paste this at an agent** (full rationale in §4): Step 4
+(`panella init`) creates `.panella/approval-token`, the operator-only approval credential, in the
+working directory. If you let an agent run Step 4 in a workspace it can also read, that agent can
+read the approval token and approve its own candidates — the credential separation this recipe sells
+is then instruction-deep, not mechanical. To keep it mechanical, run **Step 4 and the operator
+steps (9–10) yourself**, or put `.panella/` outside the agent's readable workspace / run the agent
+as a different uid (§4). The freely agent-delegable steps are the rest: clone, start, connect,
+submit, recall.
 
 ### Step 1 — clone and install the CLI
 
@@ -75,7 +85,10 @@ docker compose up -d --wait
 **On failure:** run `docker compose logs panella-http` — a missing `.env` (Step 2 skipped) is the
 most common cause; `docker compose up -d --wait` again after fixing it.
 
-### Step 4 — provision the box (one shot)
+### Step 4 — provision the box (one shot) — operator runs this
+
+This is the step that mints the operator-only approval token (see the boundary caveat at the top of
+§3). Run it yourself in a boundary-preserving setup rather than delegating it to an agent.
 
 ```bash
 set -o pipefail
