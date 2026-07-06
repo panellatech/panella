@@ -17,7 +17,6 @@
   let ownerBearer = null;
   let approvalToken = null;
 
-  const CONTENT_PANELS = ["approvals-panel", "search-panel", "audit-panel", "stats-panel"];
   const BADGE_POLL_MS = 30000;
   let badgePollHandle = null;
 
@@ -88,26 +87,48 @@
 
   async function probeConnection(statusNode) {
     setStatus(statusNode, "connecting...", "");
+    // Validate the bearer against a BEARER-ONLY endpoint (stats), NOT the approvals surface. The
+    // approval routes 404 on a box whose governance transport is not local_cli, so gating the whole
+    // console on /v1/approvals/count would hide search/audit/stats — which need only the owner
+    // bearer — from an entire class of deployments (GH-bot B3 P2). Approvals are revealed separately,
+    // only if their surface actually exists on this box.
+    let bearerResult;
     try {
-      const result = await apiFetch("/v1/approvals/count");
-      if (result.ok) {
-        setStatus(statusNode, describeError(result.status, "connected"), "ok");
-        revealPanels();
-        startBadgePoll();
-        refreshApprovals();
-        refreshAudit();
-        refreshStats();
-      } else {
-        const message = result.data && typeof result.data.message === "string" ? result.data.message : "";
-        setStatus(statusNode, describeError(result.status, message), "error");
-      }
+      bearerResult = await apiFetch("/v1/memory/stats");
     } catch (_err) {
       setStatus(statusNode, "network error contacting this box", "error");
+      return;
+    }
+    if (!bearerResult.ok) {
+      const message = bearerResult.data && typeof bearerResult.data.message === "string" ? bearerResult.data.message : "";
+      setStatus(statusNode, describeError(bearerResult.status, message), "error");
+      return;
+    }
+    setStatus(statusNode, describeError(bearerResult.status, "connected"), "ok");
+    revealBearerPanels();
+    refreshAudit();
+    refreshStats();
+    // Probe the approval surface independently: reveal + poll it only where it exists.
+    let approvalResult = null;
+    try {
+      approvalResult = await apiFetch("/v1/approvals/count");
+    } catch (_err) {
+      approvalResult = null;
+    }
+    byId("approvals-panel").hidden = false;
+    if (approvalResult && approvalResult.ok) {
+      startBadgePoll();
+      refreshApprovals();
+    } else {
+      // Surface exists in the UI but this deployment's transport is not local_cli — say so plainly
+      // instead of leaving a dead panel or hiding the whole console.
+      setStatus(byId("approvals-status"), "approvals are not available on this deployment", "");
     }
   }
 
-  function revealPanels() {
-    for (const id of CONTENT_PANELS) {
+  function revealBearerPanels() {
+    // The owner-bearer-only surfaces (approvals is revealed separately in probeConnection).
+    for (const id of ["search-panel", "audit-panel", "stats-panel"]) {
       byId(id).hidden = false;
     }
   }

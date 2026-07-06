@@ -45,6 +45,10 @@ _ASSET_CONTENT_TYPES: dict[str, str] = {
 
 CONSOLE_PATH = "/console"
 CONSOLE_STATIC_PREFIX = "/console/static/"
+# The whole "/console/" namespace is auth-free (the exact "/console" shell is in auth_free_paths):
+# every path under it resolves to an inert allowlisted asset or a CSP-covered 404, so a browser can
+# reach any of them without a bearer — content-gating is the route handler's job, not auth's.
+CONSOLE_NAMESPACE_PREFIX = "/console/"
 
 
 def console_enabled() -> bool:
@@ -122,5 +126,10 @@ def mount_console(app: FastAPI, *, auth_free_paths: set[str], auth_free_prefixes
     """
     app.include_router(build_console_router())
     widened_paths = auth_free_paths | {CONSOLE_PATH}
-    widened_prefixes = auth_free_prefixes + (CONSOLE_STATIC_PREFIX,)
+    # Auth-free the WHOLE ``/console/`` namespace, not just ``/console/static/``: the catch-all
+    # (``/console/{rest:path}``) must be reachable so a trailing-slash ``/console/`` or any
+    # ``/console/<x>`` gets the intended CSP-covered 404 instead of a bare, CSP-less 401 from
+    # AuthMiddleware (GH-bot B3 P2). The routes under this prefix are inert — an allowlisted asset or
+    # a 404 — so opening the prefix exposes no data; content-gating stays the route handler's job.
+    widened_prefixes = auth_free_prefixes + (CONSOLE_NAMESPACE_PREFIX,)
     return widened_paths, widened_prefixes

@@ -322,6 +322,30 @@ async def test_console_on_raw_dotdot_slash_segment_is_rejected_server_side(tmp_p
     assert headers.get(b"content-security-policy") is not None
 
 
+def test_console_namespace_unauthenticated_is_csp_404_not_401(tmp_path, monkeypatch):
+    # The whole /console/ namespace is auth-free, so a trailing-slash /console/ or any /console/<x>
+    # reaches the catch-all and returns a CSP-covered 404 — NOT a bare, CSP-less 401 from
+    # AuthMiddleware (GH-bot B3 P2). Requests carry no bearer.
+    monkeypatch.setenv("PANELLA_CONSOLE_ENABLED", "1")
+    env = _build(tmp_path, monkeypatch)
+    with TestClient(env.app) as c:
+        for path in ["/console/", "/console/nope", "/console/sub/dir"]:
+            r = c.get(path)
+            assert r.status_code == 404, path
+            assert r.headers.get("content-security-policy") is not None, path
+
+
+def test_console_js_probes_bearer_only_endpoint_for_panels():
+    # The connection probe must validate the bearer against a bearer-only endpoint and reveal the
+    # non-approval panels independently of the approval surface (GH-bot B3 P2) — a non-local_cli box
+    # 404s /v1/approvals/count, and gating the whole console on it would hide search/audit/stats.
+    js = CONSOLE_JS_PATH.read_text(encoding="utf-8")
+    assert "/v1/memory/stats" in js  # bearer-only probe
+    assert "revealBearerPanels" in js  # non-approval panels revealed on their own
+    # The approvals panel is no longer the gate for the bearer-only panels.
+    assert '"search-panel", "audit-panel", "stats-panel"' in js
+
+
 # --- 3. HTML structural: no <script> with a body, no on*= handlers, no inline style= ----------------
 
 def test_html_has_no_inline_script_body(tmp_path, monkeypatch):
