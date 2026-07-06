@@ -13,6 +13,7 @@ mkdir -p .panella && echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
 docker compose up -d --wait           # first boot downloads the embedding model — allow a few minutes
 panella init                          # one command: owner token, approval token, governance overlay
 printf 'PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\nPANELLA_MCP_PROFILE=mcp-write\n' >> .env
+# native Linux: apply the uid override from docs/SELF_HOST.md first (Docker Desktop: skip)
 docker compose up -d --wait           # restart write-capable
 panella connect --print claude-code   # swap PANELLA_BEARER_HERE for the bearer init printed, then paste
 ```
@@ -51,6 +52,8 @@ echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
 docker compose up -d --wait   # first boot downloads the embedding model — allow a few minutes
 panella init              # provisions owner bearer + local approval token + governance overlay
 printf 'PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\nPANELLA_MCP_PROFILE=mcp-write\n' >> .env
+# native Linux: apply the uid override from docs/SELF_HOST.md first, so the box (a non-root
+# uid) can read the operator-owned .panella files (Docker Desktop: skip)
 docker compose up -d --wait   # restart into the write-capable MCP profile
 panella init --verify     # confirms the box is serving and write-capable
 ```
