@@ -26,24 +26,28 @@ from panella.profile import AgentProfile
 
 APPROVAL_TOKEN_PATH = Path(".panella/approval-token")
 OVERLAY_PATH = Path(".panella/governance.yaml")
-# The overlay is emitted via yaml.safe_dump (not string interpolation), so assert on the PARSED
-# structure, not exact bytes. The approver is the FIXED canonical literal the transport stamps.
-EXPECTED_OVERLAY_DOC = {
-    "schema_version": 1,
-    "approval": {
-        "authorized_approvers": ["local_cli:owner"],
-        "transport": {
-            "kind": "local_cli",
-            "config": {"token_file": "/app/local/approval-token", "token_mode": "0600"},
-        },
-    },
-}
 
 
 def _overlay_doc(path: Path = OVERLAY_PATH) -> dict:
     import yaml
 
     return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
+def _assert_overlay_shape(tmp_path: Path, *, expected_root_id: str = "human:owner") -> None:
+    # The overlay (yaml.safe_dump, parsed here) must: fix the canonical approver, carry the local_cli
+    # transport pointed at the token init wrote, AND preserve the deployment root identity (so a
+    # custom identity survives repointing PANELLA_GOVERNANCE_OVERLAY at this file). Off the compose
+    # path the token_file is the absolute host path the server actually reads (no /app/local remap).
+    doc = _overlay_doc()
+    assert doc["schema_version"] == 1
+    assert doc["identity"]["root_principal"]["id"] == expected_root_id
+    approval = doc["approval"]
+    assert approval["authorized_approvers"] == ["local_cli:owner"]
+    transport = approval["transport"]
+    assert transport["kind"] == "local_cli"
+    assert transport["config"]["token_mode"] == "0600"
+    assert transport["config"]["token_file"] == str((tmp_path / APPROVAL_TOKEN_PATH).resolve())
 
 
 class RecordingAdapter:
@@ -95,7 +99,7 @@ def test_init_happy_path_idempotency_and_force(tmp_path, monkeypatch, capsys):
     assert TokenStore(token_db).resolve(owner_bearer, touch=False).principal_id == root_principal().id
     assert len(approval_token) == 64
     assert stat.S_IMODE(APPROVAL_TOKEN_PATH.stat().st_mode) == 0o600
-    assert _overlay_doc() == EXPECTED_OVERLAY_DOC
+    _assert_overlay_shape(tmp_path)
     assert "operator secret \u2014 never paste into agent config" in captured.out
     assert "not recoverable" in captured.err
 
@@ -108,7 +112,7 @@ def test_init_happy_path_idempotency_and_force(tmp_path, monkeypatch, capsys):
     assert re.search(r"^m2_[^\s]+$", captured.out, flags=re.MULTILINE) is None
     assert "already exists" in captured.err
     assert APPROVAL_TOKEN_PATH.read_text(encoding="utf-8").strip() == approval_token
-    assert _overlay_doc() == EXPECTED_OVERLAY_DOC
+    _assert_overlay_shape(tmp_path)
 
     rc = main(["init", "--force"])
     captured = capsys.readouterr()
@@ -117,7 +121,7 @@ def test_init_happy_path_idempotency_and_force(tmp_path, monkeypatch, capsys):
     assert TokenStore(token_db).resolve(forced_bearer, touch=False) is not None
     assert APPROVAL_TOKEN_PATH.read_text(encoding="utf-8").strip() != approval_token
     assert stat.S_IMODE(APPROVAL_TOKEN_PATH.stat().st_mode) == 0o600
-    assert _overlay_doc() == EXPECTED_OVERLAY_DOC
+    _assert_overlay_shape(tmp_path)
     assert "--force" in captured.err
 
 
@@ -208,14 +212,22 @@ def test_init_custom_root_identity_still_produces_approvable_box(tmp_path, monke
     doc = _overlay_doc()
     # The approver is the fixed literal regardless of the custom root id (NOT local_cli:alice).
     assert doc["approval"]["authorized_approvers"] == ["local_cli:owner"]
+    # And the custom identity is PRESERVED in init's overlay (Codex B1 P1): repointing
+    # PANELLA_GOVERNANCE_OVERLAY at this file keeps human:alice as root, so the minted bearer stays
+    # owner-gated. Writing approval-only would have dropped it back to the generic human:owner.
+    assert doc["identity"]["root_principal"]["id"] == "human:alice"
+    assert doc["identity"]["root_principal"]["subject_id"] == "u_alice"
 
-    # And the token the SERVER loads would be accepted: the transport stamps local_cli:owner, which
-    # is in the set init wrote.
+    # Prove it end-to-end: load governance from init's overlay ALONE and confirm root is still alice
+    # AND the token would be accepted (transport stamps local_cli:owner, which is authorized).
     from panella.approval_transport import LocalCliApprovalTransport
+    from panella.governance import load_governance
 
+    merged = load_governance(overlay_path=str(tmp_path / OVERLAY_PATH))
+    assert merged.identity.root_principal.id == "human:alice"
     token = APPROVAL_TOKEN_PATH.read_text(encoding="utf-8").strip()
     transport = LocalCliApprovalTransport(token_file=str(tmp_path / APPROVAL_TOKEN_PATH), token_mode=0o600)
-    assert transport.verify_presser(token) in doc["approval"]["authorized_approvers"]
+    assert transport.verify_presser(token) in merged.approval.authorized_approvers
 
 
 def test_secret_boundary_http_and_mcp_do_not_exfiltrate_operator_token(tmp_path, monkeypatch, capsys):

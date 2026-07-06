@@ -101,9 +101,10 @@ def _provision(*, force: bool) -> int:
                 print(f"panella init: {blocker}", file=sys.stderr)
             return 2
 
+    compose_present = (Path.cwd() / "docker-compose.yml").exists()
     try:
         root = _load_root_principal()
-        token = _mint_owner_bearer(root.id)
+        token = _mint_owner_bearer(root.id, compose_present=compose_present)
     except (GovernanceConfigError, OSError, sqlite3.Error, subprocess.SubprocessError) as exc:
         print(f"panella init: {exc}", file=sys.stderr)
         return 2
@@ -112,21 +113,33 @@ def _provision(*, force: bool) -> int:
     print("Store this owner bearer token now; it is not recoverable.", file=sys.stderr)
 
     operator_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    # The server reads the token from the path baked into the overlay, so bake the path that server
+    # can actually read: the container mount (/app/local/...) on the Docker path, the absolute host
+    # path on a native/dev box. --verify (and the real server) then read exactly what init wrote \u2014
+    # no host\u2194container path guessing, and no remap that could pass a check the server would fail.
+    if compose_present:
+        overlay_token_file = str(APP_LOCAL_DIR / APPROVAL_TOKEN_NAME)
+        overlay_pointer = str(APP_LOCAL_DIR / GOVERNANCE_OVERLAY_NAME)
+    else:
+        overlay_token_file = str(approval_token_path.resolve())
+        overlay_pointer = str(overlay_path.resolve())
+
     if force and approval_token_path.exists():
         print("Regenerating local_cli approval token because --force was supplied.", file=sys.stderr)
     _write_approval_token(approval_token_path)
     if force and overlay_path.exists():
         print("Replacing governance overlay because --force was supplied.", file=sys.stderr)
-    _write_governance_overlay(overlay_path)
+    _write_governance_overlay(overlay_path, token_file=overlay_token_file, root=root)
 
     print(f"approval token file: {_display_path(approval_token_path)}")
     print("operator secret \u2014 never paste into agent config")
     print(f"governance overlay: {_display_path(overlay_path)}")
     print()
     print("Next steps:")
-    print(f"  export PANELLA_GOVERNANCE_OVERLAY={APP_LOCAL_DIR / GOVERNANCE_OVERLAY_NAME}")
-    print("  export PANELLA_MCP_PROFILE=mcp-write")
-    print("  docker compose up -d")
+    print(f"  export PANELLA_GOVERNANCE_OVERLAY={overlay_pointer}")
+    if compose_present:
+        print("  export PANELLA_MCP_PROFILE=mcp-write")
+        print("  docker compose up -d")
     print("  panella init --verify")
     return 0
 
@@ -138,9 +151,8 @@ def _load_root_principal():
         return root_principal()
 
 
-def _mint_owner_bearer(principal_id: str) -> str:
-    compose_file = Path.cwd() / "docker-compose.yml"
-    if compose_file.exists():
+def _mint_owner_bearer(principal_id: str, *, compose_present: bool) -> str:
+    if compose_present:
         return _mint_in_running_compose()
 
     from panella.http.config import load_config
@@ -192,33 +204,52 @@ def _mint_in_running_compose() -> str:
 
 
 def _write_approval_token(path: Path) -> None:
+    # Write to a FRESH 0600 temp then atomically rename into place. An O_TRUNC directly over an
+    # existing loose-mode file would hold the new secret at the OLD (possibly world-readable) mode
+    # during the write and chmod only afterward — a window where the secret is exposed. Creating a
+    # new temp (0600 from birth, umask-proofed by an explicit chmod) and renaming means the secret is
+    # never visible at a wider mode (code-reviewer / Codex P2).
     token = secrets.token_hex(32)
-    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-    fd = os.open(path, flags, APPROVAL_TOKEN_MODE)
+    tmp_path = path.with_name(path.name + ".new")
+    fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, APPROVAL_TOKEN_MODE)
     try:
         os.write(fd, f"{token}\n".encode("ascii"))
     finally:
         os.close(fd)
-    os.chmod(path, APPROVAL_TOKEN_MODE)
+    os.chmod(tmp_path, APPROVAL_TOKEN_MODE)
+    os.replace(tmp_path, path)
 
 
-def _write_governance_overlay(path: Path) -> None:
+def _write_governance_overlay(path: Path, *, token_file: str, root) -> None:
     import yaml
 
     # Emit via a YAML dumper, not string interpolation: authorized_approvers is the finalizer
     # keystone, and building it by f-string concat is a latent injection/corruption surface (a
     # ``"`` or newline anywhere in an interpolated value would rewrite the doc). The approver is the
-    # FIXED canonical literal (see LOCAL_CLI_APPROVER); the token_file is the container-visible mount
-    # path. token_mode is quoted so YAML keeps it a string ("0600"), matching build_transport's octal
-    # parse — an unquoted 0600 would parse as the integer 600 (code-reviewer B1 P2).
+    # FIXED canonical literal (see LOCAL_CLI_APPROVER). token_mode is quoted so YAML keeps it a string
+    # ("0600"), matching build_transport's octal parse — an unquoted 0600 would parse as int 600.
+    #
+    # Identity is PRESERVED in the same overlay: governance is the generic base deep-merged with the
+    # SINGLE overlay slot (overlay wins per key), and init's next-steps repoint PANELLA_GOVERNANCE_
+    # OVERLAY at THIS file. Writing approval-only would drop a customized root_principal on restart —
+    # the owner bearer minted for e.g. human:alice would stop being owner-gated for /mcp + approvals
+    # (Codex B1 P1). Restating the loaded identity keeps a custom box owner-consistent; for the
+    # generic default it just re-affirms the base (harmless).
     overlay = {
         "schema_version": 1,
+        "identity": {
+            "root_principal": {
+                "id": root.id,
+                "subject_id": root.subject_id,
+                "roles": sorted(root.roles),
+            }
+        },
         "approval": {
             "authorized_approvers": [LOCAL_CLI_APPROVER],
             "transport": {
                 "kind": "local_cli",
                 "config": {
-                    "token_file": str(APP_LOCAL_DIR / APPROVAL_TOKEN_NAME),
+                    "token_file": token_file,
                     "token_mode": "0600",
                 },
             },
@@ -247,9 +278,18 @@ def _check_transport_effective() -> tuple[bool, str]:
     (different uid) cannot read the 0600 file, silently breaking every approval. So when compose is
     up we exec the transport check INSIDE the container (``panella init --verify-transport``), where
     the real uid and container paths apply; the check reads the token through the transport exactly
-    as the finalizer will. Off the compose path (native/dev) we run the same check locally."""
-    compose_file = Path.cwd() / "docker-compose.yml"
-    if compose_file.exists() and shutil.which("docker") is not None and _compose_service_running(COMPOSE_SERVICE):
+    as the finalizer will.
+
+    A compose deployment MUST be verified from the container's vantage: if ``docker-compose.yml`` is
+    present but we cannot exec (docker CLI missing, daemon down, service not up), we FAIL LOUD rather
+    than fall back to a host-side check — the fallback would recreate the exact uid false-pass this
+    exists to prevent (Codex P2). Off the compose path (native/dev) the overlay carries host paths, so
+    the local check reads the same file the server does."""
+    if (Path.cwd() / "docker-compose.yml").exists():
+        if shutil.which("docker") is None:
+            return False, "docker-compose.yml present but the docker CLI is unavailable; start the stack, then re-run --verify"
+        if not _compose_service_running(COMPOSE_SERVICE):
+            return False, f"docker-compose.yml present but {COMPOSE_SERVICE} is not running; run docker compose up -d, then re-run --verify"
         try:
             proc = subprocess.run(
                 ["docker", "compose", "exec", "-T", COMPOSE_SERVICE, "panella", "init", "--verify-transport"],
@@ -296,12 +336,13 @@ def _check_approval_transport() -> tuple[bool, str]:
             # token (wrong mode, unreadable by this uid, empty), instead of trusting a host-side stat.
             # ``verify_presser`` then yields the canonical stamp the finalizer will compare against
             # authorized_approvers (never a value we re-derive here, which is how the old check
-            # false-passed for a customized root identity). ``_host_view_transport`` maps the baked
-            # container token path to the host operator dir when this check runs on the host (native/
-            # dev, or the in-process test); in-container the map no-ops and the native path is read.
-            read_transport = _host_view_transport(transport) if transport is not None else None
-            expected_token = read_transport._expected_token() if read_transport is not None else None
-            stamp = read_transport.verify_presser(expected_token) if (read_transport is not None and expected_token) else None
+            # false-passed for a customized root identity). The token is read at the LITERAL path the
+            # overlay configures — the exact path the server reads — with NO host↔container remap: on
+            # the Docker path this check runs INSIDE the container (via --verify-transport, real uid +
+            # paths); off compose the overlay carries the absolute host path, so the literal read is
+            # already correct. A remap here could pass a check the real server would fail (Codex P1).
+            expected_token = transport._expected_token() if transport is not None else None
+            stamp = transport.verify_presser(expected_token) if (transport is not None and expected_token) else None
     except GovernanceConfigError as exc:
         return False, f"approval transport config could not load: {exc}"
     finally:
@@ -370,25 +411,6 @@ def _host_overlay_env_if_needed() -> Iterator[None]:
             else:
                 os.environ[OVERLAY_ENV] = raw
         reset_governance_cache()
-
-
-def _host_view_transport(transport):
-    """Return a transport whose token_file is readable FROM THE HOST for a host-side --verify.
-
-    init bakes the container-visible ``/app/local/approval-token`` into the overlay (correct for the
-    Docker server). A host-side check (native/dev, or the in-process test) cannot read that container
-    path, so map it to the host operator dir (``cwd/.panella/...``) exactly as ``_host_overlay_env_if_
-    needed`` maps the overlay env var — but ONLY when the host-mapped file exists and the container
-    path does not, so an in-container check (where ``/app/local`` is real) is never altered."""
-    from panella.approval_transport import LocalCliApprovalTransport
-
-    if not isinstance(transport, LocalCliApprovalTransport):
-        return transport
-    container_path = Path(transport.token_file)
-    mapped = _map_app_local_path(str(container_path))
-    if mapped is not None and mapped.exists() and not container_path.exists():
-        return LocalCliApprovalTransport(token_file=str(mapped), token_mode=transport.token_mode)
-    return transport
 
 
 def _map_app_local_path(raw: str | None) -> Path | None:
