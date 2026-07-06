@@ -34,14 +34,14 @@ def _overlay_doc(path: Path = OVERLAY_PATH) -> dict:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def _assert_overlay_shape(tmp_path: Path, *, expected_root_id: str = "human:owner") -> None:
-    # The overlay (yaml.safe_dump, parsed here) must: fix the canonical approver, carry the local_cli
-    # transport pointed at the token init wrote, AND preserve the deployment root identity (so a
-    # custom identity survives repointing PANELLA_GOVERNANCE_OVERLAY at this file). Off the compose
-    # path the token_file is the absolute host path the server actually reads (no /app/local remap).
+def _assert_overlay_shape(tmp_path: Path) -> None:
+    # The overlay (yaml.safe_dump, parsed here) fixes the canonical approver and carries the local_cli
+    # transport pointed at the token init wrote. Off the compose path the token_file is the absolute
+    # host path the server actually reads (no /app/local remap). A FRESH box writes approval-only —
+    # identity is supplied by the generic base config at load time — so identity is NOT asserted here;
+    # the custom-identity test asserts it is PRESERVED when an existing overlay carried one.
     doc = _overlay_doc()
     assert doc["schema_version"] == 1
-    assert doc["identity"]["root_principal"]["id"] == expected_root_id
     approval = doc["approval"]
     assert approval["authorized_approvers"] == ["local_cli:owner"]
     transport = approval["transport"]
@@ -148,6 +148,7 @@ def test_init_never_prints_approval_token_and_connect_never_reads_it(tmp_path, m
 
 def test_init_verify_passes_against_running_mcp_app(tmp_path, monkeypatch, capsys):
     env = _build_mcp_app(tmp_path, monkeypatch, capsys)
+    monkeypatch.setenv("PANELLA_MCP_PROFILE", "mcp-write")  # the write-capability check reads this
     with _verify_http_from_test_client(env.app, monkeypatch) as base_url:
         rc = main(["init", "--verify", "--base-url", base_url])
     captured = capsys.readouterr()
@@ -156,8 +157,23 @@ def test_init_verify_passes_against_running_mcp_app(tmp_path, monkeypatch, capsy
     assert "PASS /mcp is mounted" in captured.out
     # The transport check now proves the token is actually loadable + stamps an authorized approver.
     assert "PASS approval transport is local_cli-approvable and stamps an authorized local_cli:owner" in captured.out
+    assert "PASS MCP profile 'mcp-write' is write-capable" in captured.out
     assert "PASS approval token file exists with mode 0600" in captured.out
     assert "FAIL" not in captured.out
+
+
+def test_init_verify_fails_on_read_only_mcp_profile(tmp_path, monkeypatch, capsys):
+    # A box left at the compose-default mcp-read profile passes health / /mcp / transport / token
+    # checks but cannot advertise memory.submit_candidate — Day-0's write step would silently fail.
+    # --verify must catch it (Codex B1 P2).
+    env = _build_mcp_app(tmp_path, monkeypatch, capsys)
+    monkeypatch.setenv("PANELLA_MCP_PROFILE", "mcp-read")
+    with _verify_http_from_test_client(env.app, monkeypatch) as base_url:
+        rc = main(["init", "--verify", "--base-url", base_url])
+    captured = capsys.readouterr()
+    assert rc == 2
+    assert "FAIL MCP profile 'mcp-read' is not write-capable" in captured.out
+    assert "PANELLA_MCP_PROFILE=mcp-write" in captured.out
 
 
 def test_init_verify_fails_without_overlay_actionably(tmp_path, monkeypatch, capsys):
@@ -197,10 +213,16 @@ def test_init_custom_root_identity_still_produces_approvable_box(tmp_path, monke
     # (e.g. local_cli:alice) → inert-closed box + false-PASS verify.
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(tmp_path / "tokens.db"))
-    # Customize the root identity via a base governance overlay (id lives in governance, not an env).
+    # Customize identity via a base governance overlay (identity lives in governance, not an env).
+    # Include NON-root_principal fields (default_tenant_id, owner_wing) — the sharp part of the P1 is
+    # that init must carry forward the WHOLE identity block, not just root_principal, or a restart
+    # reverts custom tenant/wing and can refuse a custom-tenant store or finalize under the wrong wing.
     base_overlay = tmp_path / "custom-identity.yaml"
     base_overlay.write_text(
-        "identity:\n  root_principal:\n    id: \"human:alice\"\n    subject_id: \"u_alice\"\n",
+        "identity:\n"
+        "  root_principal:\n    id: \"human:alice\"\n    subject_id: \"u_alice\"\n"
+        "  default_tenant_id: \"t_alice_custom\"\n"
+        "  owner_wing: \"alice\"\n",
         encoding="utf-8",
     )
     monkeypatch.setenv("PANELLA_GOVERNANCE_OVERLAY", str(base_overlay))
@@ -212,11 +234,13 @@ def test_init_custom_root_identity_still_produces_approvable_box(tmp_path, monke
     doc = _overlay_doc()
     # The approver is the fixed literal regardless of the custom root id (NOT local_cli:alice).
     assert doc["approval"]["authorized_approvers"] == ["local_cli:owner"]
-    # And the custom identity is PRESERVED in init's overlay (Codex B1 P1): repointing
-    # PANELLA_GOVERNANCE_OVERLAY at this file keeps human:alice as root, so the minted bearer stays
-    # owner-gated. Writing approval-only would have dropped it back to the generic human:owner.
+    # The WHOLE identity block is PRESERVED in init's overlay (Codex B1 P1): repointing
+    # PANELLA_GOVERNANCE_OVERLAY at this file keeps root, tenant, AND wing custom. Writing
+    # approval-only would have reverted all of them to the generic defaults on restart.
     assert doc["identity"]["root_principal"]["id"] == "human:alice"
     assert doc["identity"]["root_principal"]["subject_id"] == "u_alice"
+    assert doc["identity"]["default_tenant_id"] == "t_alice_custom"
+    assert doc["identity"]["owner_wing"] == "alice"
 
     # Prove it end-to-end: load governance from init's overlay ALONE and confirm root is still alice
     # AND the token would be accepted (transport stamps local_cli:owner, which is authorized).

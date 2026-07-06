@@ -50,8 +50,12 @@ verify a presented token. On Docker Desktop (macOS/Windows) it is readable insid
 regardless of uid. On **native Linux**, bind mounts preserve host uid/gid and the image runs as uid
 `10001`, so a `0600` file owned by your host user is unreadable inside the container and every
 approval silently fails. `panella init --verify` catches this — it runs the token check *inside* the
-running container, so a "looks fine on the host" false pass is impossible — and points to the fix:
-run the stack under your own uid, e.g.
+running container, so a "looks fine on the host" false pass is impossible.
+
+The fix is to run the service under your own uid **and** make its data writable by that uid — the
+`panella-http` service also writes its token/audit/outbox DBs into the `panella-http-data` volume,
+which is initialized owned by the image uid `10001`, so changing only the process uid would leave it
+unable to write its state and the container would fail before verification:
 
 ```yaml
 # docker-compose.override.yml
@@ -60,4 +64,14 @@ services:
     user: "${UID:-1000}:${GID:-1000}"
 ```
 
-so the container process shares your uid and can read the mounted `0600` token.
+Then, **before the first `docker compose up`** (or once, on an existing box), give that uid ownership
+of the data volume:
+
+```bash
+# fresh box: create the volume and chown it to your uid before starting the stack
+docker volume create panella_panella-http-data
+docker run --rm -v panella_panella-http-data:/app/data alpine chown -R "$(id -u):$(id -g)" /app/data
+```
+
+Now the container process shares your uid — it can both read the mounted `0600` token and write its
+own state. (Docker Desktop users can ignore all of this.)

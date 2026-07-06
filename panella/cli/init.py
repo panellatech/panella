@@ -15,7 +15,7 @@ import urllib.request
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterator
+from typing import Any, Iterator
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8001"
 OVERLAY_ENV = "PANELLA_GOVERNANCE_OVERLAY"
@@ -66,9 +66,13 @@ def register(subparsers: argparse._SubParsersAction) -> None:
 
 def _init(args: argparse.Namespace) -> int:
     if args.verify_transport:
-        passed, line = _check_approval_transport()
-        print(f"{'PASS' if passed else 'FAIL'} {line}")
-        return 0 if passed else 2
+        # Server-side readiness from THIS process's vantage: the transport can load the token AND the
+        # effective MCP profile is write-capable. Run inside the container (by --verify) so the real
+        # uid/paths/PANELLA_MCP_PROFILE apply. Prints one PASS/FAIL line per check.
+        results = [_check_approval_transport(), _check_mcp_write_capable()]
+        for passed, line in results:
+            print(f"{'PASS' if passed else 'FAIL'} {line}")
+        return 0 if all(p for p, _ in results) else 2
     if args.verify:
         return _verify(args.base_url)
     return _provision(force=args.force)
@@ -129,7 +133,7 @@ def _provision(*, force: bool) -> int:
     _write_approval_token(approval_token_path)
     if force and overlay_path.exists():
         print("Replacing governance overlay because --force was supplied.", file=sys.stderr)
-    _write_governance_overlay(overlay_path, token_file=overlay_token_file, root=root)
+    _write_governance_overlay(overlay_path, token_file=overlay_token_file)
 
     print(f"approval token file: {_display_path(approval_token_path)}")
     print("operator secret \u2014 never paste into agent config")
@@ -220,88 +224,122 @@ def _write_approval_token(path: Path) -> None:
     os.replace(tmp_path, path)
 
 
-def _write_governance_overlay(path: Path, *, token_file: str, root) -> None:
+def _write_governance_overlay(path: Path, *, token_file: str) -> None:
     import yaml
 
-    # Emit via a YAML dumper, not string interpolation: authorized_approvers is the finalizer
-    # keystone, and building it by f-string concat is a latent injection/corruption surface (a
-    # ``"`` or newline anywhere in an interpolated value would rewrite the doc). The approver is the
-    # FIXED canonical literal (see LOCAL_CLI_APPROVER). token_mode is quoted so YAML keeps it a string
-    # ("0600"), matching build_transport's octal parse — an unquoted 0600 would parse as int 600.
-    #
-    # Identity is PRESERVED in the same overlay: governance is the generic base deep-merged with the
-    # SINGLE overlay slot (overlay wins per key), and init's next-steps repoint PANELLA_GOVERNANCE_
-    # OVERLAY at THIS file. Writing approval-only would drop a customized root_principal on restart —
-    # the owner bearer minted for e.g. human:alice would stop being owner-gated for /mcp + approvals
-    # (Codex B1 P1). Restating the loaded identity keeps a custom box owner-consistent; for the
-    # generic default it just re-affirms the base (harmless).
-    overlay = {
-        "schema_version": 1,
-        "identity": {
-            "root_principal": {
-                "id": root.id,
-                "subject_id": root.subject_id,
-                "roles": sorted(root.roles),
-            }
-        },
+    from panella.governance import _deep_merge, resolve_overlay_path
+
+    # PRESERVE the operator's EXISTING overlay verbatim and deep-merge init's approval config on top.
+    # Governance is the generic base deep-merged with a SINGLE overlay slot, and init's next-steps
+    # repoint PANELLA_GOVERNANCE_OVERLAY at THIS file — so init's overlay must be a SUPERSET of what
+    # was configured, never an approval-only replacement. Writing approval-only would silently strip
+    # a customized identity/tenant/wings/profiles block on the next restart: the box would fall back
+    # to the generic root/tenant/wing and could refuse a custom-tenant store or finalize approved
+    # memories under the wrong wing (Codex B1 P1 — carry forward the WHOLE parsed block, not just
+    # root_principal). A fresh box has no overlay → base {} → approval only; the generic base config
+    # supplies the default identity at load time.
+    base: dict[str, Any] = {}
+    with _host_overlay_env_if_needed():
+        configured = resolve_overlay_path()
+    source: Path | None = None
+    if configured is not None and Path(configured).exists() and Path(configured).resolve() != path.resolve():
+        source = Path(configured)  # the operator's own custom overlay
+    elif path.exists():
+        source = path  # init's prior output (a --force re-run) — keep whatever was carried before
+    if source is not None:
+        loaded = yaml.safe_load(source.read_text(encoding="utf-8")) or {}
+        if isinstance(loaded, dict):
+            base = loaded
+
+    # init's approval section: the FIXED canonical approver (never derived) + the local_cli transport
+    # pointed at the token init wrote. token_mode is quoted so YAML keeps it the string "0600"
+    # (build_transport parses it as octal; an unquoted 0600 would become int 600). Emitted via a YAML
+    # dumper — never f-string concat — so no value can inject/rewrite the doc. Deep-merged LAST so
+    # init's approval wins over any stale approval block in the preserved overlay.
+    approval_section: dict[str, Any] = {
         "approval": {
             "authorized_approvers": [LOCAL_CLI_APPROVER],
             "transport": {
                 "kind": "local_cli",
-                "config": {
-                    "token_file": token_file,
-                    "token_mode": "0600",
-                },
+                "config": {"token_file": token_file, "token_mode": "0600"},
             },
-        },
+        }
     }
-    path.write_text(yaml.safe_dump(overlay, sort_keys=False), encoding="utf-8")
+    merged = _deep_merge(base, approval_section)
+    merged.setdefault("schema_version", 1)
+    path.write_text(yaml.safe_dump(merged, sort_keys=False), encoding="utf-8")
 
 
 def _verify(base_url: str) -> int:
     checks = [
         _check_health(base_url),
         _check_mcp_mount(base_url),
-        _check_transport_effective(),
-        _check_approval_token_file(),
     ]
+    checks.extend(_check_server_side())  # transport + mcp-write, from the server's actual vantage
+    checks.append(_check_approval_token_file())
     for passed, line in checks:
         print(f"{'PASS' if passed else 'FAIL'} {line}")
     return 0 if all(passed for passed, _ in checks) else 2
 
 
-def _check_transport_effective() -> tuple[bool, str]:
-    """Verify the approval transport can actually load its token FROM THE SERVER'S VANTAGE.
+def _check_server_side() -> list[tuple[bool, str]]:
+    """The server-vantage readiness checks (approval transport can load its token; the effective MCP
+    profile is write-capable), returned as a LIST so --verify prints one line each.
 
-    On the documented Docker path the server is the ``panella-http`` container (uid 10001) reading
-    the bind-mounted ``/app/local/approval-token`` — a host-side stat can pass while the container
-    (different uid) cannot read the 0600 file, silently breaking every approval. So when compose is
-    up we exec the transport check INSIDE the container (``panella init --verify-transport``), where
-    the real uid and container paths apply; the check reads the token through the transport exactly
-    as the finalizer will.
+    On the documented Docker path the server is the ``panella-http`` container (uid 10001, its own
+    PANELLA_MCP_PROFILE, the bind-mounted 0600 token) — a host-side stat can pass while the container
+    cannot read the token, and the host's env says nothing about the container's profile. So when
+    compose is up we exec the checks INSIDE the container (``panella init --verify-transport``, which
+    prints one PASS/FAIL line per check) and surface each line prefixed ``[container]``.
 
     A compose deployment MUST be verified from the container's vantage: if ``docker-compose.yml`` is
-    present but we cannot exec (docker CLI missing, daemon down, service not up), we FAIL LOUD rather
-    than fall back to a host-side check — the fallback would recreate the exact uid false-pass this
-    exists to prevent (Codex P2). Off the compose path (native/dev) the overlay carries host paths, so
-    the local check reads the same file the server does."""
+    present but we cannot exec (docker CLI missing, daemon down, service not up), FAIL LOUD rather
+    than fall back to host checks — the fallback would recreate the exact uid false-pass this exists
+    to prevent (Codex P2). Off the compose path (native/dev) the overlay carries host paths, so the
+    local checks read the same files the server does."""
     if (Path.cwd() / "docker-compose.yml").exists():
         if shutil.which("docker") is None:
-            return False, "docker-compose.yml present but the docker CLI is unavailable; start the stack, then re-run --verify"
+            return [(False, "docker-compose.yml present but the docker CLI is unavailable; start the stack, then re-run --verify")]
         if not _compose_service_running(COMPOSE_SERVICE):
-            return False, f"docker-compose.yml present but {COMPOSE_SERVICE} is not running; run docker compose up -d, then re-run --verify"
+            return [(False, f"docker-compose.yml present but {COMPOSE_SERVICE} is not running; run docker compose up -d, then re-run --verify")]
         try:
             proc = subprocess.run(
                 ["docker", "compose", "exec", "-T", COMPOSE_SERVICE, "panella", "init", "--verify-transport"],
                 cwd=Path.cwd(), capture_output=True, text=True, timeout=30, check=False,
             )
         except (OSError, subprocess.SubprocessError) as exc:
-            return False, f"could not run the in-container transport check: {exc}"
-        line = (proc.stdout.strip() or proc.stderr.strip() or "no output").splitlines()[-1]
-        # The in-container check prints "PASS <line>"/"FAIL <line>"; surface its line, keyed off exit.
-        detail = line[5:] if line[:5] in {"PASS ", "FAIL "} else line
-        return proc.returncode == 0, f"[container] {detail}"
-    return _check_approval_transport()
+            return [(False, f"could not run the in-container server-side checks: {exc}")]
+        results: list[tuple[bool, str]] = []
+        for line in (proc.stdout or "").splitlines():
+            if line[:5] in {"PASS ", "FAIL "}:
+                results.append((line.startswith("PASS "), f"[container] {line[5:]}"))
+        if not results:
+            detail = (proc.stderr.strip() or proc.stdout.strip() or "no output").splitlines()[-1:]
+            return [(False, f"[container] {detail[0] if detail else 'no output'}")]
+        return results
+    return [_check_approval_transport(), _check_mcp_write_capable()]
+
+
+def _check_mcp_write_capable() -> tuple[bool, str]:
+    """The effective MCP profile must advertise ``memory.submit_candidate`` — else an agent cannot
+    queue the first candidate and Day-0's write step silently fails while every OTHER check passes
+    (mcp-read is the compose DEFAULT, so this is a common misconfig — Codex B1 P2). Reuses the same
+    ``_write_capable`` gate the MCP surface itself applies, so this check can't drift from what the
+    server actually registers."""
+    from panella.mcp_tools import _write_capable
+    from panella.profile import AgentProfile, AgentProfileConfigError
+
+    profile_name = os.environ.get("PANELLA_MCP_PROFILE", "mcp-read")
+    try:
+        profile = AgentProfile.load(profile_name)
+    except (AgentProfileConfigError, OSError, ValueError) as exc:
+        return False, f"could not load MCP profile {profile_name!r}: {exc}"
+    if not _write_capable(profile):
+        return False, (
+            f"MCP profile {profile_name!r} is not write-capable (memory.submit_candidate absent); "
+            "set PANELLA_MCP_PROFILE=mcp-write and restart"
+        )
+    return True, f"MCP profile {profile_name!r} is write-capable (advertises memory.submit_candidate)"
 
 
 def _check_health(base_url: str) -> tuple[bool, str]:
