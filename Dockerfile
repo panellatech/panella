@@ -2,7 +2,7 @@
 #
 # Two independent targets, composed by docker-compose.yml:
 #   store — near-stock upstream mcp-memory-service, PINNED to the version whose HTTP contract
-#           the facade adapter is proven against (tests/fixtures/panella_openapi_v10.31.2.json;
+#           the facade adapter is proven against (tests/fixtures/panella_openapi_v10.67.1.json;
 #           the [sqlite] extra = local ONNX embeddings, so the store runs with NO API key).
 #   app   — this repo's memory HTTP facade (panella.http.app:create_app) plus the
 #           package-rendered per-distribution config artifact (/app/dist-config).

@@ -2,7 +2,7 @@
 REQUIRED fallback when a docker box is unavailable. Validates the exact request bodies
 `eval/longmemeval/ingest_retrieve.py` sends:
 
-  store lane  -> the mcp-memory-service OpenAPI fixture `tests/fixtures/panella_openapi_v10.31.2.json`
+  store lane  -> the mcp-memory-service OpenAPI fixture `tests/fixtures/panella_openapi_v10.67.1.json`
                  (MemoryCreateRequest for ingest, SemanticSearchRequest for search)
   facade lane -> `panella/http/schemas.py` (SearchRequest / SearchResponse)
 
@@ -20,7 +20,7 @@ from pydantic import ValidationError
 from panella.http.schemas import SearchRequest, SearchResponse
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_OPENAPI_FIXTURE = _REPO_ROOT / "tests" / "fixtures" / "panella_openapi_v10.31.2.json"
+_OPENAPI_FIXTURE = _REPO_ROOT / "tests" / "fixtures" / "panella_openapi_v10.67.1.json"
 
 
 @pytest.fixture(scope="module")

@@ -1,4 +1,4 @@
-"""HTTP adapter for Panella store v10.31.2 (live OpenAPI 2026-05-03).
+"""HTTP adapter for Panella store v10.67.1 (live OpenAPI 2026-07-07).
 
 Contract pinned by tests/fixtures/panella_openapi_v10.67.1.json.
 
