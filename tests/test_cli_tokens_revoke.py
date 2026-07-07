@@ -239,3 +239,24 @@ def test_cli_list_never_prints_token_values_and_shows_status(tmp_path, capsys):
     assert main(["tokens", "list", "--token-db", str(token_db)]) == 0
     out2 = capsys.readouterr().out
     assert "revoked@" in out2  # alpha now shows a revoked status
+
+
+def test_compose_root_matches_all_standard_filenames(tmp_path, monkeypatch):
+    """The guard must find any of Compose's standard project files (not just docker-compose.yml) and
+    honor COMPOSE_FILE, else a compose.yaml deployment bypasses the fail-closed path (GH-bot P2)."""
+    from panella.cli.tokens import _compose_root
+
+    monkeypatch.delenv("COMPOSE_FILE", raising=False)
+    for name in ("compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml"):
+        d = tmp_path / name.replace(".", "_")
+        d.mkdir()
+        (d / name).write_text("services: {}\n")
+        monkeypatch.chdir(d)
+        assert _compose_root() == d, name
+
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    monkeypatch.chdir(empty)
+    assert _compose_root() is None  # no compose file, no COMPOSE_FILE -> proceed
+    monkeypatch.setenv("COMPOSE_FILE", "/some/explicit/compose.yaml")
+    assert _compose_root() == empty  # explicit COMPOSE_FILE -> compose is configured

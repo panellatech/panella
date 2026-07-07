@@ -193,10 +193,23 @@ def _compose_defer_message(subcommand: str, extra: str = "") -> str | None:
     )
 
 
+# The Compose CLI's standard project-file names (precedence order per the Compose spec). A guard
+# that only checked docker-compose.yml would skip the fail-closed path for a deployment using the
+# modern compose.yaml, re-opening the stale-host false-success this guard prevents (GH-bot P2).
+_COMPOSE_FILENAMES = ("compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml")
+
+
 def _compose_root() -> Path | None:
+    import os
+
+    # An explicit COMPOSE_FILE (equivalent to `-f`) points docker compose at a project regardless of
+    # cwd; honor it as "compose is configured" and let _compose_service_running (which itself honors
+    # COMPOSE_FILE) decide whether panella-http is actually up.
+    if os.environ.get("COMPOSE_FILE"):
+        return Path.cwd()
     cwd = Path.cwd()
     for directory in (cwd, *cwd.parents):
-        if (directory / "docker-compose.yml").exists():
+        if any((directory / name).exists() for name in _COMPOSE_FILENAMES):
             return directory
     return None
 
