@@ -2,7 +2,7 @@
 #
 # Two independent targets, composed by docker-compose.yml:
 #   store — near-stock upstream mcp-memory-service, PINNED to the version whose HTTP contract
-#           the facade adapter is proven against (tests/fixtures/panella_openapi_v10.31.2.json;
+#           the facade adapter is proven against (tests/fixtures/panella_openapi_v10.67.1.json;
 #           the [sqlite] extra = local ONNX embeddings, so the store runs with NO API key).
 #   app   — this repo's memory HTTP facade (panella.http.app:create_app) plus the
 #           package-rendered per-distribution config artifact (/app/dist-config).
@@ -25,11 +25,18 @@ ENV PYTHONUNBUFFERED=1 \
     MCP_OAUTH_ENABLED=false
 
 # The adapter contract pin — upgrade ONLY together with a re-pinned OpenAPI fixture.
+# 10.67.1: patches CVE-2026-50027 (CVSS 9.8 — /api/documents/* served with NO auth even when
+# MCP_API_KEY is set: unauthenticated read/write/delete) and CVE-2026-49291 (HIGH — OAuth
+# read-only clients could write/delete via MCP). Minimal version fixing both (fixed 10.67.1 /
+# 10.65.3 respectively); the facade never calls /api/documents, but the store must not ship the
+# vulnerable version and the release trivy gate correctly blocks it. Contract re-verified against
+# the 10.67.1 OpenAPI fixture + boot-check (the /api/memories + /api/search + memories-table
+# schema the adapter depends on are unchanged from 10.31.2).
 # cryptography<47: the >=47.0.0 aarch64 wheels die with SIGILL (illegal instruction) inside
 # the Rust extension under Apple-Silicon Docker (Virtualization.framework VM); 46.0.7 is proven
 # good there (bisected 45.0.5 OK / 46.0.7 OK / 47.0.0+48.0.2+49.0.0 SIGILL), and upstream
 # requires >=46.0.6. Image-layer mitigation only — drop once upstream wheels stop faulting.
-RUN pip install "mcp-memory-service[sqlite]==10.31.2" "cryptography<47"
+RUN pip install "mcp-memory-service[sqlite]==10.67.1" "cryptography<47"
 
 # /home/panella/.cache must exist owned by panella BEFORE the named volume mounts over it —
 # a mountpoint Docker has to create itself is root-owned and the uid-10001 store could

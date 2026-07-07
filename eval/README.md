@@ -120,7 +120,7 @@ The facade lane's `search_facade()` (`eval/longmemeval/ingest_retrieve.py`) talk
 | `hit["content"]` | `content` (reader context) |
 
 Contrast with the **store** lane's `search_store()`, which talks to the pinned mcp-memory-service OpenAPI
-(`tests/fixtures/panella_openapi_v10.31.2.json`, `SemanticSearchRequest`/response envelope
+(`tests/fixtures/panella_openapi_v10.67.1.json`, `SemanticSearchRequest`/response envelope
 `{"results": [{"memory": {...}, "similarity_score": ...}]}`) — a DIFFERENT request/response
 envelope entirely (`n_results` vs `k`, `results[].memory.metadata` vs `hits[].metadata`), which is
 exactly why the two lane implementations in `ingest_retrieve.py` are separate functions

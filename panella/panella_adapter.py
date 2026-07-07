@@ -1,6 +1,6 @@
-"""HTTP adapter for Panella store v10.31.2 (live OpenAPI 2026-05-03).
+"""HTTP adapter for Panella store v10.67.1 (live OpenAPI 2026-07-07).
 
-Contract pinned by tests/fixtures/panella_openapi_v10.31.2.json.
+Contract pinned by tests/fixtures/panella_openapi_v10.67.1.json.
 
 ⚙️v6 auth: every outbound request sends ``X-API-Key`` (matches live middleware
 ``web/oauth/middleware.py:344-352`` accepting the legacy header even though

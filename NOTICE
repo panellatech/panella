@@ -12,8 +12,8 @@ Third-party attributions
 Panella's self-host box builds on the following upstream dependency, which it
 ships and runs as the memory store backend:
 
-  mcp-memory-service (version 10.31.2)
-  Pinned in the Dockerfile as "mcp-memory-service[sqlite]==10.31.2".
+  mcp-memory-service (version 10.67.1)
+  Pinned in the Dockerfile as "mcp-memory-service[sqlite]==10.67.1".
   Licensed under the Apache License, Version 2.0.
 
   Panella runs this component near-stock: the "store" image installs it with the

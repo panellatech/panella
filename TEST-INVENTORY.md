@@ -235,7 +235,7 @@ Every source test file is bucketed below. Governance-critical Panella coverage i
 - `tests/fixtures/cc_sync/project_iris_dir_c_package_decomp.md` — **EXCLUDE**: non-Panella application module.
 - `tests/fixtures/live_entry_targets.golden.json` — **EXCLUDE**: outside the Panella product surface.
 - `tests/fixtures/mcg/openclaw_session_synthetic.jsonl` — **EXCLUDE**: outside the Panella product surface.
-- `tests/fixtures/panella_openapi_v10.31.2.json` — **PORT**: renamed fixture copied to tests/fixtures/panella_openapi_v10.31.2.json.
+- `tests/fixtures/panella_openapi_v10.67.1.json` — **PORT**: renamed fixture copied to tests/fixtures/panella_openapi_v10.67.1.json.
 - `tests/fixtures/memory_write_literals_exceptions.json` — **EXCLUDE**: outside the Panella product surface.
 - `tests/integration/test_codex_desktop_e2e.py` — **EXCLUDE**: outside the Panella product surface.
 - `tests/integrations/test_panella_plugin_static.py` — **NEEDS-FIXTURE-SURGERY**: memory product test, but depends on private fixtures, live services, or legacy identities.
