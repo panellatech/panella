@@ -58,7 +58,7 @@ READERPP_RRF_K = 60
 DEFAULT_OVERFETCH = 50
 # Hard ceiling on the operator-tunable overfetch. Two independent bounds meet here:
 # (a) the adapter forwards this value straight to Panella store /api/search `n_results`, whose
-#     upstream schema caps it at 100 (tests/fixtures/panella_openapi_v10.31.2.json,
+#     upstream schema caps it at 100 (tests/fixtures/panella_openapi_v10.67.1.json,
 #     SemanticSearchRequest.n_results maximum) — anything above 100 would 422 every
 #     enabled search (GH-bot r3 P2);
 # (b) _cluster is O(n^2) Jaccard over the fetched pool (code-reviewer P3#1) — 100 ->

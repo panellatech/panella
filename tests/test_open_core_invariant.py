@@ -35,7 +35,7 @@ def test_real_box_assets_are_not_stubs():
     dockerfile = (root / "Dockerfile").read_text()
     compose = (root / "docker-compose.yml").read_text()
     entrypoint = (root / "docker-entrypoint.sh").read_text()
-    assert "mcp-memory-service[sqlite]==10.31.2" in dockerfile
+    assert "mcp-memory-service[sqlite]==10.67.1" in dockerfile
     assert "cryptography<47" in dockerfile
     assert 'ENTRYPOINT ["docker-entrypoint.sh"]' in dockerfile
     assert "PANELLA_CONFIG_DIR=/app/dist-config" in dockerfile
