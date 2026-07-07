@@ -142,17 +142,54 @@ def test_cli_revoke_overrides_rotate_grace_window(tmp_path, monkeypatch):
     assert after_mcp.status_code == 403 and after_mcp.json()["code"] == "revoked_token"
 
 
+def _pretend_compose_up(monkeypatch, tmp_path):
+    from panella.cli import init as init_cli
+    from panella.cli import tokens as tokens_cli
+
+    monkeypatch.setattr(tokens_cli, "_compose_root", lambda: tmp_path)
+    monkeypatch.setattr(init_cli, "_compose_service_running", lambda svc: True)
+
+
 def test_cli_revoke_defers_to_container_when_compose_up(tmp_path, monkeypatch, capsys):
     """A bare host revoke (no --token-db) while panella-http is running must REFUSE rather than
     mutate the host DB and falsely report success while the container bearer stays live (Codex P2)."""
-    from panella.cli import tokens as tokens_cli
-
-    monkeypatch.setattr(tokens_cli, "_compose_http_running", lambda: True)
+    _pretend_compose_up(monkeypatch, tmp_path)
     rc = main(["tokens", "revoke", "--label", "teammate-x"])
     assert rc == 2
     err = capsys.readouterr().err
-    assert "refusing to revoke against the host token DB" in err
+    assert "refusing to run against the host token DB" in err
     assert "docker compose exec -T panella-http panella tokens revoke --label teammate-x" in err
+
+
+def test_cli_list_defers_to_container_when_compose_up(tmp_path, monkeypatch, capsys):
+    """list is read-only but a bare host list can create/read the WRONG DB and mislead — same defer
+    (Codex r2 P2)."""
+    _pretend_compose_up(monkeypatch, tmp_path)
+    rc = main(["tokens", "list"])
+    assert rc == 2
+    assert "docker compose exec -T panella-http panella tokens list" in capsys.readouterr().err
+
+
+def test_cli_revoke_missing_db_does_not_materialize_it(tmp_path, capsys):
+    token_db = tmp_path / "nonexistent.db"
+    rc = main(["tokens", "revoke", "--label", "x", "--token-db", str(token_db)])
+    assert rc == 2
+    assert "no token database" in capsys.readouterr().err
+    assert not token_db.exists()  # never created a phantom DB
+
+
+def test_token_status_expired_beats_future_rotating():
+    """A token with a past expires_at AND a future revoked_at (rotate grace) is rejected by the
+    resolver as expired — list must say 'expired', not 'rotating' (Codex r2 P2)."""
+    from datetime import UTC, datetime, timedelta
+
+    from panella.cli.tokens import _token_status
+
+    now = datetime.now(UTC)
+    record = SimpleNamespace(
+        revoked_at=now + timedelta(hours=1), expires_at=now - timedelta(hours=1), expired=True
+    )
+    assert _token_status(record).startswith("expired@")
 
 
 # --- CLI behavior contracts --------------------------------------------------------------------

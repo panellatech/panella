@@ -90,21 +90,20 @@ def _tokens_revoke(args: argparse.Namespace) -> int:
     from panella.http.config import load_config
     from panella.http.tokens import TokenStore
 
-    if args.token_db is None and _compose_http_running():
-        # Fail closed: a bare host-side revoke targets the HOST default token DB, NOT the box the
-        # container serves from (/app/data/memory_tokens.db). If a stale host DB happens to hold the
-        # same label, revoke would report success while the LIVE container bearer stays valid — the
-        # most dangerous false-success on an auth surface. Refuse and give the exact in-container form.
-        print(
-            "refusing to revoke against the host token DB while the panella-http container is "
-            "running (that would leave the box's live bearer valid). Run it inside the container:\n"
-            f"  docker compose exec -T panella-http panella tokens revoke --label {args.label}\n"
-            "or pass --token-db explicitly to target a specific database.",
-            file=sys.stderr,
-        )
+    # Fail closed: a bare host-side revoke targets the HOST default token DB, NOT the box the
+    # container serves from. If a stale host DB holds the same label, revoke would report success
+    # while the LIVE container bearer stays valid — the most dangerous false-success on an auth
+    # surface. Refuse and give the exact in-container form.
+    if args.token_db is None and (msg := _compose_defer_message("revoke", f" --label {args.label}")):
+        print(msg, file=sys.stderr)
         return 2
 
     token_db_path = args.token_db or load_config(None).token_db_path
+    if not Path(token_db_path).exists():
+        # Never MATERIALIZE a phantom host DB on a mutating command — that would report a misleading
+        # "no token with label" against a freshly-created empty DB rather than the real store.
+        print(f"no token database at {token_db_path}", file=sys.stderr)
+        return 2
     # revoke() is idempotent: it stamps revoked_at via COALESCE, so re-revoking keeps the original
     # timestamp and still reports success. rowcount>0 (True) means the label existed; False means
     # no such label. Enforcement is NOT added here — the shared resolve_bearer() (panella/http/auth.py)
@@ -128,7 +127,16 @@ def _tokens_list(args: argparse.Namespace) -> int:
     from panella.http.config import load_config
     from panella.http.tokens import TokenStore
 
+    # Same host-vs-container hazard as revoke: a bare host list can create/read the WRONG DB and print
+    # "No tokens" or a stale status, misleading an operator about the live container bearer.
+    if args.token_db is None and (msg := _compose_defer_message("list")):
+        print(msg, file=sys.stderr)
+        return 2
+
     token_db_path = args.token_db or load_config(None).token_db_path
+    if not Path(token_db_path).exists():
+        print(f"no token database at {token_db_path}", file=sys.stderr)
+        return 2
     records = TokenStore(token_db_path).list()
     if not records:
         print("No tokens.")
@@ -147,16 +155,16 @@ def _tokens_list(args: argparse.Namespace) -> int:
 
 
 def _token_status(record: Any) -> str:
-    # Match the resolver's own time predicate (resolve_bearer rejects only when revoked_at <= now).
-    # A revoked_at in the FUTURE is a rotate() grace window — the bearer is STILL VALID until then,
-    # so reporting it as "revoked" would misstate auth reality to an operator. Show it distinctly.
+    # Mirror the resolver's EXACT precedence (resolve_bearer: revoked_at <= now, THEN expired). A
+    # future revoked_at is a rotate() grace window (still valid), but only until expiry — so an
+    # already-expired token must read "expired", not "rotating", to match what auth actually does.
     now = datetime.now(UTC)
     if record.revoked_at is not None and record.revoked_at <= now:
         return f"revoked@{_fmt_ts(record.revoked_at)}"
-    if record.revoked_at is not None:
-        return f"rotating_until@{_fmt_ts(record.revoked_at)}"  # future revoked_at: still accepted now
     if record.expired:
         return f"expired@{_fmt_ts(record.expires_at)}"
+    if record.revoked_at is not None:
+        return f"rotating_until@{_fmt_ts(record.revoked_at)}"  # future revoked_at, not yet expired
     return "active"
 
 
@@ -164,14 +172,33 @@ def _fmt_ts(value: datetime | None) -> str:
     return value.strftime("%Y-%m-%dT%H:%M:%SZ") if value else "-"
 
 
-def _compose_http_running() -> bool:
-    """True when a docker-compose.yml is in cwd AND the panella-http service is up — i.e. a bare
-    host CLI would hit the wrong (host) token DB instead of the container's. Reuses init's detector."""
-    from pathlib import Path
-
+def _compose_defer_message(subcommand: str, extra: str = "") -> str | None:
+    """A fail-closed message when a bare (no --token-db) command would hit the HOST default token DB
+    while panella-http serves from the container's DB; None = proceed. Locates the compose project by
+    walking parents (docker compose itself walks up, so an exact-cwd check under-detects from a
+    subdir); inside the app container there is no docker CLI, so the running-check is False and the
+    command proceeds against the container DB as intended."""
+    if _compose_root() is None:
+        return None
     from panella.cli.init import COMPOSE_SERVICE, _compose_service_running
 
-    return (Path.cwd() / "docker-compose.yml").exists() and _compose_service_running(COMPOSE_SERVICE)
+    if not _compose_service_running(COMPOSE_SERVICE):
+        return None
+    return (
+        "refusing to run against the host token DB while panella-http is running (the box serves "
+        "from the container's DB, and a stale host DB could report false success while the live "
+        "bearer stays valid). Run it inside the container:\n"
+        f"  docker compose exec -T panella-http panella tokens {subcommand}{extra}\n"
+        "or pass --token-db explicitly to target a specific database."
+    )
+
+
+def _compose_root() -> Path | None:
+    cwd = Path.cwd()
+    for directory in (cwd, *cwd.parents):
+        if (directory / "docker-compose.yml").exists():
+            return directory
+    return None
 
 
 def _default_token_label() -> str:
