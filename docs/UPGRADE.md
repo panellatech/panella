@@ -54,7 +54,7 @@ panella init --verify
 If either check fails, do not keep serving on the new version — go to
 [Restore from backup](#restore-from-backup-the-rollback-story).
 
-## 10.31.2 → 11.x: majors are a deliberate migration, not a hand bump
+## 10.67.1 → 11.x: majors are a deliberate migration, not a hand bump
 
 The store contract (the SQLite schema, the tag/metadata shape the facade reads) is **pinned** — see
 the OpenAPI-fixture contract test (`tests/test_store_probe_adapter_contract.py`) that locks the
