@@ -90,6 +90,20 @@ def _tokens_revoke(args: argparse.Namespace) -> int:
     from panella.http.config import load_config
     from panella.http.tokens import TokenStore
 
+    if args.token_db is None and _compose_http_running():
+        # Fail closed: a bare host-side revoke targets the HOST default token DB, NOT the box the
+        # container serves from (/app/data/memory_tokens.db). If a stale host DB happens to hold the
+        # same label, revoke would report success while the LIVE container bearer stays valid — the
+        # most dangerous false-success on an auth surface. Refuse and give the exact in-container form.
+        print(
+            "refusing to revoke against the host token DB while the panella-http container is "
+            "running (that would leave the box's live bearer valid). Run it inside the container:\n"
+            f"  docker compose exec -T panella-http panella tokens revoke --label {args.label}\n"
+            "or pass --token-db explicitly to target a specific database.",
+            file=sys.stderr,
+        )
+        return 2
+
     token_db_path = args.token_db or load_config(None).token_db_path
     # revoke() is idempotent: it stamps revoked_at via COALESCE, so re-revoking keeps the original
     # timestamp and still reports success. rowcount>0 (True) means the label existed; False means
@@ -133,10 +147,14 @@ def _tokens_list(args: argparse.Namespace) -> int:
 
 
 def _token_status(record: Any) -> str:
-    # Precedence: an explicit operator revoke is terminal, so it wins over expiry; a rotated token
-    # carries revoked_at (rotate sets it) and therefore reads as revoked here too.
-    if record.revoked_at is not None:
+    # Match the resolver's own time predicate (resolve_bearer rejects only when revoked_at <= now).
+    # A revoked_at in the FUTURE is a rotate() grace window — the bearer is STILL VALID until then,
+    # so reporting it as "revoked" would misstate auth reality to an operator. Show it distinctly.
+    now = datetime.now(UTC)
+    if record.revoked_at is not None and record.revoked_at <= now:
         return f"revoked@{_fmt_ts(record.revoked_at)}"
+    if record.revoked_at is not None:
+        return f"rotating_until@{_fmt_ts(record.revoked_at)}"  # future revoked_at: still accepted now
     if record.expired:
         return f"expired@{_fmt_ts(record.expires_at)}"
     return "active"
@@ -144,6 +162,16 @@ def _token_status(record: Any) -> str:
 
 def _fmt_ts(value: datetime | None) -> str:
     return value.strftime("%Y-%m-%dT%H:%M:%SZ") if value else "-"
+
+
+def _compose_http_running() -> bool:
+    """True when a docker-compose.yml is in cwd AND the panella-http service is up — i.e. a bare
+    host CLI would hit the wrong (host) token DB instead of the container's. Reuses init's detector."""
+    from pathlib import Path
+
+    from panella.cli.init import COMPOSE_SERVICE, _compose_service_running
+
+    return (Path.cwd() / "docker-compose.yml").exists() and _compose_service_running(COMPOSE_SERVICE)
 
 
 def _default_token_label() -> str:

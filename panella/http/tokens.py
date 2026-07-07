@@ -140,8 +140,16 @@ class TokenStore:
         now = datetime.now(UTC).isoformat()
         with self.connect() as conn:
             cur = conn.execute(
-                "UPDATE tokens SET revoked_at = COALESCE(revoked_at, ?) WHERE label = ?",
-                (now, label),
+                # An operator revoke is IMMEDIATE. Pull a FUTURE revoked_at back to now — otherwise a
+                # token in a rotate() grace window (rotate sets revoked_at = now + grace, so the old
+                # bearer stays valid until then, and resolve_bearer only rejects when revoked_at <= now)
+                # would survive a `tokens revoke` while the CLI claims it is rejected. A genuinely
+                # PAST revoked_at is preserved, so re-revoking never moves the timestamp (idempotent).
+                # ISO-8601 UTC strings (both written via datetime.isoformat()) compare chronologically.
+                "UPDATE tokens SET revoked_at = "
+                "CASE WHEN revoked_at IS NULL OR revoked_at > ? THEN ? ELSE revoked_at END "
+                "WHERE label = ?",
+                (now, now, label),
             )
             return cur.rowcount > 0
 

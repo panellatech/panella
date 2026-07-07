@@ -95,7 +95,9 @@ def test_cli_revoke_then_v1_rejects(tmp_path, monkeypatch, capsys):
     env = _serving_app(tmp_path, monkeypatch)
     with TestClient(env.app, base_url="http://127.0.0.1") as client:
         before = client.get("/v1/approvals/count", headers=_auth(env.bearer))
-        assert before.status_code != 403  # a live bearer authenticates
+        # Strong precondition: the live bearer doesn't just pass auth, it reaches the route and
+        # serves 200 — so the after-403 is proven to be the revoke, not a pre-existing gate.
+        assert before.status_code == 200
 
         rc = main(["tokens", "revoke", "--label", "owner-e2e", "--token-db", str(env.token_db)])
         assert rc == 0
@@ -110,7 +112,8 @@ def test_cli_revoke_then_mcp_rejects(tmp_path, monkeypatch):
     env = _serving_app(tmp_path, monkeypatch)
     with TestClient(env.app, base_url="http://127.0.0.1") as client:
         before = client.get("/mcp", headers=_auth(env.bearer))
-        assert before.status_code != 403  # a live owner bearer passes the /mcp auth gate
+        # The live owner bearer clears the /mcp auth+serving gates (not 401/403/503) before revoke.
+        assert before.status_code not in (401, 403, 503)
 
         rc = main(["tokens", "revoke", "--label", "owner-e2e", "--token-db", str(env.token_db)])
         assert rc == 0
@@ -118,6 +121,38 @@ def test_cli_revoke_then_mcp_rejects(tmp_path, monkeypatch):
         after = client.get("/mcp", headers=_auth(env.bearer))
     assert after.status_code == 403
     assert after.json()["code"] == "revoked_token"
+
+
+def test_cli_revoke_overrides_rotate_grace_window(tmp_path, monkeypatch):
+    """A token in a rotate() grace window (future revoked_at) must be IMMEDIATELY killed by an
+    operator revoke — not left valid until the grace expires. The COALESCE form silently preserved
+    the future timestamp and reported false success (Codex P1)."""
+    env = _serving_app(tmp_path, monkeypatch)
+    # Put the owner bearer into a 5-min grace window: still valid now, auto-revokes later.
+    TokenStore(env.token_db).rotate("owner-e2e", grace_seconds=300)
+    with TestClient(env.app, base_url="http://127.0.0.1") as client:
+        during_grace = client.get("/v1/approvals/count", headers=_auth(env.bearer))
+        assert during_grace.status_code == 200  # grace window: the old bearer is STILL valid
+
+        assert main(["tokens", "revoke", "--label", "owner-e2e", "--token-db", str(env.token_db)]) == 0
+
+        after_v1 = client.get("/v1/approvals/count", headers=_auth(env.bearer))
+        after_mcp = client.get("/mcp", headers=_auth(env.bearer))
+    assert after_v1.status_code == 403 and after_v1.json()["code"] == "revoked_token"
+    assert after_mcp.status_code == 403 and after_mcp.json()["code"] == "revoked_token"
+
+
+def test_cli_revoke_defers_to_container_when_compose_up(tmp_path, monkeypatch, capsys):
+    """A bare host revoke (no --token-db) while panella-http is running must REFUSE rather than
+    mutate the host DB and falsely report success while the container bearer stays live (Codex P2)."""
+    from panella.cli import tokens as tokens_cli
+
+    monkeypatch.setattr(tokens_cli, "_compose_http_running", lambda: True)
+    rc = main(["tokens", "revoke", "--label", "teammate-x"])
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "refusing to revoke against the host token DB" in err
+    assert "docker compose exec -T panella-http panella tokens revoke --label teammate-x" in err
 
 
 # --- CLI behavior contracts --------------------------------------------------------------------
