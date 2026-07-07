@@ -253,34 +253,28 @@ leaves the host. Two ways to do that:
   `connect` fall back to reading the *operator's* `.panella/owner-bearer` — exactly the wrong
   credential to hand a teammate.
 
-**Honesty constraint:** per-teammate tokens give you *recognition*, not control — a distinct,
-operator-recognizable label in the token database, nothing more today. They are NOT least-privilege
-identity, they do NOT give per-teammate audit attribution (every bearer minted this way is bound to
-the same owner/root principal — the `/mcp` surface requires it — and the audit trail records the
-*principal*, so all teammates' actions appear under that shared identity), and there is NO exposed
-revoke surface yet (`panella tokens` currently only mints; the token store schema supports
-revocation, but no CLI/HTTP operation performs it). If a teammate must lose access today, the ONLY
-thing that actually invalidates bearers is resetting the token database — rotating
-`PANELLA_API_KEY` or re-running `panella init --force` does NOT help (bearers resolve from the
-token DB alone, and old bearers stay valid after a re-provision). The reset kills EVERY bearer at
-once while preserving the audit trail and outbox (they live in separate files in the same volume):
+**Offboard one teammate:** revoke their labelled bearer — run it **inside the container** so it hits
+the box's token DB, not a host-side one:
 
 ```bash
-# 1. Wipe the token DB — invalidates EVERY bearer at once.
-docker compose exec -T panella-http sh -c 'rm /app/data/memory_tokens.db*'
-docker compose restart panella-http
-# 2. Re-provision the operator bearer. init --force re-mints AND rewrites
-#    .panella/owner-bearer (0600) — the file Steps 5 and 9 read — so connect/approvals
-#    stop handing out the now-dead token. (init --force alone does NOT invalidate bearers;
-#    step 1's wipe is what did that.)
-panella init --force
+docker compose exec -T panella-http panella tokens revoke --label teammate-<name>
 ```
 
-(The glob in step 1 matters: the token DB runs in SQLite WAL mode, so `-shm`/`-wal` sidecars sit
-next to it. The audit trail and outbox are separate files in the same volume and survive the wipe.)
+The bearer is rejected on every surface (HTTP `/v1` and `/mcp`) immediately; the others are
+untouched. `panella tokens list` (also in-container) shows each token's label, principal, and status
+(`active` / `revoked@…`). To see what to revoke:
 
-Then re-issue each remaining teammate's bearer (§5 above) and reconnect every client. Blunt but
-honest — until a real `tokens revoke` ships, offboarding one teammate costs re-issuing everyone.
+```bash
+docker compose exec -T panella-http panella tokens list
+```
+
+**Honesty constraint:** labels give you *revocation and recognition*, but NOT least-privilege
+identity or per-teammate audit attribution — every bearer minted this way is bound to the same
+owner/root principal (the `/mcp` surface requires it), and the audit trail records the *principal*,
+so all teammates' actions still appear under that shared identity. Per-user scoping and per-user
+attribution do not exist yet. (Rotating `PANELLA_API_KEY` or re-running `panella init --force` does
+NOT invalidate a bearer — bearers resolve from the token DB alone; `tokens revoke` is the operation
+that actually cuts one off.)
 
 ## 6. Daily rhythm
 
