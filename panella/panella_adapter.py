@@ -932,6 +932,15 @@ class PanellaAdapter:
         wing = str(meta.get("wing") or wing_tag or LEGACY_FALLBACK_WING)
         room = str(meta.get("room") or room_tag or LEGACY_FALLBACK_ROOM)
         agent = meta.get("agent") or agent_tag or "unknown"
+        # The store's top-level ``memory_type`` is authoritative for BUILT-IN types, but as of
+        # mcp-memory-service 10.67.1 the store coerces any type outside its ontology (e.g. Panella's
+        # governed ``{owner_slug}_preference``/``_feedback``) to ``observation``. The real semantic
+        # type therefore lives in the metadata (``meta['memory_type']``) and the ``mtype:`` tag — both
+        # survive uncoerced — which is exactly why the write-allowlist finalizer reads it from
+        # metadata (approval_finalizer.py). We keep raw-first so a directly-stored built-in type still
+        # wins, and fall through to the surviving metadata/tag channels. DO NOT drop the metadata/tag
+        # carriers: test_memtype_coercion_survives_in_reliable_channels locks that a custom type is
+        # still recoverable from them after coercion.
         memory_type = (
             raw.get("memory_type")
             or meta.get("memory_type")
