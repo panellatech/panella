@@ -350,6 +350,24 @@ def test_non_owner_bearer_refused(local):
     assert local.adapter.rows == []  # nothing approved by a non-owner
 
 
+# --- GH bot P2: an owner bearer minted with a concrete tenant scope must still finalize ------------
+
+def test_owner_bearer_with_concrete_tenant_scope_finalizes(local):
+    # _require_owner admits any bearer whose principal id IS the root principal, whatever tenant
+    # scope it was minted with. The approval receipt must record the deployment's CANONICAL tenant
+    # (what the finalizer gate verifies), never the bearer's scope — else this valid owner approval
+    # stamps and then sticks unfinalizable on "receipt tenant mismatch".
+    scoped_bearer = local.app.state.token_store.mint(
+        principal_id=root_principal().id, label="owner-scoped", tenant_scope=("t_alt_scope",)
+    )
+    hdr = {"Authorization": f"Bearer {scoped_bearer}", "X-Approval-Token": local.token}
+    with TestClient(local.app) as c:
+        r = c.post(f"/v1/approvals/{local.approval_id}/approve", headers=hdr)
+    assert r.status_code == 200
+    assert r.json()["finalized"] is True  # the receipt's canonical tenant passes the gate
+    assert local.adapter.rows  # the durable write actually happened
+
+
 # --- audit-invariant activation gate (lifespan): legacy unreceipted rows gate serving --------------
 
 

@@ -97,14 +97,16 @@ def _resolve_transport(request: Request):
 
 def _audit_ctx(request: Request, principal: Principal) -> ApprovalAuditContext:
     """The HTTP surface's audit sink for the shared approval service: the box's audit DB, the
-    bearer principal, the CONCRETE tenant (the owner/root bearer carries tenant ``"*"`` — approval
-    events always record the deployment's canonical tenant, never a wildcard), source="http", and
-    the request id for correlation."""
-    tenant = principal.tenant_id if principal.tenant_id != "*" else default_tenant_id()
+    bearer principal, the deployment's CANONICAL tenant, source="http", and the request id for
+    correlation. The tenant is ALWAYS ``default_tenant_id()`` — the approval queue is
+    single-tenant and every governed payload is built for the canonical tenant, which is exactly
+    what the finalizer's receipt gate verifies. Recording the bearer's own tenant instead (a root
+    bearer carries ``"*"``; an owner bearer can be minted with any concrete scope) would stamp a
+    receipt the gate can never accept — a valid approval stuck unfinalizable (GH bot P2)."""
     return ApprovalAuditContext(
         db_path=request.app.state.config.audit_db_path,
         principal=principal,
-        tenant_accessed=tenant,
+        tenant_accessed=default_tenant_id(),
         source="http",
         extra={"request_id": str(getattr(request.state, "request_id", ""))},
     )
