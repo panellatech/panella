@@ -116,6 +116,7 @@ def audit_write(
 
 def audit_verify_chain(db_path: str | Path = AUDIT_DB_PATH) -> bool:
     previous = ZERO_HASH
+    expected_seq = 1
     with audit_connect(db_path) as conn:
         rows = conn.execute(
             """
@@ -127,6 +128,15 @@ def audit_verify_chain(db_path: str | Path = AUDIT_DB_PATH) -> bool:
         ).fetchall()
     for row in rows:
         data = dict(row)
+        # Same contiguity rule as audit_verify_through: "chain verified" must mean the same thing
+        # to the backup/CLI full walk as it does to the finalizer's receipt gate — a deleted row
+        # whose neighbors were re-linked is invisible to hash links alone (appends assign
+        # seq = last+1, so a legitimate log can never have a hole).
+        if int(row["seq"]) != expected_seq:
+            raise AuditChainError(
+                f"audit chain gap: expected seq={expected_seq}, found seq={row['seq']}"
+            )
+        expected_seq += 1
         this_hash = str(data.pop("this_hash"))
         prev_hash = str(data["prev_hash"])
         if prev_hash != previous:

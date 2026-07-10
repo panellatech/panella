@@ -677,3 +677,7 @@ def test_bounded_verify_rejects_seq_gap_with_valid_hashes(env):
         )
     with pytest.raises(AuditChainError, match="gap"):
         audit_verify_through(3, db_path=env.audit)
+    # The FULL walk (backup/CLI validation) must apply the same contiguity rule — "chain verified"
+    # means one thing everywhere (Codex R2 residual).
+    with pytest.raises(AuditChainError, match="gap"):
+        audit_verify_chain(env.audit)
