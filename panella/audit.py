@@ -138,6 +138,52 @@ def audit_verify_chain(db_path: str | Path = AUDIT_DB_PATH) -> bool:
     return True
 
 
+def audit_verify_through(seq: int, db_path: str | Path = AUDIT_DB_PATH) -> dict[str, Any]:
+    """Verify the hash chain from genesis THROUGH ``seq`` and return that row (the approval receipt).
+
+    The finalizer's receipt gate. Unlike ``audit_verify_chain`` (walks the whole log), this bounds the
+    walk at ``seq`` so a receipt is validated in O(seq) at finalize time — a human-approval-gated event,
+    not a hot path. The bounded walk and the receipt fetch are ONE snapshot (single connection/txn);
+    the caller then applies its own SEMANTIC checks (op / target_id / decision / approved_by / approved_via
+    / tenant / candidate_sha256) to the returned row's parsed ``details``. Genesis-anchored: a break,
+    truncation, or gap anywhere in ``[1, seq]`` fails closed (no durable write on an unverifiable
+    receipt). Raises ``AuditChainError`` if ``seq`` is non-positive, does not exist, or the chain is
+    broken/tampered up to it. Returns the verified row as a dict with ``this_hash`` retained (for the
+    caller's stored-hash comparison) and ``details`` parsed from JSON."""
+    if not isinstance(seq, int) or isinstance(seq, bool) or seq < 1:
+        raise AuditChainError(f"invalid audit receipt seq: {seq!r}")
+    previous = ZERO_HASH
+    verified: dict[str, Any] | None = None
+    with audit_connect(db_path) as conn:
+        rows = conn.execute(
+            """
+            SELECT seq, ts_iso, principal_id, tenant_accessed, op, target_id,
+                   reason_code, details_json, prev_hash, this_hash
+              FROM audit_log
+             WHERE seq <= ?
+             ORDER BY seq
+            """,
+            (seq,),
+        ).fetchall()
+    for row in rows:
+        data = dict(row)
+        this_hash = str(data.pop("this_hash"))
+        prev_hash = str(data["prev_hash"])
+        if prev_hash != previous:
+            raise AuditChainError(f"audit chain discontinuity at seq={row['seq']}")
+        expected = _row_hash(prev_hash, data)
+        if this_hash != expected:
+            raise AuditChainError(f"audit row hash mismatch at seq={row['seq']}")
+        previous = this_hash
+        if int(row["seq"]) == seq:
+            verified = dict(row)
+    if verified is None:
+        # seq beyond the log's tail, or a gap swallowed it — either way, unverifiable.
+        raise AuditChainError(f"audit receipt seq={seq} not found or not reachable through an intact chain")
+    verified["details"] = json.loads(verified["details_json"]) if verified["details_json"] else {}
+    return verified
+
+
 def _row_hash(prev_hash: str, row_without_this_hash: dict[str, Any]) -> str:
     payload = prev_hash + _canonical_json(row_without_this_hash)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
