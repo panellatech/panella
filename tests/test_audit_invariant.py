@@ -28,9 +28,18 @@ from panella.approval_service import (
     ApprovalStateError,
 )
 from panella.approval_transport import build_transport
-from panella.audit import AuditChainError, audit_row_hash, audit_verify_chain, audit_verify_through, audit_write
+from panella.audit import (
+    AuditChainError,
+    _row_hash,
+    audit_connect,
+    audit_row_hash,
+    audit_verify_chain,
+    audit_verify_through,
+    audit_write,
+)
 from panella.client import MemoryClient
 from panella.client_raw import (
+    _backfill_one,
     approve_queued_candidate,
     candidate_fingerprint,
     migrate_audit_receipts,
@@ -558,6 +567,70 @@ def test_12_import_surface_no_cycle():
             assert f"panella.{forbidden}" not in source
 
 
+# --- 9e/9f. migration serialization against a live legacy finalizer (Codex terra R1 P1) -----------
+
+
+def test_9e_backfill_revalidates_under_lock_skips_stale_row(env):
+    approval_id = _legacy_approved(env)
+    # Between the eligibility snapshot and per-row processing, an "external" finalizer finished the
+    # row. _backfill_one must re-validate under its own lock and refuse to stamp a stale premise.
+    env.set_row(approval_id, finalizer_state="finalized", durable_memory_id="mem-external")
+    with audit_connect(env.audit) as conn:
+        before = conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
+    stamped = _backfill_one(
+        env.outbox, env.audit, approval_id,
+        principal=root_principal(), tenant_accessed=default_tenant_id(), adapter=env.adapter,
+    )
+    assert stamped is False
+    assert env.row(approval_id)["audit_receipt_seq"] is None
+    with audit_connect(env.audit) as conn:
+        after = conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
+    assert after == before  # no attestation appended for a row it did not stamp
+
+
+def test_9f_backfill_lock_blocks_concurrent_claim(env):
+    """The serialization property itself: while _backfill_one processes a finalizing row (store
+    inspection in flight), a legacy finalizer's claim CAS on the same outbox must be REFUSED by the
+    held BEGIN IMMEDIATE — the exact interleaving that could otherwise attach a receipt after an
+    uninspected durable write."""
+    approval_id = _legacy_approved(env, finalizer_state="finalizing")
+    inside_lookup = threading.Event()
+    release_lookup = threading.Event()
+
+    class BlockingLookupAdapter(RecordingAdapter):
+        def find_active_hash_by_marker(self, marker, tenant_id):
+            inside_lookup.set()
+            assert release_lookup.wait(timeout=10)
+            return None  # marker absent
+
+    result: dict[str, object] = {}
+
+    def run_backfill():
+        result["stamped"] = _backfill_one(
+            env.outbox, env.audit, approval_id,
+            principal=root_principal(), tenant_accessed=default_tenant_id(),
+            adapter=BlockingLookupAdapter(),
+        )
+
+    worker = threading.Thread(target=run_backfill)
+    worker.start()
+    try:
+        assert inside_lookup.wait(timeout=10)
+        # Migrator holds BEGIN IMMEDIATE on the outbox → a concurrent (legacy) claim must fail.
+        contender = sqlite3.connect(env.outbox, timeout=0.4)
+        try:
+            with pytest.raises(sqlite3.OperationalError):
+                contender.execute("BEGIN IMMEDIATE")
+        finally:
+            contender.close()
+    finally:
+        release_lookup.set()
+        worker.join(timeout=10)
+    assert result["stamped"] is True
+    receipt = audit_verify_through(int(env.row(approval_id)["audit_receipt_seq"]), db_path=env.audit)
+    assert receipt["details"]["finalizing_inspection"] == "marker_absent"
+
+
 # --- gate error taxonomy: AuditChainError from a plain bounded verify stays precise ---------------
 
 
@@ -567,3 +640,32 @@ def test_bounded_verify_rejects_nonexistent_and_gap(env):
         audit_verify_through(10_000, db_path=env.audit)
     with pytest.raises(AuditChainError):
         audit_verify_through(0, db_path=env.audit)
+
+
+def test_bounded_verify_rejects_seq_gap_with_valid_hashes(env):
+    """Codex terra R1 P1: hash links alone cannot see a deleted row whose neighbors re-link. Craft
+    a row at seq 3 whose prev_hash correctly links to seq 1 (seq 2 missing) — the bounded walk must
+    refuse on contiguity, not accept the re-linked chain."""
+    seq1 = audit_write(principal=root_principal(), tenant_accessed=default_tenant_id(),
+                       op="noise", target_id="1", details={"n": 1}, db_path=env.audit)
+    hash1 = audit_row_hash(seq1, db_path=env.audit)
+    forged = {
+        "seq": 3,
+        "ts_iso": "2026-07-10T00:00:00+00:00",
+        "principal_id": "attacker",
+        "tenant_accessed": default_tenant_id(),
+        "op": "approval_decision",
+        "target_id": "1",
+        "reason_code": None,
+        "details_json": None,
+        "prev_hash": hash1,
+    }
+    forged_hash = _row_hash(hash1, forged)
+    with sqlite3.connect(env.audit) as conn:
+        conn.execute(
+            "INSERT INTO audit_log (seq, ts_iso, principal_id, tenant_accessed, op, target_id,"
+            " reason_code, details_json, prev_hash, this_hash) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (*forged.values(), forged_hash),
+        )
+    with pytest.raises(AuditChainError, match="gap"):
+        audit_verify_through(3, db_path=env.audit)

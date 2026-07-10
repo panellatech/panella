@@ -20,8 +20,9 @@ panella connect --print claude-code   # swap PANELLA_BEARER_HERE for the bearer 
 
 Your agent proposes a memory → it queues → you approve it (CLI, console, or API) → your agent recalls
 it next turn. No governed write becomes durable truth without a named approver and a committed,
-chain-verified approval receipt — the approval is recorded *before* it takes effect, and the
-finalizer refuses any write it cannot verify a receipt for.
+chain-verified approval receipt: approve through the CLI, console, or API and the decision is
+recorded *before* it takes effect — and whatever path stamped a row, the finalizer refuses to make
+it durable without a receipt it can verify.
 
 ## Two ways to build agent memory
 
@@ -40,10 +41,11 @@ explicit choice — the guarantees below are about the governed path.)
 - **Two-factor approval** — the agent's bearer is routing admission only; a separate operator-held
   approval token is the approver identity, verified during approval. An agent cannot approve its
   own memory.
-- **Receipt-gated durability** — every approval decision is appended to a tamper-evident hash chain
-  *before* it takes effect, and the finalizer independently re-verifies that receipt — chain intact
-  from genesis, the recorded decision/approver, and a fingerprint of the exact approved bytes —
-  before any durable write. No verifiable receipt, no write.
+- **Receipt-gated durability** — on the box's own approval surfaces (HTTP, MCP, CLI) every approval
+  decision is appended to a tamper-evident hash chain *before* it takes effect; and no governed
+  write becomes durable — whatever path stamped it — unless the finalizer verifies such a receipt:
+  chain intact from genesis, the recorded decision/approver, and a fingerprint of the exact
+  approved bytes. No verifiable receipt, no write.
 - **Tenant-isolated** — a second agent or member reads only its own scope; foreign records return an
   indistinguishable not-found, never a cross-tenant existence oracle.
 - **MCP-native** — a standard MCP server (Streamable HTTP). The governed loop — submit, queue,

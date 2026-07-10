@@ -153,6 +153,7 @@ def audit_verify_through(seq: int, db_path: str | Path = AUDIT_DB_PATH) -> dict[
     if not isinstance(seq, int) or isinstance(seq, bool) or seq < 1:
         raise AuditChainError(f"invalid audit receipt seq: {seq!r}")
     previous = ZERO_HASH
+    expected_seq = 1
     verified: dict[str, Any] | None = None
     with audit_connect(db_path) as conn:
         rows = conn.execute(
@@ -167,6 +168,14 @@ def audit_verify_through(seq: int, db_path: str | Path = AUDIT_DB_PATH) -> dict[
         ).fetchall()
     for row in rows:
         data = dict(row)
+        # Contiguity is part of "chain valid": hash links alone cannot see a DELETED row whose
+        # neighbors were re-linked (or a crafted row appended past a gap) — seqs must be exactly
+        # 1..seq with no holes, independent of how the rows were produced.
+        if int(row["seq"]) != expected_seq:
+            raise AuditChainError(
+                f"audit chain gap: expected seq={expected_seq}, found seq={row['seq']}"
+            )
+        expected_seq += 1
         this_hash = str(data.pop("this_hash"))
         prev_hash = str(data["prev_hash"])
         if prev_hash != previous:

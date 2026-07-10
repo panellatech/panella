@@ -617,17 +617,76 @@ def migrate_audit_receipts(
     The caller (the serving entrypoint's startup hook) treats ``remaining > 0`` — or any raised
     error — as "do not serve". Fresh installs and boxes with an empty queue return (0, 0, 0)."""
     outbox_db_path = Path(outbox_db_path)
+    audit_db_path = Path(audit_db_path)
     with sqlite3.connect(outbox_db_path) as conn:
         conn.row_factory = sqlite3.Row
         _ensure_outbox_schema(conn)
-        rows = conn.execute(
-            "SELECT id, candidate_json, approved_via, approved_by, finalizer_state "
-            f"FROM approval_queue WHERE {_ELIGIBLE_NULL_WHERE} ORDER BY id"
-        ).fetchall()
-    eligible = len(rows)
+        candidates = [
+            int(r["id"])
+            for r in conn.execute(
+                f"SELECT id FROM approval_queue WHERE {_ELIGIBLE_NULL_WHERE} ORDER BY id"
+            ).fetchall()
+        ]
+    eligible = len(candidates)
     backfilled = 0
-    for row in rows:
-        approval_id = int(row["id"])
+    for approval_id in candidates:
+        if _backfill_one(
+            outbox_db_path, audit_db_path, approval_id,
+            principal=principal, tenant_accessed=tenant_accessed, adapter=adapter,
+        ):
+            backfilled += 1
+    with sqlite3.connect(outbox_db_path) as conn:
+        remaining = int(
+            conn.execute(f"SELECT COUNT(*) FROM approval_queue WHERE {_ELIGIBLE_NULL_WHERE}").fetchone()[0]
+        )
+    if remaining:
+        logger.warning(
+            "audit-receipt migration incomplete: %d approved rows still lack receipts", remaining
+        )
+    return AuditReceiptMigration(eligible=eligible, backfilled=backfilled, remaining=remaining)
+
+
+def _backfill_one(
+    outbox_db_path: Path,
+    audit_db_path: Path,
+    approval_id: int,
+    *,
+    principal: Principal,
+    tenant_accessed: str,
+    adapter: Any | None,
+) -> bool:
+    """Backfill ONE row — re-validate, inspect, append, and stamp under a SINGLE ``BEGIN
+    IMMEDIATE`` on the outbox. The held write lock is what serializes the migrator against a
+    still-running LEGACY finalizer (an old-code process upgraded out from under): that finalizer's
+    claim CAS needs this same lock, so either it claimed FIRST (the re-read sees ``finalizing`` and
+    the marker inspection records whether its write already landed) or the stamp lands FIRST (the
+    receipt is committed before any later claim/write — the invariant's normal order). Without the
+    single transaction, a claim+write could interleave between the eligibility snapshot and the
+    stamp, attaching a receipt AFTER an uninspected durable write (Codex terra R1 P1).
+
+    Lock order is outbox → audit, the same order the finalizer's receipt gate uses (never the
+    reverse anywhere), so the cross-DB hold cannot deadlock. The audit append itself is a separate
+    committed transaction: a crash after it but before the stamp leaves an orphan intent record and
+    the next pass re-appends cleanly (restart-safe).
+
+    Returns True iff the receipt was stamped. Rows that stopped being eligible (finalized /
+    rtbf-claimed / already receipted) and finalizing rows whose store inspection is unavailable are
+    left untouched — the caller's remaining-count re-query decides whether activation may proceed."""
+    conn = sqlite3.connect(outbox_db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        _ensure_outbox_schema(conn)
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            "SELECT id, candidate_json, approved_via, approved_by, finalizer_state "
+            f"FROM approval_queue WHERE id = ? AND {_ELIGIBLE_NULL_WHERE}",
+            (approval_id,),
+        ).fetchone()
+        if row is None:
+            # The row changed state between the eligibility snapshot and now (finalized, claimed,
+            # purged, or receipted by a concurrent pass) — never stamp on a stale premise.
+            conn.commit()
+            return False
         details: dict[str, Any] = {
             "phase": "backfill",
             "decision": "approve",
@@ -643,7 +702,8 @@ def migrate_audit_receipts(
                     "audit-receipt migration: cannot inspect finalizing approval %s (%s); "
                     "leaving unreceipted (activation must refuse)", approval_id, inspection,
                 )
-                continue
+                conn.commit()
+                return False
             details["finalizing_inspection"] = inspection
         seq = audit_write(
             principal=principal,
@@ -654,23 +714,15 @@ def migrate_audit_receipts(
             db_path=audit_db_path,
         )
         this_hash = audit_row_hash(seq, db_path=audit_db_path)
-        with sqlite3.connect(outbox_db_path) as conn:
-            cur = conn.execute(
-                "UPDATE approval_queue SET audit_receipt_seq=?, audit_receipt_hash=?, candidate_sha256=? "
-                "WHERE id=? AND audit_receipt_seq IS NULL",
-                (seq, this_hash, details["candidate_sha256"], approval_id),
-            )
-            if cur.rowcount:
-                backfilled += 1
-    with sqlite3.connect(outbox_db_path) as conn:
-        remaining = int(
-            conn.execute(f"SELECT COUNT(*) FROM approval_queue WHERE {_ELIGIBLE_NULL_WHERE}").fetchone()[0]
+        conn.execute(
+            "UPDATE approval_queue SET audit_receipt_seq=?, audit_receipt_hash=?, candidate_sha256=? "
+            "WHERE id=? AND audit_receipt_seq IS NULL",
+            (seq, this_hash, details["candidate_sha256"], approval_id),
         )
-    if remaining:
-        logger.warning(
-            "audit-receipt migration incomplete: %d approved rows still lack receipts", remaining
-        )
-    return AuditReceiptMigration(eligible=eligible, backfilled=backfilled, remaining=remaining)
+        conn.commit()
+        return True
+    finally:
+        conn.close()
 
 
 def list_pending_approvals(
