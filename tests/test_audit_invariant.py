@@ -201,7 +201,7 @@ def test_1_audit_append_failure_aborts_before_any_mutation(env, tmp_path):
     approval_id = env.seed()
     unwritable = tmp_path / "not-a-db-dir"
     unwritable.mkdir()  # a directory: sqlite cannot open it as a database → append fails
-    with pytest.raises(Exception):
+    with pytest.raises(sqlite3.OperationalError):
         env.approve(approval_id, audit_db=unwritable)
     row = env.row(approval_id)
     assert row["status"] == "pending_approval"  # never flipped
@@ -346,7 +346,7 @@ def test_6_reject_requires_committed_record(env, tmp_path):
     approval_id = env.seed()
     unwritable = tmp_path / "reject-not-a-db"
     unwritable.mkdir()
-    with pytest.raises(Exception):
+    with pytest.raises(sqlite3.OperationalError):
         approval_service.reject(
             env.outbox, env.transport, env.governance, TOKEN, approval_id,
             audit=env.audit_ctx(db_path=unwritable),
