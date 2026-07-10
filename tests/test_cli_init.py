@@ -23,8 +23,9 @@ from panella.governance import current_governance, reset_governance_cache
 from panella.http.app import create_app
 from panella.http.config import MemoryHttpConfig
 from panella.http.tokens import TokenStore
+from panella.approval_audit import ApprovalAuditContext
 from panella.mcp_tools import McpToolContext, build_transport_if_approvable, list_tools
-from panella.principal import root_principal
+from panella.principal import default_tenant_id, root_principal
 from panella.profile import AgentProfile
 
 APPROVAL_TOKEN_PATH = Path(".panella/approval-token")
@@ -613,6 +614,12 @@ def test_secret_boundary_http_and_mcp_do_not_exfiltrate_operator_token(tmp_path,
         profile=profile,
         governance=governance,
         transport=build_transport_if_approvable(governance),
+        approval_audit=ApprovalAuditContext(
+            db_path=tmp_path / "audit.db",
+            principal=root_principal(),
+            tenant_accessed=default_tenant_id(),
+            source="mcp",
+        ),
     )
     tool_payloads = [tool.model_dump(mode="json") for tool in list_tools(ctx)]
     serialized = json.dumps(tool_payloads, sort_keys=True).lower()

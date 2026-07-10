@@ -180,7 +180,7 @@ def test_s3_bad_token_refused_and_audited(local):
     assert r.status_code == 403
     with sqlite3.connect(local.config.audit_db_path) as conn:
         (count,) = conn.execute(
-            "SELECT COUNT(*) FROM audit_log WHERE op LIKE 'approvals_%'"
+            "SELECT COUNT(*) FROM audit_log WHERE op = 'approval_refused'"
         ).fetchone()
     assert count >= 1
 
@@ -303,12 +303,12 @@ def test_no_auth_oracle_uniform_refusal(tmp_path, monkeypatch):
     assert wrong.status_code == valid_not_approver.status_code == 403
     assert wrong.json()["code"] == valid_not_approver.json()["code"] == "approval_refused"
     assert wrong.json()["message"] == valid_not_approver.json()["message"]  # no oracle
-    # but the server audit DID capture the distinct reasons
+    # but the server audit DID capture the distinct reasons (service-level refusal records)
     with sqlite3.connect(env.config.audit_db_path) as conn:
         reasons = {
             row[0]
             for row in conn.execute(
-                "SELECT details_json FROM audit_log WHERE op='approvals_list'"
+                "SELECT details_json FROM audit_log WHERE op='approval_refused'"
             ).fetchall()
         }
     joined = " ".join(reasons)
@@ -324,7 +324,7 @@ def test_state_refusal_is_audited(local):
     assert r.status_code == 409
     with sqlite3.connect(local.config.audit_db_path) as conn:
         (count,) = conn.execute(
-            "SELECT COUNT(*) FROM audit_log WHERE op='approvals_approve' AND details_json LIKE '%state_refused%'"
+            "SELECT COUNT(*) FROM audit_log WHERE op='approval_refused' AND details_json LIKE '%approval row not found%'"
         ).fetchone()
     assert count >= 1
 

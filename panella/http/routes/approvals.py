@@ -17,6 +17,11 @@ surface). ``ServingGateMiddleware`` also covers ``/v1/approvals/*``, so an incoh
 (503) rather than finalizing a durable write blind. Resolving per-request (not at mount) keeps
 governance-load timing unchanged for every other box and lets a runtime approver/overlay change take
 effect without a restart.
+
+Audit (invariant PR1): approval audit is owned by the SHARED service (decision B) — these routes
+build an ``ApprovalAuditContext`` (audit DB + bearer principal + concrete tenant + source="http" +
+request id) and never append approval events themselves, so the MCP and HTTP surfaces record
+decisions/refusals/lists identically and the fail-closed pre-decision receipt is one code path.
 """
 
 from __future__ import annotations
@@ -27,6 +32,7 @@ from fastapi import APIRouter, Depends, Header, Request
 from pydantic import BaseModel
 
 from panella import approval_service
+from panella.approval_audit import ApprovalAuditContext
 from panella.approval_service import (
     ApprovalAuthError,
     ApprovalNotFinalized,
@@ -34,8 +40,7 @@ from panella.approval_service import (
 )
 from panella.http.auth import principal as principal_dep
 from panella.http.errors import ApiError
-from panella.http.routes.common import audit_http
-from panella.principal import Principal, root_principal
+from panella.principal import Principal, default_tenant_id, root_principal
 
 router = APIRouter()
 PrincipalDep = Annotated[Principal, Depends(principal_dep)]
@@ -90,6 +95,21 @@ def _resolve_transport(request: Request):
     return transport, governance
 
 
+def _audit_ctx(request: Request, principal: Principal) -> ApprovalAuditContext:
+    """The HTTP surface's audit sink for the shared approval service: the box's audit DB, the
+    bearer principal, the CONCRETE tenant (the owner/root bearer carries tenant ``"*"`` — approval
+    events always record the deployment's canonical tenant, never a wildcard), source="http", and
+    the request id for correlation."""
+    tenant = principal.tenant_id if principal.tenant_id != "*" else default_tenant_id()
+    return ApprovalAuditContext(
+        db_path=request.app.state.config.audit_db_path,
+        principal=principal,
+        tenant_accessed=tenant,
+        source="http",
+        extra={"request_id": str(getattr(request.state, "request_id", ""))},
+    )
+
+
 def _require_owner(principal: Principal) -> None:
     """Approval routes are the OWNER's surface — like ``/mcp``. A merely-valid bearer is NOT enough:
     require the governance root principal, so a low-privilege / foreign-tenant bearer cannot borrow
@@ -111,16 +131,13 @@ def list_pending_route(
     transport, governance = _resolve_transport(request)
     try:
         rows = approval_service.list_pending(
-            request.app.state.config.outbox_db_path, transport, governance, x_approval_token, limit=limit
+            request.app.state.config.outbox_db_path, transport, governance, x_approval_token,
+            audit=_audit_ctx(request, principal), limit=limit,
         )
     except ApprovalAuthError as exc:
         # Uniform client-facing refusal — NO oracle distinguishing "bad token" from "valid token,
-        # not an approver". The specific reason is kept for the server audit log only.
-        audit_http(request, principal, op="approvals_list", tenant_accessed=principal.tenant_id,
-                   details={"error": "approval_refused", "reason": str(exc)})
+        # not an approver". The refusal (with its reason) is audited inside the shared service.
         raise ApiError("approval_refused", "approval refused", 403) from exc
-    audit_http(request, principal, op="approvals_list", tenant_accessed=principal.tenant_id,
-               details={"listed": len(rows)})
     return PendingApprovalsResponse(pending=[PendingItem(**row) for row in rows])
 
 
@@ -151,31 +168,22 @@ def approve_route(
             governance,
             x_approval_token,
             approval_id,
+            audit=_audit_ctx(request, principal),
             finalizer_adapter_factory=lambda: request.app.state.memory_adapter,
         )
     except ApprovalAuthError as exc:
-        # Uniform client-facing refusal (no oracle); specific reason → server audit only.
-        audit_http(request, principal, op="approvals_approve", tenant_accessed=principal.tenant_id,
-                   details={"error": "approval_refused", "reason": str(exc), "approval_id": approval_id})
+        # Uniform client-facing refusal (no oracle); the refusal reason is audited in the service.
         raise ApiError("approval_refused", "approval refused", 403) from exc
     except ApprovalStateError as exc:
         # Caller passed the approver gate; the row just isn't approvable (missing/decided/claimed).
-        audit_http(request, principal, op="approvals_approve", tenant_accessed=principal.tenant_id,
-                   details={"error": "state_refused", "reason": str(exc), "approval_id": approval_id})
+        # The pre-decision intent record (or refusal record) is already in the audit chain.
         raise ApiError("approval_refused", str(exc), 409) from exc
     except ApprovalNotFinalized as exc:
-        # The row WAS stamped approved (a real queue state change) but finalize did not complete —
-        # audit it: a security-relevant state change must never happen with no HTTP audit event.
-        audit_http(request, principal, op="approvals_approve", tenant_accessed=principal.tenant_id,
-                   details={"error": "not_finalized", "state_changed": True, "approval_id": approval_id})
+        # The row WAS stamped approved (a real queue state change) — the fail-closed pre-decision
+        # record IS that state change's audit event; finalize did not complete (retriable).
         raise ApiError("not_finalized", str(exc), 503) from exc
     except Exception as exc:  # noqa: BLE001 — surface as 500, never leak internals
-        audit_http(request, principal, op="approvals_approve", tenant_accessed=principal.tenant_id,
-                   details={"error": "approval_failed", "approval_id": approval_id})
         raise ApiError("approval_failed", "approval failed", 500) from exc
-    audit_http(request, principal, op="approvals_approve", tenant_accessed=principal.tenant_id,
-               target_id=outcome.durable_id,
-               details={"finalized": outcome.finalized, "retried": outcome.retried, "approval_id": approval_id})
     return ApproveResponse(
         approved=outcome.approved, finalized=outcome.finalized,
         durable_id=outcome.durable_id, retried=outcome.retried,
@@ -193,17 +201,12 @@ def reject_route(
     transport, governance = _resolve_transport(request)
     try:
         approval_service.reject(
-            request.app.state.config.outbox_db_path, transport, governance, x_approval_token, approval_id
+            request.app.state.config.outbox_db_path, transport, governance, x_approval_token, approval_id,
+            audit=_audit_ctx(request, principal),
         )
     except ApprovalAuthError as exc:
-        # Uniform client-facing refusal (no oracle); specific reason → server audit only.
-        audit_http(request, principal, op="approvals_reject", tenant_accessed=principal.tenant_id,
-                   details={"error": "approval_refused", "reason": str(exc), "approval_id": approval_id})
+        # Uniform client-facing refusal (no oracle); the refusal reason is audited in the service.
         raise ApiError("approval_refused", "approval refused", 403) from exc
     except ApprovalStateError as exc:
-        audit_http(request, principal, op="approvals_reject", tenant_accessed=principal.tenant_id,
-                   details={"error": "state_refused", "reason": str(exc), "approval_id": approval_id})
         raise ApiError("approval_refused", str(exc), 409) from exc
-    audit_http(request, principal, op="approvals_reject", tenant_accessed=principal.tenant_id,
-               details={"rejected": True, "approval_id": approval_id})
     return RejectResponse(rejected=True, approval_id=approval_id)

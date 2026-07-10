@@ -15,13 +15,14 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
 from panella._default_adapter import default_adapter
+from panella.client_raw import migrate_audit_receipts
 from panella.http import console
 from panella.http.auth import AuthMiddleware, RateLimiter, resolve_bearer
 from panella.http.config import MemoryHttpConfig, load_config
 from panella.http.errors import ApiError, api_error_handler, error_payload, unhandled_error_handler
 from panella.http.routes import approvals, audit, delete, health, memory, principal, search, stats, write
 from panella.http.tokens import TokenStore, normalize_principal_id
-from panella.principal import root_principal
+from panella.principal import default_tenant_id, root_principal
 from panella.governance import GovernanceConfigError, current_governance
 from panella.profile import AgentProfile, AgentProfileConfigError, ensure_rendered_profiles
 from panella.store_probe import startup_self_check
@@ -81,12 +82,41 @@ def create_app(config: Any = None, *, memory_adapter: Any | None = None) -> Fast
         # Coherence self-check BEFORE serving (§1.5.3): the middleware below is already in the
         # stack; this flips app.state.memory_serving. startup_self_check never raises.
         result = startup_self_check(http_config.store_path)
-        app.state.memory_serving = result.serving
-        app.state.memory_serving_reason = result.reason
-        if result.serving:
+        serving, reason = result.serving, result.reason
+        if serving:
             logger.info("memory self-check passed: %s", result.reason)
-        else:
-            logger.error("MEMORY SELF-CHECK FAILED — refusing memory routes (503): %s", result.reason)
+            # Audit-invariant activation gate (PR1): backfill receipts onto pre-invariant approved
+            # rows BEFORE serving. NEVER grandfather — a box that cannot complete the backfill
+            # (audit DB unwritable, or a finalizing-row inspection couldn't consult the store)
+            # must not serve: the finalizer's receipt gate would refuse those rows forever, and
+            # letting them finalize unreceipted is exactly what the invariant forbids. Restart-safe:
+            # the scan re-runs on every boot until zero eligible rows remain. Fresh installs and
+            # empty queues pass trivially.
+            try:
+                migration = migrate_audit_receipts(
+                    http_config.outbox_db_path,
+                    http_config.audit_db_path,
+                    principal=root_principal(),
+                    tenant_accessed=default_tenant_id(),
+                    adapter=app.state.memory_adapter,
+                )
+                if migration.remaining:
+                    serving = False
+                    reason = (
+                        f"audit-receipt activation incomplete: {migration.remaining} approved "
+                        "rows still lack receipts (see logs; restarts retry the backfill)"
+                    )
+                elif migration.backfilled:
+                    logger.info(
+                        "audit-receipt activation: backfilled %d approval receipts", migration.backfilled
+                    )
+            except Exception as exc:  # noqa: BLE001 — refuse to serve on ANY activation failure
+                serving = False
+                reason = f"audit-receipt activation failed: {exc}"
+        app.state.memory_serving = serving
+        app.state.memory_serving_reason = reason
+        if not serving:
+            logger.error("MEMORY SELF-CHECK/ACTIVATION FAILED — refusing memory routes (503): %s", reason)
         async with AsyncExitStack() as stack:
             # When the /mcp mount is enabled its Streamable-HTTP session manager needs a running
             # async context for the process lifetime (Slice-S P3b). Absent (owner's box) → no-op.
@@ -285,6 +315,7 @@ def _mount_mcp(app: FastAPI, http_config: MemoryHttpConfig) -> Any:
     from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
     from mcp.server.transport_security import TransportSecurityMiddleware, TransportSecuritySettings
 
+    from panella.approval_audit import ApprovalAuditContext
     from panella.client import MemoryClient
     from panella.mcp_tools import McpToolContext, build_mcp_server, build_transport_if_approvable
     from panella.principal import principal_default_for_profile
@@ -302,6 +333,8 @@ def _mount_mcp(app: FastAPI, http_config: MemoryHttpConfig) -> Any:
     )
     # ctx.serving stays True here — the dispatcher's serving gate reads app.state.memory_serving
     # authoritatively before every /mcp request, so /mcp can never serve while incoherent.
+    # approval_audit: the MCP surface audits as the OWNER principal (/mcp is root-only, see
+    # _authenticate_mcp_owner) but records the CONCRETE deployment tenant — never root's "*".
     ctx = McpToolContext(
         client=client,
         outbox_db_path=http_config.outbox_db_path,
@@ -310,6 +343,12 @@ def _mount_mcp(app: FastAPI, http_config: MemoryHttpConfig) -> Any:
         transport=transport,
         serving=True,
         serving_reason="",
+        approval_audit=ApprovalAuditContext(
+            db_path=http_config.audit_db_path,
+            principal=root_principal(),
+            tenant_accessed=default_tenant_id(),
+            source="mcp",
+        ),
     )
     server = build_mcp_server(ctx)
 

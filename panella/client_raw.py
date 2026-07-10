@@ -7,14 +7,16 @@ import json
 import logging
 import os
 import sqlite3
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from panella.audit import audit_row_hash, audit_write
 from panella.governance import Governance, current_governance
-from panella.principal import default_tenant_id
+from panella.principal import Principal, default_tenant_id
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +58,30 @@ def _transport_kind() -> str:
 
 def _content_hash(content: str) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
+def candidate_fingerprint(candidate_json: str) -> str:
+    """THE canonical fingerprint of an approval candidate: sha256 over the STORED
+    ``candidate_json`` text, utf-8 encoded. Defined ONCE so the approve-time receipt, the
+    in-transaction stamp recheck, the migration backfill, and the finalizer gate all hash the
+    exact same bytes — the row's stored string IS the canonical form (no re-serialization, which
+    could differ by key order / whitespace and open a false-mismatch or false-match window)."""
+    return hashlib.sha256(str(candidate_json).encode("utf-8")).hexdigest()
+
+
+_SHA256_HEX_LEN = 64
+
+
+def _require_receipt(seq: Any, this_hash: Any, sha256_hex: Any) -> tuple[int, str, str]:
+    """Validate an approval receipt triple (fail-closed). The stamp path REQUIRES a well-formed
+    receipt; a malformed one must abort before any queue mutation."""
+    if not isinstance(seq, int) or isinstance(seq, bool) or seq < 1:
+        raise ValueError(f"invalid audit receipt seq: {seq!r}")
+    for label, value in (("hash", this_hash), ("candidate_sha256", sha256_hex)):
+        text = str(value or "")
+        if len(text) != _SHA256_HEX_LEN or any(c not in "0123456789abcdef" for c in text):
+            raise ValueError(f"invalid audit receipt {label}: {value!r}")
+    return seq, str(this_hash), str(sha256_hex)
 
 
 def _deterministic_memory_id(wing: str, room: str, content: str) -> str:
@@ -118,6 +144,13 @@ def _ensure_outbox_schema(conn: sqlite3.Connection) -> None:
         "supersede_target_id": "ALTER TABLE approval_queue ADD COLUMN supersede_target_id TEXT",
         "supersede_done_at": "ALTER TABLE approval_queue ADD COLUMN supersede_done_at TEXT",
         "finalizer_last_error": "ALTER TABLE approval_queue ADD COLUMN finalizer_last_error TEXT",
+        # Audit-invariant PR1 — the approval RECEIPT, stored atomically with the approved-status
+        # flip (same _approve_in_conn txn): the hash-chained audit row (seq + this_hash) recording
+        # the authorized decision, plus the sha256 fingerprint of the exact candidate bytes that
+        # decision approved. The finalizer refuses durability unless these verify (fail-closed).
+        "audit_receipt_seq": "ALTER TABLE approval_queue ADD COLUMN audit_receipt_seq INTEGER",
+        "audit_receipt_hash": "ALTER TABLE approval_queue ADD COLUMN audit_receipt_hash TEXT",
+        "candidate_sha256": "ALTER TABLE approval_queue ADD COLUMN candidate_sha256 TEXT",
     }
     for column, sql in approval_migrations.items():
         if column not in approval_columns:
@@ -168,13 +201,28 @@ def _approve_in_conn(
     approved_via: str | None = None,
     approved_by: str | None = None,
     approved_tg_message_id: int | None = None,
+    audit_receipt_seq: int | None = None,
+    audit_receipt_hash: str | None = None,
+    candidate_sha256: str | None = None,
 ) -> int:
     """Core approve on an ALREADY-LOCKED connection (caller holds BEGIN IMMEDIATE): idempotent
     check, emit the pending memory_event, mark approved, and — when ``approved_via`` is given —
-    stamp the handler-authorized provenance in the SAME transaction. Returns the events id."""
+    stamp the handler-authorized provenance in the SAME transaction. When an audit RECEIPT
+    (``audit_receipt_seq``/``audit_receipt_hash``/``candidate_sha256``) is given, it is stored in
+    that same transaction — atomically with the approved-status flip — after RE-CHECKING the
+    fingerprint against the row's CURRENT ``candidate_json`` (the receipt attests exact bytes; a
+    row whose bytes changed since the caller hashed them must abort, not stamp). Returns the
+    events id."""
     row = conn.execute("SELECT * FROM approval_queue WHERE id = ?", (approval_id,)).fetchone()
     if row is None:
         raise ValueError(f"approval_queue row not found: {approval_id}")
+    if candidate_sha256 is not None and candidate_fingerprint(row["candidate_json"]) != candidate_sha256:
+        # In-txn fingerprint recheck (v4 FIX-2): the receipt was appended for specific candidate
+        # bytes; if the stored bytes no longer match, stamping would bind the receipt to content
+        # it never attested. Raising rolls back the whole transaction (no status flip, no stamp).
+        raise ValueError(
+            f"approval {approval_id} candidate bytes changed since the audit receipt was appended; refusing stamp"
+        )
     if row["status"] == "approved" and row["memory_event_id"]:
         # Idempotent re-approve. Stamp provenance only if this is an authorized call and the row
         # is not yet provenanced (e.g. a raw approve preceded it); never re-insert the event.
@@ -183,6 +231,15 @@ def _approve_in_conn(
                 "UPDATE approval_queue SET approved_via=?, approved_by=?, "
                 "approved_tg_message_id=COALESCE(?, approved_tg_message_id) WHERE id=?",
                 (approved_via, approved_by, approved_tg_message_id, approval_id),
+            )
+        if audit_receipt_seq is not None and row["audit_receipt_seq"] is None:
+            # Receipt-if-missing (never overwrite): an approved-but-unreceipted row (legacy, or a
+            # raw approve later re-approved through an authorized surface) gains the receipt that
+            # will let the finalizer's gate verify it. An already-bound receipt is immutable.
+            conn.execute(
+                "UPDATE approval_queue SET audit_receipt_seq=?, audit_receipt_hash=?, candidate_sha256=? "
+                "WHERE id=? AND audit_receipt_seq IS NULL",
+                (audit_receipt_seq, audit_receipt_hash, candidate_sha256, approval_id),
             )
         return int(row["memory_event_id"])
     if row["status"] not in {"pending", "pending_approval", "deferred"}:
@@ -213,7 +270,9 @@ def _approve_in_conn(
     # DIRECT assignment (NOT COALESCE): a raw approve passes approved_*=None and must CLEAR any
     # pre-existing provenance so a forged/hand-edited approved_via='telegram' on a pending row can
     # never be carried into an approved row and arm finalization (Codex diff R5 B1). The authorized
-    # path passes the real verified values, which overwrite anything pre-filled.
+    # path passes the real verified values, which overwrite anything pre-filled. The receipt triple
+    # follows the same rule: a raw approve (no receipt) clears any hand-planted receipt columns, so
+    # an unreceipted approval can never smuggle a forged receipt past the finalizer's gate.
     conn.execute(
         """
         UPDATE approval_queue
@@ -224,10 +283,24 @@ def _approve_in_conn(
                last_error = NULL,
                approved_via = ?,
                approved_by = ?,
-               approved_tg_message_id = ?
+               approved_tg_message_id = ?,
+               audit_receipt_seq = ?,
+               audit_receipt_hash = ?,
+               candidate_sha256 = ?
          WHERE id = ?
         """,
-        (now, decided_by, event_id, approved_via, approved_by, approved_tg_message_id, approval_id),
+        (
+            now,
+            decided_by,
+            event_id,
+            approved_via,
+            approved_by,
+            approved_tg_message_id,
+            audit_receipt_seq,
+            audit_receipt_hash,
+            candidate_sha256,
+            approval_id,
+        ),
     )
     return event_id
 
@@ -271,6 +344,9 @@ def approve_authorized_telegram_candidate(
     *,
     presser_id: str,
     tg_message_id: int | None = None,
+    audit_receipt_seq: int | None = None,
+    audit_receipt_hash: str | None = None,
+    candidate_sha256: str | None = None,
 ) -> int:
     """Stage 2 P0 — the ONLY path that stamps finalizer-eligible approval provenance.
 
@@ -289,11 +365,23 @@ def approve_authorized_telegram_candidate(
     must BOTH be present and equal. A real approval callback can only exist for a message the bot
     sent, so an unbound row (``tg_message_id IS NULL``) is never a legitimate authorized approval
     (Codex diff B1). Returns the ``memory_events`` id.
+
+    AUDIT-INVARIANT boundary (PR1): the receipt triple is OPTIONAL here — it is the adoption seam
+    for the OUT-OF-REPO telegram handler. A telegram deployment whose handler does not yet append
+    a pre-decision audit record and pass the receipt stamps an approval WITHOUT a receipt, and the
+    finalizer's receipt gate then refuses to make it durable (fail-closed). To keep approvals
+    finalizable, the external handler must append ``op="approval_decision"`` to the box's audit DB
+    (with the candidate fingerprint) and pass the returned (seq, hash, sha256) here. When provided,
+    the triple is validated and stored atomically with the approved stamp.
     """
     db_path = Path(db_path)
     presser = str(presser_id or "")
     if not presser:
         raise ValueError("presser_id is required for an authorized approval")
+    if audit_receipt_seq is not None or audit_receipt_hash is not None or candidate_sha256 is not None:
+        audit_receipt_seq, audit_receipt_hash, candidate_sha256 = _require_receipt(
+            audit_receipt_seq, audit_receipt_hash, candidate_sha256
+        )
     with sqlite3.connect(db_path) as conn:
         conn.row_factory = sqlite3.Row
         _ensure_outbox_schema(conn)
@@ -321,6 +409,9 @@ def approve_authorized_telegram_candidate(
             approved_via="telegram",
             approved_by=f"telegram:{presser}",
             approved_tg_message_id=tg_message_id,
+            audit_receipt_seq=audit_receipt_seq,
+            audit_receipt_hash=audit_receipt_hash,
+            candidate_sha256=candidate_sha256,
         )
         conn.commit()
         return event_id
@@ -349,11 +440,23 @@ def mcp_approve_or_redrive(
     *,
     approved_via: str,
     approved_by: str,
+    audit_receipt_seq: int,
+    audit_receipt_hash: str,
+    candidate_sha256: str,
 ) -> str:
     """Slice-S P3b — the MCP ``memory.approve_candidate`` decision under one ``BEGIN IMMEDIATE``:
     stamp a fresh awaiting candidate, OR authorize a REDRIVE of a stuck one. Returns ``"stamped"``
     (a fresh candidate was just approved) or ``"redrive"`` (already approved by this transport, only
     finalize needs re-running). The caller then runs ``finalize_approved_candidate``.
+
+    AUDIT-INVARIANT (PR1): the receipt triple is REQUIRED — the caller (the shared
+    ``approval_service.approve``) must have appended the pre-decision audit record FIRST and pass
+    its (seq, this_hash) plus the candidate fingerprint it hashed. A FRESH stamp stores the triple
+    atomically with the approved-status flip (after an in-transaction fingerprint recheck); a
+    REDRIVE keeps the row's ORIGINAL receipt (the one bound to the actual status flip) and ignores
+    this call's triple — the fresh audit append still stands in the chain as the retry's intent
+    record. There is deliberately NO receipt-less variant of this function: a finalizable stamp
+    without a receipt would be refused by the finalizer gate forever.
 
     The caller MUST have verified the presser through the configured transport (``verify_presser`` →
     canonical ``approved_by``; ``stamp_provenance`` → ``approved_via``) AND that ``approved_by`` is an
@@ -374,6 +477,9 @@ def mcp_approve_or_redrive(
     by = str(approved_by or "")
     if not via or not by:
         raise ValueError("mcp_approve_or_redrive requires non-empty approved_via/approved_by")
+    audit_receipt_seq, audit_receipt_hash, candidate_sha256 = _require_receipt(
+        audit_receipt_seq, audit_receipt_hash, candidate_sha256
+    )
     with sqlite3.connect(db_path) as conn:
         conn.row_factory = sqlite3.Row
         _ensure_outbox_schema(conn)
@@ -416,9 +522,155 @@ def mcp_approve_or_redrive(
             now=_now_iso(),
             approved_via=via,
             approved_by=by,
+            audit_receipt_seq=audit_receipt_seq,
+            audit_receipt_hash=audit_receipt_hash,
+            candidate_sha256=candidate_sha256,
         )
         conn.commit()
         return "stamped"
+
+
+def get_approval_candidate_json(db_path: str | Path, approval_id: int) -> str | None:
+    """The STORED ``candidate_json`` text of one approval row (or None when the row is missing).
+    The shared approval service hashes this exact string (``candidate_fingerprint``) into the
+    pre-decision audit receipt BEFORE any queue mutation, and ``_approve_in_conn`` re-checks it
+    inside the stamp transaction — same bytes end to end."""
+    db_path = Path(db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        _ensure_outbox_schema(conn)
+        row = conn.execute(
+            "SELECT candidate_json FROM approval_queue WHERE id = ?", (approval_id,)
+        ).fetchone()
+    return str(row["candidate_json"]) if row else None
+
+
+# --- Audit-receipt migration (PR1 activation) ------------------------------------------------
+#
+# A populated pre-invariant box has approved-awaiting-finalize rows with NO receipt; the finalizer
+# gate would refuse them forever (NEVER grandfather). The migrator attests each one with an
+# `approval_decision_backfill` audit append, then CAS-stamps the receipt. The serving entrypoint
+# (http/app.py lifespan) runs this at startup and REFUSES to serve until zero eligible rows remain.
+
+# Eligible-NULL = rows the finalizer could act on that lack a receipt. Excludes 'finalized'
+# (idempotent early-return, never re-written) and 'rtbf_deleting' (a live/crashed forget claim —
+# those rows only ever proceed to deletion, never back to finalizable).
+_ELIGIBLE_NULL_WHERE = (
+    "status='approved' AND memory_event_id IS NOT NULL "
+    "AND approved_via IS NOT NULL AND approved_by IS NOT NULL "
+    "AND (finalizer_state IS NULL OR finalizer_state IN ('none','failed','finalizing')) "
+    "AND audit_receipt_seq IS NULL"
+)
+
+
+@dataclass(frozen=True)
+class AuditReceiptMigration:
+    """Result of one ``migrate_audit_receipts`` pass. ``remaining`` > 0 means activation must be
+    REFUSED (rows the gate would strand are still unreceipted — e.g. a finalizing-row inspection
+    could not consult the store)."""
+
+    eligible: int
+    backfilled: int
+    remaining: int
+
+
+def _inspect_finalizing_marker(adapter: Any, approval_id: int, tenant_accessed: str) -> str:
+    """Migration-time inspection of a ``finalizer_state='finalizing'`` row: the crashed worker may
+    already have written the durable row (crash AFTER adapter write, BEFORE record). Look up the
+    unique ``approval_ref:{id}`` marker so the backfill receipt honestly records whether the
+    durable write PRECEDED it. Returns ``marker_found`` / ``marker_absent`` /
+    ``lookup_unavailable`` (no adapter wired) / ``lookup_failed`` (store error)."""
+    if adapter is None:
+        return "lookup_unavailable"
+    finder = getattr(adapter, "find_active_hash_by_marker", None)
+    if finder is None:
+        return "lookup_unavailable"
+    try:
+        found = finder(f"approval_ref:{approval_id}", tenant_accessed)
+    except Exception as exc:  # noqa: BLE001 — inspection must never crash the migrator
+        logger.warning("audit-receipt migration: marker lookup failed for approval %s: %s", approval_id, exc)
+        return "lookup_failed"
+    return "marker_found" if found else "marker_absent"
+
+
+def migrate_audit_receipts(
+    outbox_db_path: str | Path,
+    audit_db_path: str | Path,
+    *,
+    principal: Principal,
+    tenant_accessed: str,
+    adapter: Any | None = None,
+) -> AuditReceiptMigration:
+    """Backfill audit receipts onto pre-invariant approved-awaiting-finalize rows (restart-safe,
+    config-aware, NEVER grandfather).
+
+    Protocol per row: append ``op='approval_decision_backfill'`` to the box's hash-chained audit
+    log (decision + row provenance + the candidate fingerprint, plus the finalizing-inspection
+    outcome where applicable) → CAS-stamp the receipt onto the row (``WHERE audit_receipt_seq IS
+    NULL``). A crash between append and stamp re-runs cleanly on the next pass: the orphan append
+    stays in the chain as an intent record and a fresh append gets stamped. Rows whose
+    ``finalizer_state='finalizing'`` inspection cannot consult the store (``lookup_unavailable`` /
+    ``lookup_failed``) are SKIPPED — they stay eligible-NULL, ``remaining`` stays non-zero, and the
+    caller must REFUSE activation until a pass with a reachable store decides them (fail-closed:
+    never attest blind whether a durable write preceded the receipt).
+
+    The caller (the serving entrypoint's startup hook) treats ``remaining > 0`` — or any raised
+    error — as "do not serve". Fresh installs and boxes with an empty queue return (0, 0, 0)."""
+    outbox_db_path = Path(outbox_db_path)
+    with sqlite3.connect(outbox_db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        _ensure_outbox_schema(conn)
+        rows = conn.execute(
+            "SELECT id, candidate_json, approved_via, approved_by, finalizer_state "
+            f"FROM approval_queue WHERE {_ELIGIBLE_NULL_WHERE} ORDER BY id"
+        ).fetchall()
+    eligible = len(rows)
+    backfilled = 0
+    for row in rows:
+        approval_id = int(row["id"])
+        details: dict[str, Any] = {
+            "phase": "backfill",
+            "decision": "approve",
+            "approved_by": row["approved_by"],
+            "approved_via": row["approved_via"],
+            "approval_id": approval_id,
+            "candidate_sha256": candidate_fingerprint(row["candidate_json"]),
+        }
+        if row["finalizer_state"] == "finalizing":
+            inspection = _inspect_finalizing_marker(adapter, approval_id, tenant_accessed)
+            if inspection in ("lookup_unavailable", "lookup_failed"):
+                logger.warning(
+                    "audit-receipt migration: cannot inspect finalizing approval %s (%s); "
+                    "leaving unreceipted (activation must refuse)", approval_id, inspection,
+                )
+                continue
+            details["finalizing_inspection"] = inspection
+        seq = audit_write(
+            principal=principal,
+            tenant_accessed=tenant_accessed,
+            op="approval_decision_backfill",
+            target_id=str(approval_id),
+            details=details,
+            db_path=audit_db_path,
+        )
+        this_hash = audit_row_hash(seq, db_path=audit_db_path)
+        with sqlite3.connect(outbox_db_path) as conn:
+            cur = conn.execute(
+                "UPDATE approval_queue SET audit_receipt_seq=?, audit_receipt_hash=?, candidate_sha256=? "
+                "WHERE id=? AND audit_receipt_seq IS NULL",
+                (seq, this_hash, details["candidate_sha256"], approval_id),
+            )
+            if cur.rowcount:
+                backfilled += 1
+    with sqlite3.connect(outbox_db_path) as conn:
+        remaining = int(
+            conn.execute(f"SELECT COUNT(*) FROM approval_queue WHERE {_ELIGIBLE_NULL_WHERE}").fetchone()[0]
+        )
+    if remaining:
+        logger.warning(
+            "audit-receipt migration incomplete: %d approved rows still lack receipts", remaining
+        )
+    return AuditReceiptMigration(eligible=eligible, backfilled=backfilled, remaining=remaining)
 
 
 def list_pending_approvals(

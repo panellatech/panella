@@ -33,6 +33,18 @@ Guarantees (Codex-converged double-95 — see migration-log/briefs/panella-stage
 - **Reserved-field safe.** The durable payload is a CONTROLLED metadata block; only a
   reserved-filtered ``tags`` list is carried (marker FIRST, so the adapter's 100-tag cap can
   never truncate it).
+- **Receipt-gated durability (audit invariant PR1).** Before claiming a row, the finalizer
+  verifies the approval RECEIPT stored atomically with the approved-status flip: the hash chain
+  is walked genesis→receipt seq (``audit_verify_through``), the receipt row's hash must equal the
+  stored ``audit_receipt_hash``, its op/target/decision/provenance/tenant must match the queue
+  row, and the sha256 of the candidate bytes the finalizer is about to consume must equal the
+  receipt's ``candidate_sha256``. ANY miss — no receipt, broken/recreated chain, semantic
+  mismatch, altered bytes, unreadable audit DB — REFUSES the finalize (fail-closed, row marked
+  ``failed``). So every durable finalization of an approval-required candidate initiated after
+  invariant activation is preceded by a committed, chain-verified approval receipt bound to the
+  exact approved bytes. After ``_record`` confirms the durable mapping, a best-effort
+  ``op="approval_finalized"`` outcome row is appended (its crash-loss does not break the claim —
+  the receipt precedes the write).
 """
 
 from __future__ import annotations
@@ -48,11 +60,13 @@ from pathlib import Path
 from typing import Any
 
 from panella._default_adapter import default_adapter
+from panella.audit import AUDIT_DB_PATH, AuditChainError, audit_verify_through, audit_write
 from panella.client_raw import (
     FINALIZER_STALE_TTL_SECONDS,
     OUTBOX_DB_PATH,
     _ensure_outbox_schema,
     build_approval_memory_payload,
+    candidate_fingerprint,
 )
 from panella.governance import current_governance
 from panella.panella_adapter import PanellaDedupSkipped
@@ -204,6 +218,7 @@ def finalize_approved_candidate(
     adapter_factory: AdapterFactory = _default_finalizer_adapter,
     worker_id: str | None = None,
     expected_approved_via: str | None = None,
+    audit_db_path: str | Path = AUDIT_DB_PATH,
 ) -> str | None:
     """Finalize ONE approved candidate to durable ``status:active``.
 
@@ -212,9 +227,17 @@ def finalize_approved_candidate(
     AND whose ``approved_by`` is in ``authorized_approvers`` — so a row stamped by a channel the
     deployment does not run (e.g. a stale telegram stamp on a local_cli box) is refused.
 
+    The RECEIPT gate (audit invariant PR1) then verifies, against ``audit_db_path``, the approval
+    receipt stored atomically with the approved stamp — bounded chain walk genesis→seq, stored-hash
+    equality, op/target/decision/provenance/tenant semantics, and the candidate-bytes fingerprint —
+    BEFORE the row is claimed. Any miss refuses fail-closed (row marked ``failed``). An
+    already-``finalized`` row still short-circuits to its recorded ``durable_memory_id`` WITHOUT
+    the gate: its durable write pre-dates activation, and a backfilled receipt could not have
+    "preceded" it — attest, don't double-write.
+
     Returns the durable upstream ``content_hash``, or None when the row is not finalizable
-    (missing/unprovenanced), already owned by a live worker, or the attempt failed (the row
-    is left ``finalizer_state='failed'`` and the sweep retries it).
+    (missing/unprovenanced/unreceipted), already owned by a live worker, or the attempt failed
+    (the row is left ``finalizer_state='failed'`` and the sweep retries it).
     """
     db_path = Path(db_path)
     if not authorized_approvers:
@@ -258,7 +281,21 @@ def finalize_approved_candidate(
         if state == "finalizing" and (row["finalizer_claimed_at"] or "") >= stale_cutoff:
             conn.commit()  # a live worker owns it
             return None
-        # Claim (CAS on state). Provenance + status validated above under this same lock.
+        # RECEIPT GATE (audit invariant PR1) — BEFORE the claim, under the same lock as the row
+        # read, so the verified receipt/candidate columns cannot change between gate and claim.
+        # The audit-DB reads happen while holding the outbox lock; finalize is a human-approval-
+        # gated event, not a hot path, so the bounded walk's cost is acceptable here.
+        refusal = _receipt_gate_refusal(row, audit_db_path=audit_db_path)
+        if refusal is not None:
+            conn.execute(
+                "UPDATE approval_queue SET finalizer_state='failed', finalizer_last_error=? "
+                "WHERE id=? AND (finalizer_state IS NULL OR finalizer_state != 'finalized')",
+                (f"audit receipt gate: {refusal}"[:500], approval_id),
+            )
+            conn.commit()
+            logger.warning("finalize: receipt gate refused approval id=%s: %s", approval_id, refusal)
+            return None
+        # Claim (CAS on state). Provenance + status + receipt validated above under this same lock.
         claimed = conn.execute(
             """
             UPDATE approval_queue
@@ -337,7 +374,74 @@ def finalize_approved_candidate(
         # Audit row appended exactly once, by whichever worker actually finalized the durable row.
         append_history(op="finalized_active", drawer_id=durable_id, tenant_id=principal.tenant_id,
                        principal_id=principal.id, wing=built["wing"], room=built["room"], db_path=db_path)
+        # POST outcome record (best-effort): appended only after _record() confirmed the durable
+        # mapping — NOT right after adapter.add_memory, which RTBF/lost-claim can undo. Its loss
+        # under a crash does not break the invariant claim (the receipt precedes the write).
+        try:
+            audit_write(
+                principal=principal,
+                tenant_accessed=str(built["tenant_id"]),
+                op="approval_finalized",
+                target_id=str(durable_id),
+                details={
+                    "approval_id": approval_id,
+                    "durable_id": str(durable_id),
+                    "approved_by": row["approved_by"],
+                    "approved_via": row["approved_via"],
+                    "receipt_seq": int(row["audit_receipt_seq"]),
+                },
+                db_path=audit_db_path,
+            )
+        except Exception:  # noqa: BLE001 — outcome append is best-effort by design
+            logger.warning("finalize: approval_finalized audit append failed id=%s", approval_id, exc_info=True)
     return durable_id
+
+
+def _receipt_gate_refusal(row: Any, *, audit_db_path: str | Path) -> str | None:
+    """The audit-invariant receipt GATE. Returns a refusal reason (fail-closed) or None when the
+    row's stored receipt verifies against the hash-chained audit log:
+
+    - the receipt triple is present on the row;
+    - the chain is intact genesis→receipt seq and the row at that seq exists
+      (``audit_verify_through`` — one snapshot, final observed seq == receipt seq);
+    - the receipt row's ``this_hash`` equals the stored ``audit_receipt_hash``;
+    - op ∈ {approval_decision, approval_decision_backfill}; target is THIS approval;
+      the recorded decision is "approve"; recorded ``approved_by``/``approved_via`` equal the
+      queue row's; the recorded tenant is the deployment's canonical tenant;
+    - the receipt's ``candidate_sha256`` equals the row's stored fingerprint AND the sha256 of
+      the ``candidate_json`` the finalizer is about to consume (closes altered-content and the
+      redrive window).
+
+    ANY miss — including a locked/unreadable/recreated audit DB — refuses. No claim, no write."""
+    seq = row["audit_receipt_seq"]
+    stored_hash = row["audit_receipt_hash"]
+    stored_sha = row["candidate_sha256"]
+    if seq is None or not stored_hash or not stored_sha:
+        return "missing audit receipt (unreceipted approval)"
+    try:
+        receipt = audit_verify_through(int(seq), db_path=audit_db_path)
+    except AuditChainError as exc:
+        return f"receipt unverifiable: {exc}"
+    except Exception as exc:  # noqa: BLE001 — locked/unreadable audit DB = refuse, never proceed blind
+        return f"receipt lookup failed: {exc}"
+    if str(receipt["this_hash"]) != str(stored_hash):
+        return "receipt hash mismatch"
+    if str(receipt["op"]) not in ("approval_decision", "approval_decision_backfill"):
+        return f"receipt op mismatch: {receipt['op']!r}"
+    if str(receipt["target_id"]) != str(row["id"]):
+        return "receipt target mismatch"
+    details = receipt.get("details") or {}
+    if details.get("decision") != "approve":
+        return "receipt decision mismatch"
+    if details.get("approved_by") != row["approved_by"] or details.get("approved_via") != row["approved_via"]:
+        return "receipt provenance mismatch"
+    if str(receipt["tenant_accessed"]) != default_tenant_id():
+        return "receipt tenant mismatch"
+    if details.get("candidate_sha256") != stored_sha:
+        return "receipt fingerprint mismatch"
+    if candidate_fingerprint(row["candidate_json"]) != stored_sha:
+        return "candidate bytes altered since approval"
+    return None
 
 
 def _still_owns_claim(db_path: Path, approval_id: int, wid: str) -> bool:
@@ -482,11 +586,13 @@ def redrive_pending_finalizations(
     adapter_factory: AdapterFactory = _default_finalizer_adapter,
     worker_id: str | None = None,
     expected_approved_via: str | None = None,
+    audit_db_path: str | Path = AUDIT_DB_PATH,
 ) -> int:
     """Sweep approved-but-unfinalized rows (failed inline / process restart) through
     ``finalize_approved_candidate``. The retry safety-net — NOT a separate approval channel
     (all approvals are authenticated at the transport's verify step). Sweeps only rows stamped
-    by the CONFIGURED transport (parametrized ``approved_via``). Returns count finalized."""
+    by the CONFIGURED transport (parametrized ``approved_via``); every re-driven finalize passes
+    the same receipt gate against ``audit_db_path``. Returns count finalized."""
     db_path = Path(db_path)
     if not authorized_approvers:
         logger.warning("redrive: no authorized approvers configured; skipping sweep")
@@ -520,7 +626,7 @@ def redrive_pending_finalizations(
             if finalize_approved_candidate(
                 int(row["id"]), authorized_approvers=authorized_approvers,
                 db_path=db_path, adapter_factory=adapter_factory, worker_id=worker_id,
-                expected_approved_via=expected_via,
+                expected_approved_via=expected_via, audit_db_path=audit_db_path,
             ):
                 finalized += 1
         except Exception as exc:  # noqa: BLE001 — one bad row must not stop the sweep

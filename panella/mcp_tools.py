@@ -35,6 +35,7 @@ import mcp.types as mcp_types
 from mcp.server import Server
 
 from panella import approval_service
+from panella.approval_audit import ApprovalAuditContext
 from panella.approval_transport import ApprovalTransport, build_transport
 from panella.client import QuotaExceeded
 from panella.governance import Governance
@@ -81,6 +82,11 @@ class McpToolContext:
     # seam. None (production) → the finalizer builds its real backend adapter from env; tests inject
     # a fake so the approve path is exercised end-to-end without a live store.
     finalizer_adapter_factory: Any | None = None
+    # Audit invariant PR1 — where/who the shared approval service audits as (audit DB path + surface
+    # principal + canonical tenant + source="mcp"). REQUIRED for the approval tools: registration is
+    # predicated on it (`_approval_registered`), so a context built without an audit sink exposes
+    # search/submit only — an unauditable approve surface is never advertised (fail-closed).
+    approval_audit: ApprovalAuditContext | None = None
 
 
 def build_transport_if_approvable(governance: Governance) -> ApprovalTransport | None:
@@ -115,7 +121,7 @@ def _submit_registered(ctx: McpToolContext) -> bool:
 
 
 def _approval_registered(ctx: McpToolContext) -> bool:
-    return ctx.transport is not None and ctx.governance is not None
+    return ctx.transport is not None and ctx.governance is not None and ctx.approval_audit is not None
 
 
 # --- Tool listing --------------------------------------------------------------
@@ -381,6 +387,7 @@ async def _handle_list_pending(ctx: McpToolContext, arguments: dict[str, Any]) -
             None,
             lambda: approval_service.list_pending(
                 ctx.outbox_db_path, ctx.transport, ctx.governance, arguments.get("credential"),
+                audit=ctx.approval_audit,
                 limit=arguments.get("limit", 20),
             ),
         )
@@ -407,6 +414,7 @@ async def _handle_approve(ctx: McpToolContext, arguments: dict[str, Any]) -> lis
             None,
             lambda: approval_service.approve(
                 ctx.outbox_db_path, ctx.transport, ctx.governance, arguments.get("credential"), approval_id,
+                audit=ctx.approval_audit,
                 finalizer_adapter_factory=ctx.finalizer_adapter_factory,
             ),
         )
@@ -442,7 +450,8 @@ async def _handle_reject(ctx: McpToolContext, arguments: dict[str, Any]) -> list
         await loop.run_in_executor(
             None,
             lambda: approval_service.reject(
-                ctx.outbox_db_path, ctx.transport, ctx.governance, arguments.get("credential"), approval_id
+                ctx.outbox_db_path, ctx.transport, ctx.governance, arguments.get("credential"), approval_id,
+                audit=ctx.approval_audit,
             ),
         )
     except approval_service.ApprovalAuthError as exc:

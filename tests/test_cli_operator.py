@@ -140,7 +140,9 @@ def test_operator_cli_full_governance_loop(tmp_path, monkeypatch, capsys):
 
         assert main(["audit", "tail", "--limit", "20", "--token", env.bearer, "--base-url", base_url]) == 0
         captured = capsys.readouterr()
-        assert "approvals_approve" in captured.out
+        # Audit-invariant vocabulary: the fail-closed pre-decision record + the finalize outcome.
+        assert "approval_decision" in captured.out
+        assert "approval_finalized" in captured.out
 
         assert main(["stats", "--json", "--token", env.bearer, "--base-url", base_url]) == 0
         captured = capsys.readouterr()

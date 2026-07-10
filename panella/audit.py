@@ -184,6 +184,21 @@ def audit_verify_through(seq: int, db_path: str | Path = AUDIT_DB_PATH) -> dict[
     return verified
 
 
+def audit_row_hash(seq: int, db_path: str | Path = AUDIT_DB_PATH) -> str:
+    """The immutable ``this_hash`` of the row at ``seq`` — fetched right after an append so the
+    (seq, this_hash) pair can be stored as an approval receipt. Append-only log: the row at a seq
+    never changes after commit, so a fetch in a separate transaction reads the same value the
+    append wrote. Raises ``AuditChainError`` when the seq does not exist (fail-closed: a receipt
+    can never be built from a row that is not durably committed)."""
+    if not isinstance(seq, int) or isinstance(seq, bool) or seq < 1:
+        raise AuditChainError(f"invalid audit seq: {seq!r}")
+    with audit_connect(db_path) as conn:
+        row = conn.execute("SELECT this_hash FROM audit_log WHERE seq = ?", (seq,)).fetchone()
+    if row is None:
+        raise AuditChainError(f"audit row seq={seq} not found")
+    return str(row["this_hash"])
+
+
 def _row_hash(prev_hash: str, row_without_this_hash: dict[str, Any]) -> str:
     payload = prev_hash + _canonical_json(row_without_this_hash)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
