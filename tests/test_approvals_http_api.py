@@ -348,3 +348,66 @@ def test_non_owner_bearer_refused(local):
     assert r_rej.status_code == 403
     assert r_count.status_code == 403
     assert local.adapter.rows == []  # nothing approved by a non-owner
+
+
+# --- audit-invariant activation gate (lifespan): legacy unreceipted rows gate serving --------------
+
+
+def _make_legacy_unreceipted(env, *, finalizing: bool) -> None:
+    """Turn the seeded candidate into a pre-invariant row: approved + provenanced, NO receipt
+    (the shape a pre-upgrade box hands the activation migration)."""
+    from panella.client_raw import approve_queued_candidate
+
+    approve_queued_candidate(env.config.outbox_db_path, env.approval_id)
+    extra = (
+        ", finalizer_state='finalizing', finalizer_worker_id='dead-worker',"
+        " finalizer_claimed_at='2020-01-01T00:00:00+00:00'"
+        if finalizing
+        else ""
+    )
+    with sqlite3.connect(env.config.outbox_db_path) as conn:
+        conn.execute(
+            "UPDATE approval_queue SET approved_via='local_cli', approved_by='local_cli:owner'"
+            f"{extra} WHERE id=?",
+            (env.approval_id,),
+        )
+
+
+def test_activation_gate_refuses_box_when_backfill_undecidable(tmp_path, monkeypatch):
+    """A crashed-mid-finalize legacy row + an unreachable store at boot: the lifespan must refuse
+    the gated routes (503, reason names the activation) while /v1/health stays reachable."""
+    env = _build(tmp_path, monkeypatch)
+    _make_legacy_unreceipted(env, finalizing=True)
+
+    class BrokenLookupAdapter(RecordingAdapter):
+        def find_active_hash_by_marker(self, marker, tenant_id):
+            raise RuntimeError("store unreachable")
+
+    env.app.state.memory_adapter = BrokenLookupAdapter()  # lifespan reads this for the inspection
+    with TestClient(env.app) as c:
+        count = c.get("/v1/approvals/count", headers=_auth(env))
+        health = c.get("/v1/health")
+    assert count.status_code == 503
+    assert "activation" in count.text
+    assert health.status_code == 200  # live-but-refusing, never dark
+    with sqlite3.connect(env.config.outbox_db_path) as conn:
+        (seq,) = conn.execute(
+            "SELECT audit_receipt_seq FROM approval_queue WHERE id=?", (env.approval_id,)
+        ).fetchone()
+    assert seq is None  # never attested blind
+
+
+def test_activation_gate_backfills_then_serves(tmp_path, monkeypatch):
+    """The happy upgrade: a plain legacy approved row is backfilled during the lifespan and the box
+    serves normally, with the backfill receipt stamped and the chain intact."""
+    env = _build(tmp_path, monkeypatch)
+    _make_legacy_unreceipted(env, finalizing=False)
+    with TestClient(env.app) as c:
+        count = c.get("/v1/approvals/count", headers=_auth(env))
+    assert count.status_code == 200
+    with sqlite3.connect(env.config.outbox_db_path) as conn:
+        (seq,) = conn.execute(
+            "SELECT audit_receipt_seq FROM approval_queue WHERE id=?", (env.approval_id,)
+        ).fetchone()
+    assert seq is not None
+    assert audit_verify_chain(env.config.audit_db_path) is True

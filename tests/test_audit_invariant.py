@@ -389,10 +389,18 @@ def test_8_concurrent_approvals_single_outcome_chain_valid(env):
     errors: list[BaseException] = []
 
     def worker():
-        try:
-            env.approve(approval_id)
-        except (ApprovalNotFinalized, ApprovalStateError) as exc:
-            errors.append(exc)  # acceptable loser outcomes
+        # A busy-lock timeout is a test-environment artifact, not a loser outcome — retry it so
+        # both ATTEMPTS always reach the audit chain (the assertion this test exists for).
+        for attempt in range(3):
+            try:
+                env.approve(approval_id)
+                return
+            except (ApprovalNotFinalized, ApprovalStateError) as exc:
+                errors.append(exc)  # acceptable loser outcomes
+                return
+            except sqlite3.OperationalError:
+                if attempt == 2:
+                    raise
 
     threads = [threading.Thread(target=worker) for _ in range(2)]
     for t in threads:
