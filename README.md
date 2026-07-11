@@ -46,6 +46,10 @@ explicit choice — the guarantees below are about the governed path.)
   write becomes durable — whatever path stamped it — unless the finalizer verifies such a receipt:
   chain intact from genesis, the recorded decision/approver, and a fingerprint of the exact
   approved bytes. No verifiable receipt, no write.
+- **Attributed proposals** — every newly proposed candidate carries the agent profile that proposed
+  it, stamped server-side at enqueue (never caller-supplied) and bound into the approval receipt's
+  fingerprint. The approver sees who is asking before deciding, and the durable memory records the
+  proposer alongside who approved it.
 - **Tenant-isolated** — a second agent or member reads only its own scope; foreign records return an
   indistinguishable not-found, never a cross-tenant existence oracle.
 - **MCP-native** — a standard MCP server (Streamable HTTP). The governed loop — submit, queue,

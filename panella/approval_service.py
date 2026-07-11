@@ -29,6 +29,7 @@ it holds no HTTP/MCP payload shapes — each surface adapts the results/exceptio
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -44,6 +45,7 @@ from panella.client_raw import (
     get_approval_candidate_json,
     list_pending_approvals,
     mcp_approve_or_redrive,
+    proposed_by_profile,
     update_approval_status,
 )
 from panella.governance import Governance
@@ -103,10 +105,13 @@ def _append_decision(
     approved_by: str,
     approved_via: str,
     candidate_sha256: str | None = None,
+    proposer: str | None = None,
 ) -> tuple[int, str]:
     """FAIL-CLOSED pre-decision append (``op="approval_decision"``, phase ``authorized_intent``):
     returns the (seq, this_hash) RECEIPT. Any append/fetch failure PROPAGATES — the caller must
-    not mutate the queue without this committed record."""
+    not mutate the queue without this committed record. ``proposer`` is a convenience PROJECTION
+    of the server-stamped proposing profile (the fingerprint already binds the candidate bytes it
+    came from; the finalizer gate does NOT check it — PR2 decision, keep the gate exactly PR1)."""
     core: dict[str, Any] = {
         "phase": "authorized_intent",
         "decision": decision,
@@ -116,6 +121,8 @@ def _append_decision(
     }
     if candidate_sha256 is not None:
         core["candidate_sha256"] = candidate_sha256
+    if proposer is not None:
+        core["proposed_by_profile"] = proposer
     seq = audit_write(
         principal=audit.principal,
         tenant_accessed=audit.tenant_accessed,
@@ -222,6 +229,10 @@ def approve(
         _audit_refused(audit, action="approve", approval_id=approval_id, reason="approval row not found")
         raise ApprovalStateError(f"approval_queue row not found: {approval_id}")
     fingerprint = candidate_fingerprint(candidate_json)
+    try:
+        proposer = proposed_by_profile(json.loads(candidate_json))
+    except (ValueError, TypeError):
+        proposer = None  # malformed candidate text — the stamp txn will refuse it downstream
     receipt_seq, receipt_hash = _append_decision(
         audit,
         decision="approve",
@@ -229,6 +240,7 @@ def approve(
         approved_by=canonical,
         approved_via=via,
         candidate_sha256=fingerprint,
+        proposer=proposer,
     )
     approvers = set(governance.approval.authorized_approvers)
     finalize_kwargs: dict[str, Any] = {}

@@ -69,6 +69,26 @@ def candidate_fingerprint(candidate_json: str) -> str:
     return hashlib.sha256(str(candidate_json).encode("utf-8")).hexdigest()
 
 
+def proposed_by_profile(candidate: Any) -> str | None:
+    """The server-stamped proposing profile of an approval candidate — the TOP-LEVEL
+    ``agent_profile`` key, stamped by ``MemoryClient._enqueue_approval`` from the authenticated
+    profile (the one candidate field no caller supplies; the ``metadata`` sub-dict is the
+    caller-influenced part and stays stripped by the finalizer's allowlist). Typed: only a
+    non-empty string counts — a hand-inserted list/dict/whitespace can never become durable
+    attribution — and None means honestly unknown (legacy rows enqueued before the stamp, or
+    malformed values). This is server-stamped provenance within the existing trusted-process
+    boundary, NOT cryptographic proposer identity; since the receipt fingerprint binds the whole
+    stored candidate text, it is tamper-evident from approval time onward. Single definition —
+    the finalizer carry, the pre-decision receipt projection, the migration backfill projection,
+    and the pending list all call THIS."""
+    if not isinstance(candidate, dict):
+        return None
+    raw = candidate.get("agent_profile")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    return None
+
+
 _SHA256_HEX_LEN = 64
 
 
@@ -695,6 +715,16 @@ def _backfill_one(
             "approval_id": approval_id,
             "candidate_sha256": candidate_fingerprint(row["candidate_json"]),
         }
+        # Project the server-stamped proposer into the backfill receipt too (PR2): a pre-receipt
+        # row that later finalizes into an ATTRIBUTED durable memory should have a receipt that
+        # carries the same projection. Parsed from the ORIGINAL stored candidate text — the same
+        # bytes the fingerprint above binds.
+        try:
+            proposer = proposed_by_profile(json.loads(row["candidate_json"]))
+        except (ValueError, TypeError):
+            proposer = None
+        if proposer is not None:
+            details["proposed_by_profile"] = proposer
         if row["finalizer_state"] == "finalizing":
             inspection = _inspect_finalizing_marker(adapter, approval_id, tenant_accessed)
             if inspection in ("lookup_unavailable", "lookup_failed"):
@@ -774,6 +804,9 @@ def list_pending_approvals(
                 "memory_type": candidate.get("memory_type"),
                 "created_at": row["created_at"],
                 "content_preview": content[:200],
+                # The approver sees WHO is asking — the server-stamped proposing profile
+                # (None for legacy/malformed candidates; PR2 proposal-source).
+                "proposed_by": proposed_by_profile(candidate),
             }
         )
     return out

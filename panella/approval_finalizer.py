@@ -67,6 +67,7 @@ from panella.client_raw import (
     _ensure_outbox_schema,
     build_approval_memory_payload,
     candidate_fingerprint,
+    proposed_by_profile,
 )
 from panella.governance import current_governance
 from panella.panella_adapter import PanellaDedupSkipped
@@ -167,14 +168,24 @@ def reconstruct_durable_payload(
     carried = cand_meta.get("tags") if isinstance(cand_meta.get("tags"), list) else candidate.get("tags")
     metadata["tags"] = [marker, *_strip_reserved_tags(carried)[:_MAX_CARRIED_TAGS]]
     # Pinned canonically — NOT from the candidate (a forged candidate must not claim provenance).
+    # The WRITER identity stays the finalizer (agent/agent_profile drive the adapter's read-side
+    # `agent:` semantics and the write boundary); metadata-level author/bridge/session from the
+    # candidate stay stripped exactly as before.
     metadata["agent"] = FINALIZER_PROFILE
     metadata["agent_profile"] = FINALIZER_PROFILE
-    metadata["author_agent_id"] = FINALIZER_PROFILE
+    # PR2 proposal-source — the ONE explicitly server-stamped exception to the strip rule:
+    # attribution comes from the TOP-LEVEL candidate `agent_profile` (stamped at enqueue by the
+    # authenticated MemoryClient, never caller-supplied, fingerprint-bound by the receipt), via the
+    # single typed extractor. None = honestly unknown (legacy/malformed) and never blocks.
+    proposer = proposed_by_profile(candidate)
+    metadata["author_agent_id"] = proposer
     metadata["source_bridge"] = None
     metadata["session_id"] = None
     metadata["infer"] = True  # a finalized preference is a machine-inferred fact the owner approved
     via = approved_via or _expected_approved_via()
     metadata["provenance"] = {"approval_queue_id": approval_id, "capture": f"approved-via-{via}"}
+    if proposer is not None:
+        metadata["provenance"]["proposed_by_profile"] = proposer
     return {
         "wing": str(payload["wing"]),
         "room": str(payload["room"]),
