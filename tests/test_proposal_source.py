@@ -159,11 +159,11 @@ def test_proposer_attributed_end_to_end(env):
     # WRITER identity invariants untouched (adapter read-side `agent:` semantics).
     assert durable["agent"] == "panella-finalizer"
     assert durable["agent_profile"] == "panella-finalizer"
-    # Receipt projection equals the typed parse of the fingerprint-bound candidate bytes.
+    # Receipt projection == the server-stamped column == what reached the durable row.
     qrow = env.row(listed_id)
     receipt = audit_verify_through(int(qrow["audit_receipt_seq"]), db_path=env.audit)
-    parsed = proposed_by_profile(json.loads(qrow["candidate_json"]))
-    assert receipt["details"]["proposed_by_profile"] == parsed == "mcp-write"
+    assert receipt["details"]["proposed_by_profile"] == "mcp-write"
+    assert proposed_by_profile(qrow["proposed_by_profile"]) == "mcp-write"
 
 
 # --- 2. caller-influenced metadata can NEVER become attribution -----------------------------------
@@ -203,18 +203,55 @@ def test_legacy_candidate_finalizes_unattributed(env):
     assert "proposed_by_profile" not in receipt["details"]
 
 
-# --- 3b. malformed (non-string / whitespace) stamps never become fake attribution -----------------
+# --- 3b. a hand-inserted row with a PLAUSIBLE candidate agent_profile is still unattributed --------
+# (Codex terra PR2 P1 regression: attribution reads the server-written COLUMN, never candidate_json)
 
 
-@pytest.mark.parametrize("bad_stamp", [["not", "a", "string"], {"profile": "x"}, 7, "   ", ""])
-def test_malformed_top_level_stamp_is_unknown(env, bad_stamp):
+def test_hand_inserted_plausible_candidate_profile_is_unattributed(env):
     approval_id = env.insert_raw_candidate(
-        {"text": "malformed stamp", "suggested_wing": "raven", "suggested_room": "feedback",
-         "memory_type": "owner_feedback", "metadata": {}, "agent_profile": bad_stamp}
+        {"text": "forged proposer", "suggested_wing": "raven", "suggested_room": "feedback",
+         "memory_type": "owner_feedback", "metadata": {}, "agent_profile": "mcp-write"}
     )
     outcome = env.approve(approval_id)
     assert outcome.finalized
+    durable = env.adapter.rows[-1]["metadata"]
+    assert durable["author_agent_id"] is None  # the column is NULL — no enqueue-path stamp, no claim
+    assert "proposed_by_profile" not in durable["provenance"]
+
+
+# --- 3c. malformed / whitespace COLUMN values never become fake attribution -----------------------
+
+
+@pytest.mark.parametrize("bad_stamp", ["   ", ""])
+def test_malformed_column_stamp_is_unknown(env, bad_stamp):
+    approval_id = env.insert_raw_candidate(
+        {"text": "malformed stamp", "suggested_wing": "raven", "suggested_room": "feedback",
+         "memory_type": "owner_feedback", "metadata": {}}
+    )
+    with sqlite3.connect(env.outbox) as conn:
+        conn.execute(
+            "UPDATE approval_queue SET proposed_by_profile=? WHERE id=?", (bad_stamp, approval_id)
+        )
+    outcome = env.approve(approval_id)
+    assert outcome.finalized
     assert env.adapter.rows[-1]["metadata"]["author_agent_id"] is None
+
+
+# --- 3d. post-approval COLUMN tamper is inert: durable attribution reads the verified receipt -----
+
+
+def test_post_approval_column_tamper_is_inert(env):
+    approval_id = env.seed("receipt is the source of truth")
+    with pytest.raises(ApprovalNotFinalized):
+        env.approve(approval_id, adapter=CrashAfterWriteAdapter())  # stamped + receipted, unfinalized
+    with sqlite3.connect(env.outbox) as conn:
+        conn.execute(
+            "UPDATE approval_queue SET proposed_by_profile='tampered-later' WHERE id=?", (approval_id,)
+        )
+    outcome = env.approve(approval_id)  # redrive completes through the gate
+    assert outcome.finalized
+    durable = env.adapter.rows[-1]["metadata"]
+    assert durable["author_agent_id"] == "mcp-write"  # from the chain-verified receipt, not the column
 
 
 # --- 4. tampering the stamp after approval is caught by the existing fingerprint gate -------------

@@ -29,7 +29,6 @@ it holds no HTTP/MCP payload shapes — each surface adapts the results/exceptio
 
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -42,7 +41,7 @@ from panella.audit import audit_row_hash, audit_write
 from panella.client_raw import (
     candidate_fingerprint,
     count_pending_approvals,
-    get_approval_candidate_json,
+    get_approval_candidate,
     list_pending_approvals,
     mcp_approve_or_redrive,
     proposed_by_profile,
@@ -224,15 +223,16 @@ def approve(
         _audit_refused(audit, action="approve", approval_id=approval_id, reason=str(exc))
         raise
     via = transport.stamp_provenance()
-    candidate_json = get_approval_candidate_json(outbox_db_path, approval_id)
-    if candidate_json is None:
+    decision_row = get_approval_candidate(outbox_db_path, approval_id)
+    if decision_row is None:
         _audit_refused(audit, action="approve", approval_id=approval_id, reason="approval row not found")
         raise ApprovalStateError(f"approval_queue row not found: {approval_id}")
+    candidate_json = str(decision_row["candidate_json"])
     fingerprint = candidate_fingerprint(candidate_json)
-    try:
-        proposer = proposed_by_profile(json.loads(candidate_json))
-    except (ValueError, TypeError):
-        proposer = None  # malformed candidate text — the stamp txn will refuse it downstream
+    # The server-stamped proposer COLUMN (never candidate_json — a hand-inserted row could plant a
+    # plausible string there): projected into the hash-chained receipt, which is what the finalizer
+    # reads attribution from.
+    proposer = proposed_by_profile(decision_row["proposed_by_profile"])
     receipt_seq, receipt_hash = _append_decision(
         audit,
         decision="approve",

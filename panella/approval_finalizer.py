@@ -146,7 +146,12 @@ def _expected_approved_via() -> str:
 
 
 def reconstruct_durable_payload(
-    candidate_json: str, marker: str, approval_id: int, *, approved_via: str | None = None
+    candidate_json: str,
+    marker: str,
+    approval_id: int,
+    *,
+    approved_via: str | None = None,
+    proposer: str | None = None,
 ) -> dict[str, Any]:
     """Build the CONTROLLED durable payload from the approval candidate.
 
@@ -173,11 +178,11 @@ def reconstruct_durable_payload(
     # candidate stay stripped exactly as before.
     metadata["agent"] = FINALIZER_PROFILE
     metadata["agent_profile"] = FINALIZER_PROFILE
-    # PR2 proposal-source — the ONE explicitly server-stamped exception to the strip rule:
-    # attribution comes from the TOP-LEVEL candidate `agent_profile` (stamped at enqueue by the
-    # authenticated MemoryClient, never caller-supplied, fingerprint-bound by the receipt), via the
-    # single typed extractor. None = honestly unknown (legacy/malformed) and never blocks.
-    proposer = proposed_by_profile(candidate)
+    # PR2 proposal-source — the ONE exception to the strip rule, and it does NOT come from the
+    # candidate either: ``proposer`` is passed by the finalizer from the GATE-VERIFIED approval
+    # receipt (chain-bound projection of the server-stamped ``proposed_by_profile`` column, which
+    # only the authenticated enqueue path writes). Hand-inserted rows carry no attribution; None
+    # never blocks durability.
     metadata["author_agent_id"] = proposer
     metadata["source_bridge"] = None
     metadata["session_id"] = None
@@ -296,7 +301,7 @@ def finalize_approved_candidate(
         # read, so the verified receipt/candidate columns cannot change between gate and claim.
         # The audit-DB reads happen while holding the outbox lock; finalize is a human-approval-
         # gated event, not a hot path, so the bounded walk's cost is acceptable here.
-        refusal = _receipt_gate_refusal(row, audit_db_path=audit_db_path)
+        refusal, receipt = _receipt_gate_refusal(row, audit_db_path=audit_db_path)
         if refusal is not None:
             conn.execute(
                 "UPDATE approval_queue SET finalizer_state='failed', finalizer_last_error=? "
@@ -323,6 +328,9 @@ def finalize_approved_candidate(
             return None
         candidate_json = row["candidate_json"]
         memory_event_id = row["memory_event_id"]
+        # PR2 proposal-source: attribution is read from the GATE-VERIFIED receipt (chain-bound),
+        # never from the mutable queue column or the candidate text. None = unattributed.
+        proposer = proposed_by_profile((receipt.get("details") or {}).get("proposed_by_profile"))
         conn.commit()
     finally:
         conn.close()
@@ -335,7 +343,7 @@ def finalize_approved_candidate(
         # Inside the failure path: a malformed candidate_json / payload error must _fail the
         # row (re-drivable + observable), not leave it stuck in 'finalizing' (Codex diff R3).
         built = reconstruct_durable_payload(candidate_json, marker, approval_id,
-                                            approved_via=expected_via)
+                                            approved_via=expected_via, proposer=proposer)
         tenant_id = built["tenant_id"]
         adapter = adapter_factory()
         # Pre-write claim revalidation (Codex RTBF-fix edge a): if RTBF reclaimed this row while we
@@ -408,9 +416,12 @@ def finalize_approved_candidate(
     return durable_id
 
 
-def _receipt_gate_refusal(row: Any, *, audit_db_path: str | Path) -> str | None:
-    """The audit-invariant receipt GATE. Returns a refusal reason (fail-closed) or None when the
-    row's stored receipt verifies against the hash-chained audit log:
+def _receipt_gate_refusal(row: Any, *, audit_db_path: str | Path) -> tuple[str | None, dict[str, Any] | None]:
+    """The audit-invariant receipt GATE. Returns ``(refusal_reason, verified_receipt)`` — a
+    non-None refusal reason (fail-closed, receipt None) or ``(None, receipt)`` when the row's
+    stored receipt verifies against the hash-chained audit log. The verified receipt is returned
+    so the caller can READ chain-bound fields (PR2: the ``proposed_by_profile`` projection)
+    without a second walk — no additional gate checks ride on it:
 
     - the receipt triple is present on the row;
     - the chain is intact genesis→receipt seq and the row at that seq exists
@@ -428,31 +439,31 @@ def _receipt_gate_refusal(row: Any, *, audit_db_path: str | Path) -> str | None:
     stored_hash = row["audit_receipt_hash"]
     stored_sha = row["candidate_sha256"]
     if seq is None or not stored_hash or not stored_sha:
-        return "missing audit receipt (unreceipted approval)"
+        return "missing audit receipt (unreceipted approval)", None
     try:
         receipt = audit_verify_through(int(seq), db_path=audit_db_path)
     except AuditChainError as exc:
-        return f"receipt unverifiable: {exc}"
+        return f"receipt unverifiable: {exc}", None
     except Exception as exc:  # noqa: BLE001 — locked/unreadable audit DB = refuse, never proceed blind
-        return f"receipt lookup failed: {exc}"
+        return f"receipt lookup failed: {exc}", None
     if str(receipt["this_hash"]) != str(stored_hash):
-        return "receipt hash mismatch"
+        return "receipt hash mismatch", None
     if str(receipt["op"]) not in ("approval_decision", "approval_decision_backfill"):
-        return f"receipt op mismatch: {receipt['op']!r}"
+        return f"receipt op mismatch: {receipt['op']!r}", None
     if str(receipt["target_id"]) != str(row["id"]):
-        return "receipt target mismatch"
+        return "receipt target mismatch", None
     details = receipt.get("details") or {}
     if details.get("decision") != "approve":
-        return "receipt decision mismatch"
+        return "receipt decision mismatch", None
     if details.get("approved_by") != row["approved_by"] or details.get("approved_via") != row["approved_via"]:
-        return "receipt provenance mismatch"
+        return "receipt provenance mismatch", None
     if str(receipt["tenant_accessed"]) != default_tenant_id():
-        return "receipt tenant mismatch"
+        return "receipt tenant mismatch", None
     if details.get("candidate_sha256") != stored_sha:
-        return "receipt fingerprint mismatch"
+        return "receipt fingerprint mismatch", None
     if candidate_fingerprint(row["candidate_json"]) != stored_sha:
-        return "candidate bytes altered since approval"
-    return None
+        return "candidate bytes altered since approval", None
+    return None, receipt
 
 
 def _still_owns_claim(db_path: Path, approval_id: int, wid: str) -> bool:
