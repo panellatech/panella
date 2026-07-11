@@ -196,7 +196,10 @@
     meta.appendChild(
       document.createTextNode(
         "#" + String(item.approval_id) + " · " + String(item.wing || "") + "/" + String(item.room || "") +
-          " · " + String(item.memory_type || "") + " · " + String(item.created_at || ""),
+          " · " + String(item.memory_type || "") + " · " + String(item.created_at || "") +
+          // proposed_by is candidate-derived data — same stored-XSS rule as content_preview:
+          // textContent only, never innerHTML.
+          " · by " + String(item.proposed_by || "unknown"),
       ),
     );
     row.appendChild(meta);

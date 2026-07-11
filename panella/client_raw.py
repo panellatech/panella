@@ -69,6 +69,26 @@ def candidate_fingerprint(candidate_json: str) -> str:
     return hashlib.sha256(str(candidate_json).encode("utf-8")).hexdigest()
 
 
+def proposed_by_profile(value: Any) -> str | None:
+    """Typed read of a proposer-attribution value (the ``proposed_by_profile`` queue COLUMN, or
+    the same-named pre-decision receipt detail): only a non-empty string counts — anything else
+    (NULL, list/dict, whitespace) is None = honestly unattributed. The column is written ONLY by
+    ``MemoryClient._enqueue_approval`` from the authenticated profile, so a hand-inserted queue
+    row (which by definition did not pass the server enqueue path) carries no attribution — it is
+    NOT derived from candidate_json, where a hand-crafted row could plant a plausible string
+    (Codex terra PR2 P1). Attribution then flows column → receipt (projected into the hash-chained
+    ``approval_decision`` details at approve time) → durable metadata (the finalizer reads the
+    GATE-VERIFIED receipt, never the mutable column). Trust wording: server-stamped provenance
+    within the existing trusted-process boundary — a writer with direct DB access could still
+    forge the column pre-approval (same boundary as every other queue field, and the approver sees
+    the attribution in the pending list before deciding); NOT cryptographic proposer identity.
+    Single definition — the service projection, the migration backfill projection, the pending
+    list, and the finalizer's receipt read all call THIS."""
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
 _SHA256_HEX_LEN = 64
 
 
@@ -151,6 +171,11 @@ def _ensure_outbox_schema(conn: sqlite3.Connection) -> None:
         "audit_receipt_seq": "ALTER TABLE approval_queue ADD COLUMN audit_receipt_seq INTEGER",
         "audit_receipt_hash": "ALTER TABLE approval_queue ADD COLUMN audit_receipt_hash TEXT",
         "candidate_sha256": "ALTER TABLE approval_queue ADD COLUMN candidate_sha256 TEXT",
+        # PR2 proposal-source — written ONLY by MemoryClient._enqueue_approval (the server enqueue
+        # path), never derived from candidate_json: a hand-inserted queue row has it NULL and is
+        # honestly unattributed. Attribution flows column → pre-decision receipt (hash-chained) →
+        # durable metadata (the finalizer reads the GATE-VERIFIED receipt, not this column).
+        "proposed_by_profile": "ALTER TABLE approval_queue ADD COLUMN proposed_by_profile TEXT",
     }
     for column, sql in approval_migrations.items():
         if column not in approval_columns:
@@ -530,19 +555,20 @@ def mcp_approve_or_redrive(
         return "stamped"
 
 
-def get_approval_candidate_json(db_path: str | Path, approval_id: int) -> str | None:
-    """The STORED ``candidate_json`` text of one approval row (or None when the row is missing).
-    The shared approval service hashes this exact string (``candidate_fingerprint``) into the
-    pre-decision audit receipt BEFORE any queue mutation, and ``_approve_in_conn`` re-checks it
-    inside the stamp transaction — same bytes end to end."""
+def get_approval_candidate(db_path: str | Path, approval_id: int) -> sqlite3.Row | None:
+    """One approval row's decision inputs (or None when the row is missing): the STORED
+    ``candidate_json`` text — the shared approval service hashes this exact string
+    (``candidate_fingerprint``) into the pre-decision audit receipt BEFORE any queue mutation, and
+    ``_approve_in_conn`` re-checks it inside the stamp transaction — plus the server-stamped
+    ``proposed_by_profile`` column the service projects into that same receipt."""
     db_path = Path(db_path)
     with sqlite3.connect(db_path) as conn:
         conn.row_factory = sqlite3.Row
         _ensure_outbox_schema(conn)
-        row = conn.execute(
-            "SELECT candidate_json FROM approval_queue WHERE id = ?", (approval_id,)
+        return conn.execute(
+            "SELECT candidate_json, proposed_by_profile FROM approval_queue WHERE id = ?",
+            (approval_id,),
         ).fetchone()
-    return str(row["candidate_json"]) if row else None
 
 
 # --- Audit-receipt migration (PR1 activation) ------------------------------------------------
@@ -678,7 +704,7 @@ def _backfill_one(
         _ensure_outbox_schema(conn)
         conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
-            "SELECT id, candidate_json, approved_via, approved_by, finalizer_state "
+            "SELECT id, candidate_json, approved_via, approved_by, finalizer_state, proposed_by_profile "
             f"FROM approval_queue WHERE id = ? AND {_ELIGIBLE_NULL_WHERE}",
             (approval_id,),
         ).fetchone()
@@ -695,6 +721,12 @@ def _backfill_one(
             "approval_id": approval_id,
             "candidate_sha256": candidate_fingerprint(row["candidate_json"]),
         }
+        # Project the server-stamped proposer COLUMN into the backfill receipt too (PR2): rows the
+        # enqueue path stamped keep their attribution through backfill; legacy/hand-inserted rows
+        # (column NULL) stay honestly unattributed — receipt and eventual durable row agree.
+        proposer = proposed_by_profile(row["proposed_by_profile"])
+        if proposer is not None:
+            details["proposed_by_profile"] = proposer
         if row["finalizer_state"] == "finalizing":
             inspection = _inspect_finalizing_marker(adapter, approval_id, tenant_accessed)
             if inspection in ("lookup_unavailable", "lookup_failed"):
@@ -749,7 +781,7 @@ def list_pending_approvals(
         # candidate that came due is visible/approvable via MCP (must match the approve guard).
         rows = conn.execute(
             """
-            SELECT id, candidate_json, created_at
+            SELECT id, candidate_json, created_at, proposed_by_profile
               FROM approval_queue
              WHERE status IN ('pending', 'pending_approval')
              ORDER BY id ASC
@@ -774,6 +806,9 @@ def list_pending_approvals(
                 "memory_type": candidate.get("memory_type"),
                 "created_at": row["created_at"],
                 "content_preview": content[:200],
+                # The approver sees WHO is asking — the server-stamped column (None for
+                # legacy/hand-inserted/malformed rows; PR2 proposal-source).
+                "proposed_by": proposed_by_profile(row["proposed_by_profile"]),
             }
         )
     return out

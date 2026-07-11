@@ -41,9 +41,10 @@ from panella.audit import audit_row_hash, audit_write
 from panella.client_raw import (
     candidate_fingerprint,
     count_pending_approvals,
-    get_approval_candidate_json,
+    get_approval_candidate,
     list_pending_approvals,
     mcp_approve_or_redrive,
+    proposed_by_profile,
     update_approval_status,
 )
 from panella.governance import Governance
@@ -103,10 +104,13 @@ def _append_decision(
     approved_by: str,
     approved_via: str,
     candidate_sha256: str | None = None,
+    proposer: str | None = None,
 ) -> tuple[int, str]:
     """FAIL-CLOSED pre-decision append (``op="approval_decision"``, phase ``authorized_intent``):
     returns the (seq, this_hash) RECEIPT. Any append/fetch failure PROPAGATES — the caller must
-    not mutate the queue without this committed record."""
+    not mutate the queue without this committed record. ``proposer`` is a convenience PROJECTION
+    of the server-stamped proposing profile (the fingerprint already binds the candidate bytes it
+    came from; the finalizer gate does NOT check it — PR2 decision, keep the gate exactly PR1)."""
     core: dict[str, Any] = {
         "phase": "authorized_intent",
         "decision": decision,
@@ -116,6 +120,8 @@ def _append_decision(
     }
     if candidate_sha256 is not None:
         core["candidate_sha256"] = candidate_sha256
+    if proposer is not None:
+        core["proposed_by_profile"] = proposer
     seq = audit_write(
         principal=audit.principal,
         tenant_accessed=audit.tenant_accessed,
@@ -217,11 +223,16 @@ def approve(
         _audit_refused(audit, action="approve", approval_id=approval_id, reason=str(exc))
         raise
     via = transport.stamp_provenance()
-    candidate_json = get_approval_candidate_json(outbox_db_path, approval_id)
-    if candidate_json is None:
+    decision_row = get_approval_candidate(outbox_db_path, approval_id)
+    if decision_row is None:
         _audit_refused(audit, action="approve", approval_id=approval_id, reason="approval row not found")
         raise ApprovalStateError(f"approval_queue row not found: {approval_id}")
+    candidate_json = str(decision_row["candidate_json"])
     fingerprint = candidate_fingerprint(candidate_json)
+    # The server-stamped proposer COLUMN (never candidate_json — a hand-inserted row could plant a
+    # plausible string there): projected into the hash-chained receipt, which is what the finalizer
+    # reads attribution from.
+    proposer = proposed_by_profile(decision_row["proposed_by_profile"])
     receipt_seq, receipt_hash = _append_decision(
         audit,
         decision="approve",
@@ -229,6 +240,7 @@ def approve(
         approved_by=canonical,
         approved_via=via,
         candidate_sha256=fingerprint,
+        proposer=proposer,
     )
     approvers = set(governance.approval.authorized_approvers)
     finalize_kwargs: dict[str, Any] = {}

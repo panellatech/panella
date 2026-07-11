@@ -1061,12 +1061,16 @@ class MemoryClient:
         self.outbox_db_path.parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(self.outbox_db_path) as conn:
             _ensure_outbox_schema(conn)
+            # proposed_by_profile: the server-stamped proposer COLUMN (PR2) — this INSERT is its
+            # ONLY writer, so a queue row that did not pass this authenticated enqueue path has it
+            # NULL and stays unattributed. The approval service projects it into the hash-chained
+            # pre-decision receipt; the finalizer reads attribution from that verified receipt.
             cur = conn.execute(
                 """
-                INSERT INTO approval_queue (candidate_json, status, created_at)
-                VALUES (?, 'pending_approval', ?)
+                INSERT INTO approval_queue (candidate_json, status, created_at, proposed_by_profile)
+                VALUES (?, 'pending_approval', ?, ?)
                 """,
-                (json.dumps(candidate, ensure_ascii=False, sort_keys=True), created_at),
+                (json.dumps(candidate, ensure_ascii=False, sort_keys=True), created_at, self.profile.name),
             )
             return int(cur.lastrowid)
 

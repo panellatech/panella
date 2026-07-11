@@ -54,6 +54,8 @@ class PendingItem(BaseModel):
     memory_type: str | None = None
     created_at: str | None = None
     content_preview: str = ""
+    # PR2 — the server-stamped proposing profile (None for legacy/malformed candidates).
+    proposed_by: str | None = None
 
 
 class PendingApprovalsResponse(BaseModel):
