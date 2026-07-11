@@ -86,12 +86,15 @@ def _print_pending(rows: list[dict]) -> None:
     if not rows:
         print("No pending approvals.")
         return
-    print("ID\tWING\tROOM\tTYPE\tCREATED\tPREVIEW")
+    # BY = the server-stamped proposing profile ("-" for legacy/hand-inserted rows) — the approver
+    # sees who is asking in the DEFAULT view, same as the console and the JSON API.
+    print("ID\tBY\tWING\tROOM\tTYPE\tCREATED\tPREVIEW")
     for row in rows:
         print(
             "\t".join(
                 [
                     str(row.get("approval_id", "")),
+                    str(row.get("proposed_by") or "-"),
                     str(row.get("wing") or "-"),
                     str(row.get("room") or "-"),
                     str(row.get("memory_type") or "-"),

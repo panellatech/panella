@@ -92,6 +92,8 @@ def test_operator_cli_full_governance_loop(tmp_path, monkeypatch, capsys):
         assert main(["approvals", "list", "--token", env.bearer, "--base-url", base_url]) == 0
         captured = capsys.readouterr()
         assert "Panella keeps governed memories" in captured.out
+        # PR2 display parity: the DEFAULT table shows who proposed (the seed client's profile).
+        assert "mcp-write" in captured.out
         assert APPROVAL_TOKEN not in captured.out + captured.err
 
         assert (
