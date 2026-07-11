@@ -2,10 +2,10 @@
 
 **Governed, self-hosted memory for AI agents.**
 
-Your agents write to a memory your company actually controls: every write is proposed, approved, and
-attributed — never a silent background rewrite. A standard **MCP server**: Claude Code, Claude
-Desktop, Cursor, or any MCP client connects with one line. Default-deny, fully auditable, runs on
-your own box. Apache-2.0.
+Your agents write to a memory your company actually controls: a governed write is proposed, approved
+by a named person, and made durable only against a chain-verified approval receipt — never a silent
+background rewrite. A standard **MCP server**: Claude Code, Claude Desktop, Cursor, or any MCP client
+connects with one line. Default-deny, fully auditable, runs on your own box. Apache-2.0.
 
 ```bash
 python -m pip install .               # the panella CLI, from this checkout
@@ -19,7 +19,10 @@ panella connect --print claude-code   # swap PANELLA_BEARER_HERE for the bearer 
 ```
 
 Your agent proposes a memory → it queues → you approve it (CLI, console, or API) → your agent recalls
-it next turn. Nothing becomes durable truth without a named approver and an audit trail.
+it next turn. No governed write becomes durable truth without a named approver and a committed,
+chain-verified approval receipt: approve through the CLI, console, or API and the decision is
+recorded *before* it takes effect — and whatever path stamped a row, the finalizer refuses to make
+it durable without a receipt it can verify.
 
 ## Two ways to build agent memory
 
@@ -27,15 +30,22 @@ Most memory layers consolidate in the background: memories are merged, summarize
 automatically. That design is a deliberate, reasonable choice for personal assistants — speed over
 ceremony.
 
-Panella takes the other branch, for teams and companies: writes queue as proposals, a named person
-approves them, and provenance is kept — so when someone asks *"who decided this was true, and where
-did it come from?"*, the system has an answer.
+Panella takes the other branch, for teams and companies: governed writes queue as proposals, a named
+person approves them, and the decision itself is kept as evidence — so when someone asks *"who
+decided this was true?"*, the system has an answer it can prove. (Governance is per wing/room
+configuration: a deployment can leave a scope ungoverned, and those writes are direct by that
+explicit choice — the guarantees below are about the governed path.)
 
-- **Default-deny writes** — an agent proposes; nothing lands until a person approves.
+- **Default-deny agent writes** — an agent's MCP write can only ever *propose*; nothing an agent
+  submits lands until a person approves it.
 - **Two-factor approval** — the agent's bearer is routing admission only; a separate operator-held
-  approval token is the approver identity, re-verified independently at finalize time. An agent
-  cannot approve its own memory.
-- **Attributed, hash-chained audit** — every approval records who, when, and from what source.
+  approval token is the approver identity, verified during approval. An agent cannot approve its
+  own memory.
+- **Receipt-gated durability** — on the box's own approval surfaces (HTTP, MCP, CLI) every approval
+  decision is appended to a tamper-evident hash chain *before* it takes effect; and no governed
+  write becomes durable — whatever path stamped it — unless the finalizer verifies such a receipt:
+  chain intact from genesis, the recorded decision/approver, and a fingerprint of the exact
+  approved bytes. No verifiable receipt, no write.
 - **Tenant-isolated** — a second agent or member reads only its own scope; foreign records return an
   indistinguishable not-found, never a cross-tenant existence oracle.
 - **MCP-native** — a standard MCP server (Streamable HTTP). The governed loop — submit, queue,
@@ -103,5 +113,6 @@ PANELLA_CONFIG_DIR=./dist-config PANELLA_API_KEY=dev-secret PANELLA_FRESH_BOX=1 
 
 [Apache-2.0](LICENSE). The double-factor approval trust chain (`/v1/approvals`) is the heart of the
 box: the owner bearer is routing admission only; a `local_cli` approval token (header-only) is the
-approver identity, re-verified by the finalizer. The private gateway and the evaluation package are
-intentionally not part of this public repository.
+approver identity, verified during approval — and the finalizer independently re-verifies the
+hash-chained approval receipt that decision produced before any durable write. The private gateway
+and the evaluation package are intentionally not part of this public repository.

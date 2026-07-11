@@ -67,6 +67,37 @@ explicitly supports the new store major, follow that release's own upgrade notes
 file's Step 0–2 as the wrapper around it (backup first, bump, verify) — not a substitute for
 reading what changed.
 
+## The audit-invariant release: receipt-gated finalization
+
+This release makes the approval loop two-phase audited: every approval decision on the box's own
+surfaces (HTTP, MCP, CLI) is appended to the hash chain **before** it takes effect, and the
+finalizer refuses to make any governed write durable without a chain-verified receipt. Three
+operational consequences:
+
+- **Audit op names changed.** The approval surface now emits `approval_decision`,
+  `approval_finalized`, `approval_list`, `approval_refused`, and (from the one-time migration)
+  `approval_decision_backfill`. The old route-level `approvals_list` / `approvals_approve` /
+  `approvals_reject` events are **no longer written**. If anything downstream queries the audit
+  log by op name (dashboards, SIEM rules, compliance exports), update those queries at upgrade
+  time — an old-name filter silently matches nothing on the new version. Historical rows keep
+  their old names (append-only log).
+
+- **First boot runs a one-time receipt backfill and refuses to serve until it completes.** Legacy
+  approved-but-unfinalized rows get attested backfill receipts on startup. If such a row was
+  crashed mid-finalize (`finalizer_state='finalizing'`) **and** the store is unreachable at boot,
+  the box deliberately stays refusing (503 on memory/approval routes; `/v1/health` stays up and
+  names the reason) rather than attest blind — restart once the store is reachable and the
+  backfill completes. Fresh installs and empty queues are unaffected.
+
+- **Telegram-transport deployments: adopt the receipt protocol before upgrading.** The shipped
+  surfaces (`local_cli` HTTP/MCP/CLI) produce receipts automatically. A deployment pinning
+  `kind: telegram` drives approvals through its own out-of-repo handler — that handler must now
+  append the pre-decision `approval_decision` record (with the candidate fingerprint) and pass the
+  returned `(seq, hash, sha256)` receipt into `approve_authorized_telegram_candidate`, or every
+  **new** telegram approval will stamp without a receipt and the finalizer will refuse it
+  (fail-closed, rows stuck `finalizer_state='failed'`). The migration rescues only pre-upgrade
+  rows. Do not upgrade a telegram-wired box until its handler is updated.
+
 ## Restore from backup (the rollback story)
 
 ```bash

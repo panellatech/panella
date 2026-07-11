@@ -4,12 +4,13 @@ import json
 
 import pytest
 
+from panella.approval_audit import ApprovalAuditContext
 from panella.approval_transport import build_transport
 from panella.client import MemoryClient
 from panella.config_render import render_distribution_config
 from panella.governance import current_governance, reset_governance_cache
 from panella.mcp_tools import TOOL_APPROVE, TOOL_LIST_PENDING, TOOL_SEARCH, TOOL_SUBMIT, McpToolContext, dispatch
-from panella.principal import principal_default_for_profile
+from panella.principal import default_tenant_id, principal_default_for_profile, root_principal
 from panella.profile import AgentProfile
 
 
@@ -62,6 +63,12 @@ async def test_mcp_submit_approve_read_local_cli(tmp_path, monkeypatch):
         governance=current_governance(),
         transport=build_transport("local_cli", {"token_file": str(token_file), "token_mode": "0600"}),
         finalizer_adapter_factory=lambda: adapter,
+        approval_audit=ApprovalAuditContext(
+            db_path=tmp_path / "audit.db",
+            principal=root_principal(),
+            tenant_accessed=default_tenant_id(),
+            source="mcp",
+        ),
     )
     submitted = _payload(await dispatch(ctx, TOOL_SUBMIT, {"content": "Panella keeps governed memories.", "room": "preferences", "memory_type": "owner_preference"}))
     pending = _payload(await dispatch(ctx, TOOL_LIST_PENDING, {"credential": "operator-secret"}))

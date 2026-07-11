@@ -180,7 +180,7 @@ def test_s3_bad_token_refused_and_audited(local):
     assert r.status_code == 403
     with sqlite3.connect(local.config.audit_db_path) as conn:
         (count,) = conn.execute(
-            "SELECT COUNT(*) FROM audit_log WHERE op LIKE 'approvals_%'"
+            "SELECT COUNT(*) FROM audit_log WHERE op = 'approval_refused'"
         ).fetchone()
     assert count >= 1
 
@@ -303,12 +303,12 @@ def test_no_auth_oracle_uniform_refusal(tmp_path, monkeypatch):
     assert wrong.status_code == valid_not_approver.status_code == 403
     assert wrong.json()["code"] == valid_not_approver.json()["code"] == "approval_refused"
     assert wrong.json()["message"] == valid_not_approver.json()["message"]  # no oracle
-    # but the server audit DID capture the distinct reasons
+    # but the server audit DID capture the distinct reasons (service-level refusal records)
     with sqlite3.connect(env.config.audit_db_path) as conn:
         reasons = {
             row[0]
             for row in conn.execute(
-                "SELECT details_json FROM audit_log WHERE op='approvals_list'"
+                "SELECT details_json FROM audit_log WHERE op='approval_refused'"
             ).fetchall()
         }
     joined = " ".join(reasons)
@@ -324,7 +324,7 @@ def test_state_refusal_is_audited(local):
     assert r.status_code == 409
     with sqlite3.connect(local.config.audit_db_path) as conn:
         (count,) = conn.execute(
-            "SELECT COUNT(*) FROM audit_log WHERE op='approvals_approve' AND details_json LIKE '%state_refused%'"
+            "SELECT COUNT(*) FROM audit_log WHERE op='approval_refused' AND details_json LIKE '%approval row not found%'"
         ).fetchone()
     assert count >= 1
 
@@ -348,3 +348,84 @@ def test_non_owner_bearer_refused(local):
     assert r_rej.status_code == 403
     assert r_count.status_code == 403
     assert local.adapter.rows == []  # nothing approved by a non-owner
+
+
+# --- GH bot P2: an owner bearer minted with a concrete tenant scope must still finalize ------------
+
+def test_owner_bearer_with_concrete_tenant_scope_finalizes(local):
+    # _require_owner admits any bearer whose principal id IS the root principal, whatever tenant
+    # scope it was minted with. The approval receipt must record the deployment's CANONICAL tenant
+    # (what the finalizer gate verifies), never the bearer's scope — else this valid owner approval
+    # stamps and then sticks unfinalizable on "receipt tenant mismatch".
+    scoped_bearer = local.app.state.token_store.mint(
+        principal_id=root_principal().id, label="owner-scoped", tenant_scope=("t_alt_scope",)
+    )
+    hdr = {"Authorization": f"Bearer {scoped_bearer}", "X-Approval-Token": local.token}
+    with TestClient(local.app) as c:
+        r = c.post(f"/v1/approvals/{local.approval_id}/approve", headers=hdr)
+    assert r.status_code == 200
+    assert r.json()["finalized"] is True  # the receipt's canonical tenant passes the gate
+    assert local.adapter.rows  # the durable write actually happened
+
+
+# --- audit-invariant activation gate (lifespan): legacy unreceipted rows gate serving --------------
+
+
+def _make_legacy_unreceipted(env, *, finalizing: bool) -> None:
+    """Turn the seeded candidate into a pre-invariant row: approved + provenanced, NO receipt
+    (the shape a pre-upgrade box hands the activation migration)."""
+    from panella.client_raw import approve_queued_candidate
+
+    approve_queued_candidate(env.config.outbox_db_path, env.approval_id)
+    extra = (
+        ", finalizer_state='finalizing', finalizer_worker_id='dead-worker',"
+        " finalizer_claimed_at='2020-01-01T00:00:00+00:00'"
+        if finalizing
+        else ""
+    )
+    with sqlite3.connect(env.config.outbox_db_path) as conn:
+        conn.execute(
+            "UPDATE approval_queue SET approved_via='local_cli', approved_by='local_cli:owner'"
+            f"{extra} WHERE id=?",
+            (env.approval_id,),
+        )
+
+
+def test_activation_gate_refuses_box_when_backfill_undecidable(tmp_path, monkeypatch):
+    """A crashed-mid-finalize legacy row + an unreachable store at boot: the lifespan must refuse
+    the gated routes (503, reason names the activation) while /v1/health stays reachable."""
+    env = _build(tmp_path, monkeypatch)
+    _make_legacy_unreceipted(env, finalizing=True)
+
+    class BrokenLookupAdapter(RecordingAdapter):
+        def find_active_hash_by_marker(self, marker, tenant_id):
+            raise RuntimeError("store unreachable")
+
+    env.app.state.memory_adapter = BrokenLookupAdapter()  # lifespan reads this for the inspection
+    with TestClient(env.app) as c:
+        count = c.get("/v1/approvals/count", headers=_auth(env))
+        health = c.get("/v1/health")
+    assert count.status_code == 503
+    assert "activation" in count.text
+    assert health.status_code == 200  # live-but-refusing, never dark
+    with sqlite3.connect(env.config.outbox_db_path) as conn:
+        (seq,) = conn.execute(
+            "SELECT audit_receipt_seq FROM approval_queue WHERE id=?", (env.approval_id,)
+        ).fetchone()
+    assert seq is None  # never attested blind
+
+
+def test_activation_gate_backfills_then_serves(tmp_path, monkeypatch):
+    """The happy upgrade: a plain legacy approved row is backfilled during the lifespan and the box
+    serves normally, with the backfill receipt stamped and the chain intact."""
+    env = _build(tmp_path, monkeypatch)
+    _make_legacy_unreceipted(env, finalizing=False)
+    with TestClient(env.app) as c:
+        count = c.get("/v1/approvals/count", headers=_auth(env))
+    assert count.status_code == 200
+    with sqlite3.connect(env.config.outbox_db_path) as conn:
+        (seq,) = conn.execute(
+            "SELECT audit_receipt_seq FROM approval_queue WHERE id=?", (env.approval_id,)
+        ).fetchone()
+    assert seq is not None
+    assert audit_verify_chain(env.config.audit_db_path) is True

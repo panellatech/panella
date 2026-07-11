@@ -116,6 +116,7 @@ def audit_write(
 
 def audit_verify_chain(db_path: str | Path = AUDIT_DB_PATH) -> bool:
     previous = ZERO_HASH
+    expected_seq = 1
     with audit_connect(db_path) as conn:
         rows = conn.execute(
             """
@@ -127,6 +128,15 @@ def audit_verify_chain(db_path: str | Path = AUDIT_DB_PATH) -> bool:
         ).fetchall()
     for row in rows:
         data = dict(row)
+        # Same contiguity rule as audit_verify_through: "chain verified" must mean the same thing
+        # to the backup/CLI full walk as it does to the finalizer's receipt gate — a deleted row
+        # whose neighbors were re-linked is invisible to hash links alone (appends assign
+        # seq = last+1, so a legitimate log can never have a hole).
+        if int(row["seq"]) != expected_seq:
+            raise AuditChainError(
+                f"audit chain gap: expected seq={expected_seq}, found seq={row['seq']}"
+            )
+        expected_seq += 1
         this_hash = str(data.pop("this_hash"))
         prev_hash = str(data["prev_hash"])
         if prev_hash != previous:
@@ -136,6 +146,76 @@ def audit_verify_chain(db_path: str | Path = AUDIT_DB_PATH) -> bool:
             raise AuditChainError(f"audit row hash mismatch at seq={row['seq']}")
         previous = this_hash
     return True
+
+
+def audit_verify_through(seq: int, db_path: str | Path = AUDIT_DB_PATH) -> dict[str, Any]:
+    """Verify the hash chain from genesis THROUGH ``seq`` and return that row (the approval receipt).
+
+    The finalizer's receipt gate. Unlike ``audit_verify_chain`` (walks the whole log), this bounds the
+    walk at ``seq`` so a receipt is validated in O(seq) at finalize time — a human-approval-gated event,
+    not a hot path. The bounded walk and the receipt fetch are ONE snapshot (single connection/txn);
+    the caller then applies its own SEMANTIC checks (op / target_id / decision / approved_by / approved_via
+    / tenant / candidate_sha256) to the returned row's parsed ``details``. Genesis-anchored: a break,
+    truncation, or gap anywhere in ``[1, seq]`` fails closed (no durable write on an unverifiable
+    receipt). Raises ``AuditChainError`` if ``seq`` is non-positive, does not exist, or the chain is
+    broken/tampered up to it. Returns the verified row as a dict with ``this_hash`` retained (for the
+    caller's stored-hash comparison) and ``details`` parsed from JSON."""
+    if not isinstance(seq, int) or isinstance(seq, bool) or seq < 1:
+        raise AuditChainError(f"invalid audit receipt seq: {seq!r}")
+    previous = ZERO_HASH
+    expected_seq = 1
+    verified: dict[str, Any] | None = None
+    with audit_connect(db_path) as conn:
+        rows = conn.execute(
+            """
+            SELECT seq, ts_iso, principal_id, tenant_accessed, op, target_id,
+                   reason_code, details_json, prev_hash, this_hash
+              FROM audit_log
+             WHERE seq <= ?
+             ORDER BY seq
+            """,
+            (seq,),
+        ).fetchall()
+    for row in rows:
+        data = dict(row)
+        # Contiguity is part of "chain valid": hash links alone cannot see a DELETED row whose
+        # neighbors were re-linked (or a crafted row appended past a gap) — seqs must be exactly
+        # 1..seq with no holes, independent of how the rows were produced.
+        if int(row["seq"]) != expected_seq:
+            raise AuditChainError(
+                f"audit chain gap: expected seq={expected_seq}, found seq={row['seq']}"
+            )
+        expected_seq += 1
+        this_hash = str(data.pop("this_hash"))
+        prev_hash = str(data["prev_hash"])
+        if prev_hash != previous:
+            raise AuditChainError(f"audit chain discontinuity at seq={row['seq']}")
+        expected = _row_hash(prev_hash, data)
+        if this_hash != expected:
+            raise AuditChainError(f"audit row hash mismatch at seq={row['seq']}")
+        previous = this_hash
+        if int(row["seq"]) == seq:
+            verified = dict(row)
+    if verified is None:
+        # seq beyond the log's tail, or a gap swallowed it — either way, unverifiable.
+        raise AuditChainError(f"audit receipt seq={seq} not found or not reachable through an intact chain")
+    verified["details"] = json.loads(verified["details_json"]) if verified["details_json"] else {}
+    return verified
+
+
+def audit_row_hash(seq: int, db_path: str | Path = AUDIT_DB_PATH) -> str:
+    """The immutable ``this_hash`` of the row at ``seq`` — fetched right after an append so the
+    (seq, this_hash) pair can be stored as an approval receipt. Append-only log: the row at a seq
+    never changes after commit, so a fetch in a separate transaction reads the same value the
+    append wrote. Raises ``AuditChainError`` when the seq does not exist (fail-closed: a receipt
+    can never be built from a row that is not durably committed)."""
+    if not isinstance(seq, int) or isinstance(seq, bool) or seq < 1:
+        raise AuditChainError(f"invalid audit seq: {seq!r}")
+    with audit_connect(db_path) as conn:
+        row = conn.execute("SELECT this_hash FROM audit_log WHERE seq = ?", (seq,)).fetchone()
+    if row is None:
+        raise AuditChainError(f"audit row seq={seq} not found")
+    return str(row["this_hash"])
 
 
 def _row_hash(prev_hash: str, row_without_this_hash: dict[str, Any]) -> str:
