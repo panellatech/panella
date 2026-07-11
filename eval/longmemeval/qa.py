@@ -23,7 +23,6 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -263,9 +262,6 @@ def main(argv: list[str] | None = None) -> int:
     # not count as a wrong answer (it would deflate the reported accuracy).
     errs = [g for g in graded if g.get("errored")]
     scored = [g for g in graded if not g.get("errored")]
-    by = defaultdict(list)
-    for g in scored:
-        by[g["type"]].append(g)
 
     # FAIL CLOSED (envelope shape, not a bare list): ANY transport error makes this run's accuracy
     # number unreliable — a partial QA run silently reads as a real (if slightly smaller-n)
