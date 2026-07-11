@@ -159,6 +159,11 @@ jobs:
           exit-code: "1"
           ignore-unfixed: "true"
           format: table
+          # The store image is ~5.5GB (mcp-memory-service pulls the CUDA torch wheel on amd64), and
+          # trivy's 5m default deadline expires mid-layer-decompress ("context deadline exceeded"),
+          # failing the scan with ZERO findings — a false block, not a vuln. 20m covers the large image.
+          # (Image slimming — CPU-only torch — is the real fix, tracked as the C0-3 model-bake slice.)
+          timeout: "20m"
 
       - name: Build app amd64 scan proxy
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
@@ -190,6 +195,9 @@ jobs:
           exit-code: "1"
           ignore-unfixed: "true"
           format: table
+          # Same long-deadline as the store scan — keep both symmetric so a future image-size shift
+          # in either target does not silently reintroduce the context-deadline false block.
+          timeout: "20m"
 
       - name: Push store multi-arch image
         id: push_store
