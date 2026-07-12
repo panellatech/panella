@@ -68,23 +68,21 @@ def test_real_compose_transform_preserves_all_other_bytes(tmp_path: Path) -> Non
     source = ROOT / "docker-compose.yml"
     out_compose, _ = _run_pin(tmp_path, source)
 
+    # Model the transform key-by-key (image replaced, pull_policy/build removed) rather than as one
+    # contiguous block: other keys (user/group_add/security_opt/environment) may sit between them,
+    # and only the three targeted keys change — every other byte is preserved verbatim.
     expected = source.read_bytes()
     expected = expected.replace(
-        b"    image: ghcr.io/panellatech/panella-store:v0.2.0\n"
-        b"    pull_policy: build\n"
-        b"    build:\n"
-        b"      context: .\n"
-        b"      target: store\n",
+        b"    image: ghcr.io/panellatech/panella-store:v0.2.0\n",
         b"    image: " + STORE_REF.encode("utf-8") + b"\n",
     )
     expected = expected.replace(
-        b"    image: ghcr.io/panellatech/panella-app:v0.2.0\n"
-        b"    pull_policy: build\n"
-        b"    build:\n"
-        b"      context: .\n"
-        b"      target: app\n",
+        b"    image: ghcr.io/panellatech/panella-app:v0.2.0\n",
         b"    image: " + APP_REF.encode("utf-8") + b"\n",
     )
+    expected = expected.replace(b"    pull_policy: build\n", b"")  # both services
+    expected = expected.replace(b"    build:\n      context: .\n      target: store\n", b"")
+    expected = expected.replace(b"    build:\n      context: .\n      target: app\n", b"")
 
     pinned = out_compose.read_bytes()
     assert pinned == HEADER + b"\n" + expected
