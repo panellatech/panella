@@ -19,7 +19,7 @@ dependencies = [
     # SDK's transport/security constructor shape (StreamableHTTPSessionManager /
     # TransportSecuritySettings) can change across minor versions. <1.29 keeps an in-range
     # upgrade from silently breaking the /mcp mount at boot with no CI signal.
-    "mcp>=1.28,<1.29",
+    "mcp>=1.28.1,<1.29",
 ]
 
 [project.optional-dependencies]
