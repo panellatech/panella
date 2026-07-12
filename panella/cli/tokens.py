@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import shlex
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -65,6 +66,26 @@ def _tokens_mint(args: argparse.Namespace) -> int:
     from panella.http.tokens import TokenStore
     from panella.principal import root_principal
 
+    # Fail closed BEFORE any governance/config load (parity with revoke/list): a bare host-side mint
+    # targets the HOST default token DB, not the box the container serves from. Check the defer guard
+    # first so a broken host governance overlay (root_principal → current_governance can raise
+    # GovernanceConfigError) can't traceback where the siblings cleanly defer. Echo the operator's
+    # explicit --principal/--label into the in-container remediation (like revoke echoes --label) —
+    # otherwise following it would mint a ROOT token with an auto-generated label instead of the
+    # requested one, leaving the intended token absent (GH-bot P2).
+    # Forward each value as --opt=<shlex.quoted>: labels/principals are free text (TokenStore.mint
+    # accepts anything), so a space/metachar would break the command or inject on paste, AND a value
+    # that begins with '-' (e.g. --label=-canary) would be misparsed as another option unless bound
+    # with '='. The equals-form + quote makes the remediation faithfully paste-and-run for any value.
+    mint_opts = ""
+    if args.principal:
+        mint_opts += f" --principal={shlex.quote(args.principal)}"
+    if args.label:
+        mint_opts += f" --label={shlex.quote(args.label)}"
+    if args.token_db is None and (msg := _compose_defer_message("mint", mint_opts)):
+        print(msg, file=sys.stderr)
+        return 2
+
     root = root_principal()
     principal_id = args.principal or root.id
     token_db_path = args.token_db or load_config(None).token_db_path
@@ -94,7 +115,7 @@ def _tokens_revoke(args: argparse.Namespace) -> int:
     # container serves from. If a stale host DB holds the same label, revoke would report success
     # while the LIVE container bearer stays valid — the most dangerous false-success on an auth
     # surface. Refuse and give the exact in-container form.
-    if args.token_db is None and (msg := _compose_defer_message("revoke", f" --label {args.label}")):
+    if args.token_db is None and (msg := _compose_defer_message("revoke", f" --label={shlex.quote(args.label)}")):
         print(msg, file=sys.stderr)
         return 2
 
@@ -178,10 +199,10 @@ def _compose_defer_message(subcommand: str, extra: str = "") -> str | None:
     walking parents (docker compose itself walks up, so an exact-cwd check under-detects from a
     subdir); inside the app container there is no docker CLI, so the running-check is False and the
     command proceeds against the container DB as intended."""
+    from panella.cli.init import COMPOSE_SERVICE, _compose_root, _compose_service_running
+
     if _compose_root() is None:
         return None
-    from panella.cli.init import COMPOSE_SERVICE, _compose_service_running
-
     if not _compose_service_running(COMPOSE_SERVICE):
         return None
     return (
@@ -191,27 +212,6 @@ def _compose_defer_message(subcommand: str, extra: str = "") -> str | None:
         f"  docker compose exec -T panella-http panella tokens {subcommand}{extra}\n"
         "or pass --token-db explicitly to target a specific database."
     )
-
-
-# The Compose CLI's standard project-file names (precedence order per the Compose spec). A guard
-# that only checked docker-compose.yml would skip the fail-closed path for a deployment using the
-# modern compose.yaml, re-opening the stale-host false-success this guard prevents (GH-bot P2).
-_COMPOSE_FILENAMES = ("compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml")
-
-
-def _compose_root() -> Path | None:
-    import os
-
-    # An explicit COMPOSE_FILE (equivalent to `-f`) points docker compose at a project regardless of
-    # cwd; honor it as "compose is configured" and let _compose_service_running (which itself honors
-    # COMPOSE_FILE) decide whether panella-http is actually up.
-    if os.environ.get("COMPOSE_FILE"):
-        return Path.cwd()
-    cwd = Path.cwd()
-    for directory in (cwd, *cwd.parents):
-        if any((directory / name).exists() for name in _COMPOSE_FILENAMES):
-            return directory
-    return None
 
 
 def _default_token_label() -> str:

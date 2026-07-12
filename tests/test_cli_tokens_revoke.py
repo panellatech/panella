@@ -144,9 +144,10 @@ def test_cli_revoke_overrides_rotate_grace_window(tmp_path, monkeypatch):
 
 def _pretend_compose_up(monkeypatch, tmp_path):
     from panella.cli import init as init_cli
-    from panella.cli import tokens as tokens_cli
 
-    monkeypatch.setattr(tokens_cli, "_compose_root", lambda: tmp_path)
+    # _compose_root now lives with the other compose helpers in panella.cli.init; the tokens defer
+    # message imports it from there, so patch it on init_cli (where it is defined and looked up).
+    monkeypatch.setattr(init_cli, "_compose_root", lambda: tmp_path)
     monkeypatch.setattr(init_cli, "_compose_service_running", lambda svc: True)
 
 
@@ -158,7 +159,72 @@ def test_cli_revoke_defers_to_container_when_compose_up(tmp_path, monkeypatch, c
     assert rc == 2
     err = capsys.readouterr().err
     assert "refusing to run against the host token DB" in err
-    assert "docker compose exec -T panella-http panella tokens revoke --label teammate-x" in err
+    assert "docker compose exec -T panella-http panella tokens revoke --label=teammate-x" in err
+
+
+def test_cli_mint_defers_to_container_when_compose_up(tmp_path, monkeypatch, capsys):
+    """A bare host mint must not create a token in the non-serving host database, and the in-container
+    remediation must PRESERVE the operator's --principal/--label (GH-bot P2) — following a command
+    that dropped them would mint a root token with an auto label, leaving the requested one absent."""
+    _pretend_compose_up(monkeypatch, tmp_path)
+    host_token_db = tmp_path / "host-tokens.db"
+    monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(host_token_db))
+
+    rc = main(["tokens", "mint", "--principal", "human:alice", "--label", "teammate-x"])
+
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "refusing to run against the host token DB" in err
+    # the exact requested options survive into the copy-paste remediation, not a bare `mint`
+    assert (
+        "docker compose exec -T panella-http panella tokens mint "
+        "--principal=human:alice --label=teammate-x" in err
+    )
+    assert not host_token_db.exists()
+
+
+def test_cli_mint_defer_without_options_stays_bare(tmp_path, monkeypatch, capsys):
+    """With no explicit --principal/--label, the remediation is a bare `mint` (no injected auto
+    defaults the operator never asked for)."""
+    _pretend_compose_up(monkeypatch, tmp_path)
+    monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(tmp_path / "host-tokens.db"))
+
+    rc = main(["tokens", "mint"])
+
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "panella tokens mint\n" in err  # bare, no trailing --principal/--label
+    assert "--principal" not in err and "--label" not in err
+
+
+def test_cli_mint_defer_shell_quotes_options(tmp_path, monkeypatch, capsys):
+    """A label with spaces/metachars must be shell-quoted in the remediation command so the printed
+    `docker compose exec … mint` is copy-paste-safe and not injectable-on-paste (terra/GH-bot P2)."""
+    _pretend_compose_up(monkeypatch, tmp_path)
+    monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(tmp_path / "host-tokens.db"))
+
+    rc = main(["tokens", "mint", "--label", "team x; rm -rf /"])
+
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "--label='team x; rm -rf /'" in err  # equals-form + quoted as a single shell word
+    assert "--label team x; rm -rf /" not in err  # never the raw, injectable interpolation
+
+
+def test_cli_mint_defer_equals_form_survives_leading_dash(tmp_path, monkeypatch, capsys):
+    """A valid label/principal beginning with '-' must bind via '=' so the pasted remediation parses
+    (space-form would let argparse read -canary as another option) — GH-bot P3, completes the
+    preserve-options fix for ALL free-text values."""
+    _pretend_compose_up(monkeypatch, tmp_path)
+    monkeypatch.setenv("PANELLA_HTTP_TOKEN_DB", str(tmp_path / "host-tokens.db"))
+
+    # the input itself must use '=' — argparse rejects `--label -canary` (the very misparse we guard)
+    rc = main(["tokens", "mint", "--label=-canary"])
+
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "panella tokens mint --label=-canary" in err  # '=' binds the leading-dash value
+    assert "--label -canary" not in err  # not the space-form that argparse would misparse
 
 
 def test_cli_list_defers_to_container_when_compose_up(tmp_path, monkeypatch, capsys):
@@ -244,7 +310,7 @@ def test_cli_list_never_prints_token_values_and_shows_status(tmp_path, capsys):
 def test_compose_root_matches_all_standard_filenames(tmp_path, monkeypatch):
     """The guard must find any of Compose's standard project files (not just docker-compose.yml) and
     honor COMPOSE_FILE, else a compose.yaml deployment bypasses the fail-closed path (GH-bot P2)."""
-    from panella.cli.tokens import _compose_root
+    from panella.cli.init import _compose_root
 
     monkeypatch.delenv("COMPOSE_FILE", raising=False)
     for name in ("compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml"):

@@ -29,6 +29,8 @@ import sqlite3
 import sys
 import tarfile
 import tempfile
+import zlib
+from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -263,10 +265,22 @@ def _cmd_restore(args: argparse.Namespace) -> int:
         print(f"backup archive not found: {archive_path}", file=sys.stderr)
         return 2
 
-    with tarfile.open(archive_path, "r:gz") as tar:
+    with ExitStack() as stack:
+        try:
+            tar = stack.enter_context(tarfile.open(archive_path, "r:gz"))
+        except (tarfile.TarError, OSError, EOFError, zlib.error) as exc:
+            print(f"invalid backup archive: {exc}", file=sys.stderr)
+            return 1
         try:
             manifest = _load_manifest(tar)
         except (KeyError, ValueError, json.JSONDecodeError) as exc:
+            print(f"invalid backup archive: {exc}", file=sys.stderr)
+            return 1
+        except (tarfile.TarError, OSError, EOFError, zlib.error) as exc:
+            # tarfile.open is LAZY: a valid gzip truncated near its tail opens cleanly, then raises
+            # here while reading/indexing the MANIFEST member. Corrupt gzip *data* (a flipped byte
+            # mid-stream) raises zlib.error, which is NOT an OSError/TarError subclass — catch it too
+            # so every read-time failure is the same clean error, never a traceback.
             print(f"invalid backup archive: {exc}", file=sys.stderr)
             return 1
 
@@ -336,13 +350,20 @@ def _cmd_restore(args: argparse.Namespace) -> int:
                 except KeyError:
                     print(f"backup archive is missing manifest-listed file: {name}", file=sys.stderr)
                     return 1
-                fh = tar.extractfile(member)
-                if fh is None:
-                    print(f"manifest-listed file is not a regular file in the archive: {name}", file=sys.stderr)
-                    return 1
                 staged = tmp_dir / name
-                with staged.open("wb") as out_fh:
-                    shutil.copyfileobj(fh, out_fh)
+                try:
+                    fh = tar.extractfile(member)
+                    if fh is None:
+                        print(f"manifest-listed file is not a regular file in the archive: {name}", file=sys.stderr)
+                        return 1
+                    with staged.open("wb") as out_fh:
+                        shutil.copyfileobj(fh, out_fh)
+                except (tarfile.TarError, OSError, EOFError, zlib.error) as exc:
+                    # A tail-truncated archive can index + open a member but fail mid-read here; a
+                    # mid-stream data corruption raises zlib.error (not an OSError subclass). Surface
+                    # either as the clean error instead of a traceback (same as the manifest guard).
+                    print(f"invalid backup archive: {exc}", file=sys.stderr)
+                    return 1
                 actual_hash = _sha256_file(staged)
                 expected_hash = entry.get("sha256")
                 if actual_hash != expected_hash:

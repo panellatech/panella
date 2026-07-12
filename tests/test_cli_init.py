@@ -462,6 +462,104 @@ def test_init_verify_fails_without_overlay_actionably(tmp_path, monkeypatch, cap
     assert "PANELLA_GOVERNANCE_OVERLAY" in captured.out or "SELF_HOST" in captured.out
 
 
+def test_approval_transport_remediation_distinguishes_native_and_compose(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    operator_dir = tmp_path / ".panella"
+    operator_dir.mkdir()
+    token_file = operator_dir / "approval-token"
+    token_file.write_text("approval-token\n", encoding="utf-8")
+    token_file.chmod(0o644)
+    overlay = operator_dir / "governance.yaml"
+    overlay.write_text(
+        "schema_version: 1\n"
+        "approval:\n"
+        "  authorized_approvers: [local_cli:owner]\n"
+        "  transport:\n"
+        "    kind: local_cli\n"
+        "    config:\n"
+        f"      token_file: {token_file}\n"
+        '      token_mode: "0600"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("PANELLA_GOVERNANCE_OVERLAY", str(overlay))
+
+    # The remediation WORDING follows the caller's known vantage, not a filesystem guess (terra P2):
+    # native path → fix the host token file's own permissions.
+    native_passed, native_message = init_cli._check_approval_transport(under_compose=False)
+
+    assert native_passed is False
+    assert "native token file" in native_message
+    assert str(token_file) in native_message
+    assert "uid 10001" not in native_message
+
+    # container vantage (dispatched via --verify-transport) → the container uid must read the mount.
+    compose_passed, compose_message = init_cli._check_approval_transport(under_compose=True)
+
+    assert compose_passed is False
+    assert compose_message != native_message
+    assert "under Docker" in compose_message
+    assert "uid 10001" in compose_message
+
+
+def test_check_server_side_routes_modern_compose_yaml_into_container(tmp_path, monkeypatch):
+    # GH-bot P2: server-side verification must route a compose deployment into the container for ANY
+    # standard compose file (compose.yaml / COMPOSE_FILE), not only docker-compose.yml — else a
+    # compose.yaml box silently runs the HOST checks and can uid-false-pass. With the service not
+    # reachable it must FAIL LOUD about the compose project, never fall through to the native checks.
+    # Before the fix (a bare docker-compose.yml existence check) a lone compose.yaml returned the two
+    # native transport/mcp checks instead of this single compose-routing FAIL.
+    monkeypatch.chdir(tmp_path)
+    Path("compose.yaml").write_text("services: {}\n", encoding="utf-8")  # modern name, NOT docker-compose.yml
+    monkeypatch.setattr(init_cli, "_compose_service_running", lambda svc: False)
+
+    results = init_cli._check_server_side()
+
+    assert len(results) == 1  # one compose-routing FAIL, not the 2 native checks
+    passed, message = results[0]
+    assert passed is False
+    assert "compose project is present" in message  # recognized the modern compose file
+
+
+def test_verify_transport_vantage_follows_dispatch_env_not_the_flag(tmp_path, monkeypatch, capsys):
+    # terra P2: --verify-transport is hidden (argparse.SUPPRESS) but argparse still runs it directly
+    # on a host. The container vantage must come from the explicit dispatch signal
+    # (PANELLA_UNDER_COMPOSE=1, set by `docker compose exec -e …`), NOT from the flag — else a direct
+    # native invocation mis-advises an unreadable token as a container-uid problem.
+    monkeypatch.chdir(tmp_path)
+    operator_dir = tmp_path / ".panella"
+    operator_dir.mkdir()
+    token_file = operator_dir / "approval-token"
+    token_file.write_text("approval-token\n", encoding="utf-8")
+    token_file.chmod(0o644)  # loose perms → unreadable-by-policy → FAIL carries the remediation
+    overlay = operator_dir / "governance.yaml"
+    overlay.write_text(
+        "schema_version: 1\n"
+        "approval:\n"
+        "  authorized_approvers: [local_cli:owner]\n"
+        "  transport:\n"
+        "    kind: local_cli\n"
+        "    config:\n"
+        f"      token_file: {token_file}\n"
+        '      token_mode: "0600"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("PANELLA_GOVERNANCE_OVERLAY", str(overlay))
+    monkeypatch.setattr(init_cli, "_check_mcp_write_capable", lambda: (True, "mcp ok"))  # isolate the transport line
+
+    # direct native invocation — no dispatch env → host wording
+    monkeypatch.delenv("PANELLA_UNDER_COMPOSE", raising=False)
+    assert main(["init", "--verify-transport"]) == 2
+    native_out = capsys.readouterr().out
+    assert "native token file" in native_out
+    assert "uid 10001" not in native_out
+
+    # dispatched into the container (env set by the exec) → container-uid wording
+    monkeypatch.setenv("PANELLA_UNDER_COMPOSE", "1")
+    assert main(["init", "--verify-transport"]) == 2
+    container_out = capsys.readouterr().out
+    assert "under Docker" in container_out and "uid 10001" in container_out
+
+
 def test_compose_mint_binds_the_resolved_principal(tmp_path, monkeypatch):
     # On the compose path the owner bearer must be minted FOR the principal init resolved (a custom
     # identity from the host overlay), not the container's current default — else it is rejected once

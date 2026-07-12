@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import io
 import json
+import random
 import sqlite3
 import tarfile
-import io
+import zlib
 from pathlib import Path
 
 import pytest
@@ -228,6 +230,100 @@ def test_restore_refuses_before_placing_files_on_corrupt_snapshot(tmp_path, monk
     rc = main(["restore", "--from", str(corrupt), "--data-dir", str(data_dir)])
     assert rc == 1
     assert not data_dir.exists()  # nothing was placed, not even the other 3 valid files
+
+
+def test_restore_rejects_non_gzip_archive_cleanly(tmp_path, capsys):
+    corrupt = tmp_path / "not-a-backup.tar.gz"
+    corrupt.write_bytes(b"this is not a gzip archive\n")
+
+    rc = main(["restore", "--from", str(corrupt), "--data-dir", str(tmp_path / "restored")])
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "invalid backup archive:" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_restore_rejects_truncated_gzip_archive_cleanly(tmp_path, capsys):
+    corrupt = tmp_path / "truncated-backup.tar.gz"
+    corrupt.write_bytes(b"\x1f\x8b")
+
+    rc = main(["restore", "--from", str(corrupt), "--data-dir", str(tmp_path / "restored")])
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "invalid backup archive:" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_restore_rejects_tail_truncated_valid_archive_cleanly(tmp_path, monkeypatch, capsys):
+    # terra: tarfile.open is LAZY — a VALID backup truncated near its tail OPENS successfully, then
+    # raises (EOFError/TarError) while reading the manifest or extracting a member. That read-time
+    # failure must still yield the clean `invalid backup archive:` line, not a traceback (the
+    # existing truncated-gzip test only exercises the OPEN-time failure of a 2-byte stub).
+    _seed_env(monkeypatch, tmp_path)
+    backup = tmp_path / "backup.tar.gz"
+    assert main(["backup", "--out", str(backup)]) == 0
+    raw = backup.read_bytes()
+    assert len(raw) > 64  # a real multi-member gzip; keep the header, cut the tail
+    truncated = tmp_path / "backup-tail-truncated.tar.gz"
+    truncated.write_bytes(raw[: len(raw) * 3 // 4])  # 75%: header intact, member/trailer data cut
+
+    data_dir = tmp_path / "restored"
+    rc = main(["restore", "--from", str(truncated), "--data-dir", str(data_dir)])
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "invalid backup archive:" in captured.err
+    assert "Traceback" not in captured.err
+    assert not data_dir.exists()  # nothing placed from a corrupt read
+
+
+def _corruption_raising_raw_zlib_error(base: bytes) -> bytes:
+    # code-reviewer P1: the read guards caught (TarError, OSError, EOFError) — truncation (EOFError)
+    # and CRC/header failure (BadGzipFile is an OSError) — but genuine gzip *data* corruption raises
+    # a RAW zlib.error, whose MRO is `zlib.error -> Exception` (NOT an OSError/TarError subclass).
+    # tarfile.open re-wraps it as ReadError, but the READ layer (_load_manifest / member extract)
+    # propagates it unwrapped, so it escaped every guard and tracebacked on ~29% of real corruptions.
+    # Deterministically search (rather than hardcode a magic seed) for a corruption that makes
+    # _load_manifest — restore's FIRST read — raise a raw zlib.error, so this test keeps exercising
+    # the exact guard even if the seeded fixture content ever shifts byte offsets. Fail loudly if
+    # none is found, rather than silently degrading to an already-caught class (a hollow test).
+    from panella.cli.lifecycle import _load_manifest
+
+    lo, hi = 12, len(base) - 8  # inside the compressed body: past the gzip header, before the trailer
+    for seed in range(2000):
+        rng = random.Random(seed)
+        buf = bytearray(base)
+        for _ in range(40):
+            buf[rng.randrange(lo, hi)] ^= 1 << rng.randrange(8)
+        try:
+            with tarfile.open(fileobj=io.BytesIO(bytes(buf)), mode="r:gz") as tar:
+                _load_manifest(tar)
+        except zlib.error:
+            return bytes(buf)  # the raw class that escaped OSError/TarError/EOFError
+        except (tarfile.TarError, OSError, EOFError, KeyError, ValueError, json.JSONDecodeError):
+            continue  # already-caught classes — keep searching for the raw zlib.error
+    raise AssertionError("no raw zlib.error corruption found — seeded fixture content may have drifted")
+
+
+def test_restore_rejects_mid_stream_corrupt_gzip_cleanly(tmp_path, monkeypatch, capsys):
+    # A mid-stream data corruption (raw zlib.error at the manifest/member READ) must surface as the
+    # clean `invalid backup archive:` line + rc 1, never a traceback (see the helper for the why).
+    _seed_env(monkeypatch, tmp_path)
+    backup = tmp_path / "backup.tar.gz"
+    assert main(["backup", "--out", str(backup)]) == 0
+    corrupt = tmp_path / "backup-mid-corrupt.tar.gz"
+    corrupt.write_bytes(_corruption_raising_raw_zlib_error(backup.read_bytes()))
+
+    data_dir = tmp_path / "restored"
+    rc = main(["restore", "--from", str(corrupt), "--data-dir", str(data_dir)])
+
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "invalid backup archive:" in captured.err
+    assert "Traceback" not in captured.err  # raw zlib.error must be caught, not propagated
+    assert not data_dir.exists()  # nothing placed from a corrupt read
 
 
 def test_restore_prints_version_mismatch_warning(tmp_path, monkeypatch, capsys):

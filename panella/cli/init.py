@@ -77,9 +77,14 @@ def register(subparsers: argparse._SubParsersAction) -> None:
 def _init(args: argparse.Namespace) -> int:
     if args.verify_transport:
         # Server-side readiness from THIS process's vantage: the transport can load the token AND the
-        # effective MCP profile is write-capable. Run inside the container (by --verify) so the real
-        # uid/paths/PANELLA_MCP_PROFILE apply. Prints one PASS/FAIL line per check.
-        results = [_check_approval_transport(), _check_mcp_write_capable()]
+        # effective MCP profile is write-capable. --verify dispatches this INTO the container via
+        # `docker compose exec -e PANELLA_UNDER_COMPOSE=1 … --verify-transport`, and that env is the
+        # ONLY signal that we are the container vantage. --verify-transport is a hidden flag but
+        # argparse still lets it run directly on a host, so DON'T assume container — read the dispatch
+        # signal, else a direct native invocation would mis-advise an unreadable token as a
+        # container-uid fix instead of a host-permissions one.
+        under_compose = os.environ.get("PANELLA_UNDER_COMPOSE") == "1"
+        results = [_check_approval_transport(under_compose=under_compose), _check_mcp_write_capable()]
         for passed, line in results:
             print(f"{'PASS' if passed else 'FAIL'} {line}")
         return 0 if all(p for p, _ in results) else 2
@@ -363,6 +368,26 @@ def _compose_service_running(service: str) -> bool:
     return service in {line.strip() for line in ps.stdout.splitlines()}
 
 
+# The Compose CLI's standard project-file names (precedence order per the Compose spec). A guard that
+# only checked docker-compose.yml would miss a deployment using the modern compose.yaml / an explicit
+# COMPOSE_FILE. Kept here with the other compose helpers so init (--verify) and the tokens CLI share
+# one detection instead of each re-checking a single filename.
+_COMPOSE_FILENAMES = ("compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml")
+
+
+def _compose_root() -> Path | None:
+    # An explicit COMPOSE_FILE (equivalent to `-f`) points docker compose at a project regardless of
+    # cwd; honor it as "compose is configured" and let _compose_service_running (which itself honors
+    # COMPOSE_FILE) decide whether panella-http is actually up.
+    if os.environ.get("COMPOSE_FILE"):
+        return Path.cwd()
+    cwd = Path.cwd()
+    for directory in (cwd, *cwd.parents):
+        if any((directory / name).exists() for name in _COMPOSE_FILENAMES):
+            return directory
+    return None
+
+
 def _compose_preconditions_ok() -> bool:
     if shutil.which("docker") is None:
         print("panella init: docker command not found; run docker compose up -d --wait first", file=sys.stderr)
@@ -599,19 +624,24 @@ def _check_server_side() -> list[tuple[bool, str]]:
     compose is up we exec the checks INSIDE the container (``panella init --verify-transport``, which
     prints one PASS/FAIL line per check) and surface each line prefixed ``[container]``.
 
-    A compose deployment MUST be verified from the container's vantage: if ``docker-compose.yml`` is
+    A compose deployment MUST be verified from the container's vantage: if a compose project is
     present but we cannot exec (docker CLI missing, daemon down, service not up), FAIL LOUD rather
     than fall back to host checks — the fallback would recreate the exact uid false-pass this exists
-    to prevent (Codex P2). Off the compose path (native/dev) the overlay carries host paths, so the
-    local checks read the same files the server does."""
-    if (Path.cwd() / "docker-compose.yml").exists():
+    to prevent (Codex P2). Compose detection is the shared ``_compose_root`` (compose.yaml /
+    docker-compose.yml / COMPOSE_FILE), not a lone docker-compose.yml check, so a modern compose.yaml
+    box is still verified from the container. Off the compose path (native/dev) the overlay carries
+    host paths, so the local checks read the same files the server does."""
+    if _compose_root() is not None:
         if shutil.which("docker") is None:
-            return [(False, "docker-compose.yml present but the docker CLI is unavailable; start the stack, then re-run --verify")]
+            return [(False, "a compose project is present but the docker CLI is unavailable; start the stack, then re-run --verify")]
         if not _compose_service_running(COMPOSE_SERVICE):
-            return [(False, f"docker-compose.yml present but {COMPOSE_SERVICE} is not running; run docker compose up -d, then re-run --verify")]
+            return [(False, f"a compose project is present but {COMPOSE_SERVICE} is not running; run docker compose up -d, then re-run --verify")]
         try:
             proc = subprocess.run(
-                ["docker", "compose", "exec", "-T", COMPOSE_SERVICE, "panella", "init", "--verify-transport"],
+                # -e PANELLA_UNDER_COMPOSE=1 is the explicit container-vantage signal the exec'd
+                # `--verify-transport` reads (a direct native invocation lacks it → host wording).
+                ["docker", "compose", "exec", "-T", "-e", "PANELLA_UNDER_COMPOSE=1",
+                 COMPOSE_SERVICE, "panella", "init", "--verify-transport"],
                 cwd=Path.cwd(), capture_output=True, text=True, timeout=30, check=False,
             )
         except (OSError, subprocess.SubprocessError) as exc:
@@ -624,7 +654,9 @@ def _check_server_side() -> list[tuple[bool, str]]:
             detail = (proc.stderr.strip() or proc.stdout.strip() or "no output").splitlines()[-1:]
             return [(False, f"[container] {detail[0] if detail else 'no output'}")]
         return results
-    return [_check_approval_transport(), _check_mcp_write_capable()]
+    # Reached only when NO compose project is discoverable (the branch above FAILs loud or dispatches
+    # into the container otherwise), so this is the genuine native/host vantage → under_compose=False.
+    return [_check_approval_transport(under_compose=False), _check_mcp_write_capable()]
 
 
 def _check_mcp_write_capable() -> tuple[bool, str]:
@@ -665,7 +697,11 @@ def _check_mcp_mount(base_url: str) -> tuple[bool, str]:
     return False, f"/mcp expected unauthenticated 401/407-class refusal, got {status}: {body[:160]}"
 
 
-def _check_approval_transport() -> tuple[bool, str]:
+def _check_approval_transport(under_compose: bool) -> tuple[bool, str]:
+    # under_compose is the CALLER's known runtime vantage (True = dispatched inside the container via
+    # --verify-transport; False = the native/host path reached only when no compose project exists),
+    # NOT a filesystem guess. It only selects the remediation WORDING on an unreadable-token FAIL —
+    # inferring it from a discoverable compose file would mis-advise a native run below a compose.yaml.
     from panella.governance import GovernanceConfigError, current_governance, reset_governance_cache
 
     try:
@@ -695,10 +731,18 @@ def _check_approval_transport() -> tuple[bool, str]:
     if transport is None:
         return False, "approval transport is not local_cli-approvable; check PANELLA_GOVERNANCE_OVERLAY"
     if expected_token is None:
+        if under_compose:
+            # The caller ran this check from the container vantage, so the unreadable token is the
+            # bind-mounted host file the container's uid cannot read — give the uid/mount fix.
+            return False, (
+                "approval transport is local_cli but its token file is unreadable or has loose "
+                "permissions from this process; under Docker the panella-http container (uid 10001) must "
+                "be able to read the mounted token — run the stack as your uid or see docs/SELF_HOST.md"
+            )
         return False, (
             "approval transport is local_cli but its token file is unreadable or has loose "
-            "permissions from this process; under Docker the panella-http container (uid 10001) must "
-            "be able to read the mounted token — run the stack as your uid or see docs/SELF_HOST.md"
+            f"permissions from this process; fix the native token file {transport.token_file} configured "
+            f"by {OVERLAY_ENV} so the server can read it"
         )
     if stamp is None or stamp not in approvers:
         return False, (
