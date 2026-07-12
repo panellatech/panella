@@ -56,8 +56,16 @@ def transform_compose(compose: bytes, *, store_ref: str, app_ref: str) -> bytes:
             # YAML content and must not terminate the skip — otherwise a nested key placed after a
             # blank line (e.g. "target:") would leak into the pinned output as a stray top-level
             # service key. Only a real, non-comment line at indent <= the build: key ends the block.
+            # A comment at indent <= the build: key is an UNRELATED byte (it documents whatever
+            # follows the block) — emit it verbatim while the skip stays armed for any further
+            # nested build content (terra r2).
             block_stripped = line.strip()
-            if not block_stripped or block_stripped.startswith(b"#"):
+            if not block_stripped:
+                continue
+            if block_stripped.startswith(b"#"):
+                if _indentation(line) > build_block_indent:
+                    continue
+                output.append(line)
                 continue
             if _indentation(line) > build_block_indent:
                 continue

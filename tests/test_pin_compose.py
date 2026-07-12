@@ -207,6 +207,8 @@ def test_missing_expected_keys_fail_closed(tmp_path: Path) -> None:
         ("panella.pull_policy", full_store.replace(b"    pull_policy: build\n", b""), full_app),
         ("panella.build", full_store.replace(b"    build:\n      context: .\n", b""), full_app),
         ("panella-http.image", full_store, full_app.replace(b"    image: a\n", b"")),
+        ("panella-http.pull_policy", full_store, full_app.replace(b"    pull_policy: build\n", b"")),
+        ("panella-http.build", full_store, full_app.replace(b"    build:\n      context: .\n", b"")),
     ]
     import pytest
 
@@ -243,3 +245,32 @@ def test_duplicate_image_lines_are_all_replaced_for_extraction_fidelity(tmp_path
     assert pinned.count(b"image: " + STORE_REF.encode("utf-8")) == 2
     assert b"image: one" not in pinned
     assert b"image: two" not in pinned
+
+
+def test_unrelated_comment_after_build_block_is_preserved(tmp_path: Path) -> None:
+    # terra r2 P2: a comment at indent <= the build: key documents what FOLLOWS the removed block
+    # (e.g. a root-level comment before volumes:) — it must be emitted verbatim, not swallowed.
+    source = tmp_path / "source.yml"
+    source.write_bytes(
+        b"services:\n"
+        b"  panella:\n"
+        b"    image: s\n"
+        b"    pull_policy: build\n"
+        b"    build:\n"
+        b"      context: .\n"
+        b"  panella-http:\n"
+        b"    image: a\n"
+        b"    pull_policy: build\n"
+        b"    build:\n"
+        b"      context: .\n"
+        b"# root comment documenting the volumes section\n"
+        b"volumes:\n"
+        b"  data:\n"
+    )
+
+    out_compose, _ = _run_pin(tmp_path, source)
+    pinned = out_compose.read_bytes()
+
+    assert b"# root comment documenting the volumes section\n" in pinned
+    assert b"volumes:\n  data:\n" in pinned
+    assert b"build:" not in pinned
