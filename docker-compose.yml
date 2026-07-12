@@ -24,11 +24,20 @@ services:
   panella:
     image: ghcr.io/panellatech/panella-store:v0.2.0
     pull_policy: build
+    user: "${PANELLA_UID:-10001}:${PANELLA_GID:-0}"
+    group_add: ["0"]
+    security_opt: ["no-new-privileges:true"]
     build:
       context: .
       target: store
     environment:
       MCP_API_KEY: ${PANELLA_API_KEY:?generate the internal secret once -- echo "PANELLA_API_KEY=$(openssl rand -hex 32)" >> .env}
+      # An arbitrary PANELLA_UID is not in the image passwd, so `~` cannot resolve to /home/panella.
+      # Pin HOME explicitly so the ONNX embedding cache lands in the mounted /home/panella/.cache
+      # volume instead of an unwritable /.cache or /root/.cache (OpenShift arbitrary-uid pattern).
+      # XDG_CACHE_HOME nails the same target for any XDG-aware cache lib that ignores HOME.
+      HOME: /home/panella
+      XDG_CACHE_HOME: /home/panella/.cache
     volumes:
       - panella-store:/data
       # Embedding-model cache (local ONNX embeddings) — survives container recreation.
@@ -41,12 +50,18 @@ services:
   panella-http:
     image: ghcr.io/panellatech/panella-app:v0.2.0
     pull_policy: build
+    user: "${PANELLA_UID:-10001}:${PANELLA_GID:-0}"
+    group_add: ["0"]
+    security_opt: ["no-new-privileges:true"]
     build:
       context: .
       target: app
     environment:
       PANELLA_API_KEY: ${PANELLA_API_KEY:?generate the internal secret once -- echo "PANELLA_API_KEY=$(openssl rand -hex 32)" >> .env}
       PANELLA_BASE_URL: http://panella:8000
+      # Pin HOME so any arbitrary PANELLA_UID (not in the image passwd) resolves `~` to /home/panella
+      # rather than / — keeps cache/config lookups on the intended path (matches the store service).
+      HOME: /home/panella
       # The coherence self-check probes the store bytes directly (read-only mount below).
       PANELLA_STORE_PATH: /data/sqlite_vec.db
       # Optional self-host approval overlay. Keep unset for the inert-closed default.

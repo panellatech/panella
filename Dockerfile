@@ -43,8 +43,11 @@ RUN pip install "mcp-memory-service[sqlite]==10.67.1" "cryptography<47"
 # never persist its ONNX/HF embedding-model cache there.
 RUN useradd --create-home --uid 10001 panella \
     && mkdir -p /data /home/panella/.cache \
-    && chown -R panella:panella /data /home/panella/.cache
-USER panella
+    && chown -R panella:panella /data /home/panella/.cache \
+    && chgrp -R 0 /data /home/panella/.cache \
+    && chmod -R g=rwX /data /home/panella/.cache
+RUN find / -xdev -perm /6000 -type f -exec chmod a-s {} + 2>/dev/null || true
+USER 10001
 
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=45s --retries=12 \
@@ -91,8 +94,11 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 RUN useradd --create-home --uid 10001 panella \
     && mkdir -p /app/data \
-    && chown -R panella:panella /app/data /app/dist-config
-USER panella
+    && chown -R panella:panella /app/data /app/dist-config \
+    && chgrp -R 0 /app/data /app/dist-config \
+    && chmod -R g=rwX /app/data /app/dist-config
+RUN find / -xdev -perm /6000 -type f -exec chmod a-s {} + 2>/dev/null || true
+USER 10001
 
 EXPOSE 8001
 # Health = SERVING, not merely alive: an unauthenticated hit on a gated memory route must be
