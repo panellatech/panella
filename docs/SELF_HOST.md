@@ -4,6 +4,7 @@
 
 ```bash
 echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
+mkdir -m 0700 .panella      # create it yourself first — see the native-Linux note below for why
 docker compose up --wait
 ```
 
@@ -26,6 +27,8 @@ read-only for startup coherence checks; all writes go through the HTTP store ada
 | `PANELLA_MCP_ENABLED` | `1` in image | Enables the `/mcp` network surface. |
 | `PANELLA_MCP_PROFILE` | `mcp-read` | Use `mcp-write` only after provisioning a local approval token and approver overlay. |
 | `PANELLA_MCP_ALLOWED_HOSTS` | loopback hosts | Host allowlist for the MCP mount. |
+| `PANELLA_UID` | `10001` | Container uid; set to `id -u` on native Linux. |
+| `PANELLA_GID` | `0` | Container primary gid; set to `id -g` on native Linux. |
 
 ## Data
 
@@ -45,60 +48,49 @@ See [QUICKSTART.md](QUICKSTART.md) for the end-to-end submit, approve, and recal
 
 ### Running as your own uid (native Linux)
 
-The approval token is a host file (mode `0600`) that the `panella-http` container also reads to
-verify a presented token. On Docker Desktop (macOS/Windows) it is readable inside the container
-regardless of uid. On **native Linux**, bind mounts preserve host uid/gid and the image runs as uid
-`10001`, so a `0600` file owned by your host user is unreadable inside the container and every
-approval silently fails. `panella init --verify` catches this — it runs the token check *inside* the
-running container, so a "looks fine on the host" false pass is impossible.
-
-The fix is to run the service under your own uid and give it writable homes for the TWO places it
-writes: the `panella-http-data` volume (token/audit/outbox DBs) **and** `/app/dist-config`, which the
-entrypoint re-renders on every startup and is image-owned by uid `10001` — with only the `user:`
-override the container crashes at boot with `PermissionError: /app/dist-config/...` before it ever
-serves. Bind the rendered-config dir to a host-owned path alongside the uid override:
-
-```yaml
-# docker-compose.override.yml
-services:
-  panella-http:
-    user: "${UID:-1000}:${GID:-1000}"
-    volumes:
-      # entrypoint re-renders config here each boot; must be writable by YOUR uid
-      - ./.panella/dist-config:/app/dist-config
-```
+The approval token is a host file (mode `0600`) that `panella-http` reads through the `/app/local`
+bind mount. On native Linux, make both services run as your host uid from their first instruction,
+and create `.panella` yourself first — the compose file bind-mounts `./.panella:/app/local:ro`, and
+if the directory is missing at first boot the Docker daemon creates it **root-owned**, which then
+blocks `panella init` (running as your uid) from writing the approval token and overlay:
 
 ```bash
-mkdir -p .panella/dist-config
+printf 'PANELLA_UID=%s\nPANELLA_GID=%s\n' "$(id -u)" "$(id -g)" >> .env
+mkdir -m 0700 .panella          # create it as your uid BEFORE the first `docker compose up`
 ```
 
-Compose reads `${UID}`/`${GID}` from the process environment or a `.env` file, and the shell's `UID`
-is **not exported by default** — so persist your real uid/gid where Compose will see them (otherwise
-the fallback `1000` is used and, unless you happen to be uid 1000, the container still can't read the
-0600 token):
+Compose adds supplementary group `0` to both services. The image makes each mutable image path
+group-`0` writable, so a fresh install needs no migration: the caller uid can create state in those
+directories, and the files it creates are caller-owned. Facade token and audit files stay mode `0600`,
+which their owner can read and enforce on every connection. Docker Desktop on macOS needs none of these
+lines; leaving both unset keeps the default `10001:0` container identity.
+
+### Upgrading pre-C0-U named volumes
+
+Fresh installs need no migration. Existing named volumes retain their old `10001:10001` ownership
+(including any `0600` facade DB files), because the image's build-time group change does not alter a
+non-empty volume. For a native-Linux upgrade, stop the stack and run these one-time commands to make
+every existing volume entry owned by the caller identity that the services will use:
 
 ```bash
-printf 'UID=%s\nGID=%s\n' "$(id -u)" "$(id -g)" >> .env
-```
-
-Then fix the data volume's ownership. Order matters: Docker populates a named volume from the image
-on FIRST use and that copy carries the image's `10001:10001` ownership — a chown done *before* the
-first `up` is silently overwritten. So bring the stack up once, then chown the populated volume, then
-restart the service:
-
-```bash
-docker compose up -d --wait || true   # first boot populates the volume (10001-owned)
-docker compose stop panella-http
-# volume name is namespaced by the compose project (name: panella-selfhost)
-docker run --rm -v panella-selfhost_panella-http-data:/app/data alpine \
-  chown -R "$(id -u):$(id -g)" /app/data
+docker compose down
+# TARGET must be the SAME identity Compose runs the services as. Ask Compose for its EFFECTIVE
+# resolved `user:` — this honors the real interpolation precedence (a shell-exported PANELLA_UID
+# outranks the .env file), so the chown can never disagree with the uid the services actually start
+# as. Both services resolve to the same value.
+TARGET="$(docker compose config --format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["services"]["panella-http"]["user"])')"
+docker compose run --rm --no-deps --user 0:0 -e TARGET="$TARGET" --entrypoint sh panella-http -c \
+  'find -P /app/data \( -type d -o -type f \) -exec chown "$TARGET" {} +'
+docker compose run --rm --no-deps --user 0:0 -e TARGET="$TARGET" --entrypoint sh panella -c \
+  'find -P /data /home/panella/.cache \( -type d -o -type f \) -exec chown "$TARGET" {} +'
 docker compose up -d --wait
 ```
 
-Now the container process shares your uid — it can read the mounted `0600` token, write its state,
-and render its config. Re-run `panella init --verify` and expect every check to PASS, including the
-two `[container]` lines. (Docker Desktop users can ignore all of this.)
-
-This sequence is exactly what a real native-Linux deployment exercised end-to-end (both failure modes
-above were hit and confirmed before this section was corrected). First-class arbitrary-uid support in
-the image — so none of this is needed — is tracked as a follow-up issue.
+The migration preserves existing modes: it uses `chown`, not `chgrp` plus `chmod`. This is necessary
+for existing `0600` token and audit DB files: the caller must own them so its normal connection-time
+`chmod 0600` succeeds, rather than failing with `EPERM` as a non-owner. The helpers are explicitly root
+only for this one ownership repair; normal services and their healthchecks remain non-root. The walk
+is symlink-safe: `find -P` never traverses a symlinked directory, and `\( -type d -o -type f \)`
+restricts `chown` to real directories and files, so no symlink is ever dereferenced (a stale link
+could otherwise point `chown` outside the volume). Re-run `panella init --verify` after the stack is
+healthy; every check should PASS, including the two `[container]` lines.
