@@ -254,68 +254,26 @@ jobs:
         env:
           STORE_REF: ${{ env.STORE_IMAGE }}@${{ steps.push_store.outputs.digest }}
           APP_REF: ${{ env.APP_IMAGE }}@${{ steps.push_app.outputs.digest }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-
-          images = {
-              "panella": os.environ["STORE_REF"],
-              "panella-http": os.environ["APP_REF"],
-          }
-
-          source = Path("docker-compose.yml")
-          lines = source.read_text().splitlines(keepends=True)
-          out = []
-          current_service = None
-          in_services = False
-          skip_build_block = False
-          seen = {name: {"image": False, "build": False, "pull_policy": False} for name in images}
-
-          for line in lines:
-              if skip_build_block:
-                  stripped = line.strip()
-                  indent = len(line) - len(line.lstrip(" "))
-                  if stripped and indent > 4:
-                      continue
-                  skip_build_block = False
-
-              if line == "services:\n":
-                  in_services = True
-                  current_service = None
-              elif in_services and line.strip() and not line.startswith(" "):
-                  in_services = False
-                  current_service = None
-              elif in_services and line.startswith("  ") and not line.startswith("    ") and line.strip().endswith(":"):
-                  current_service = line.strip()[:-1]
-
-              if current_service in images:
-                  if line.startswith("    image:"):
-                      out.append(f"    image: {images[current_service]}\n")
-                      seen[current_service]["image"] = True
-                      continue
-                  if line.startswith("    pull_policy:"):
-                      seen[current_service]["pull_policy"] = True
-                      continue
-                  if line.startswith("    build:"):
-                      seen[current_service]["build"] = True
-                      skip_build_block = True
-                      continue
-
-              out.append(line)
-
-          missing = [
-              f"{service}.{key}"
-              for service, flags in seen.items()
-              for key, was_seen in flags.items()
-              if not was_seen
-          ]
-          if missing:
-              raise SystemExit(f"compose transform did not see expected keys: {', '.join(missing)}")
-
-          Path("compose.pinned.yml").write_text("".join(out))
-          PY
+          python3 scripts/release/pin_compose.py \
+            --compose docker-compose.yml \
+            --store-ref "${STORE_REF}" \
+            --app-ref "${APP_REF}" \
+            --version "${VERSION}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}" \
+            --event "${GITHUB_EVENT_NAME}" \
+            --ref "${GITHUB_REF}" \
+            --head-sha "${GITHUB_SHA}" \
+            --out-compose compose.pinned.yml \
+            --out-digests digests.json
+          expected_header="# managed by panella up — release ${VERSION} — do not edit (hand-edits: use the git-clone path; upgrades: docs/UPGRADE.md)"
+          if [[ "$(head -n 1 compose.pinned.yml)" != "${expected_header}" ]]; then
+            echo "::error title=Managed header missing::compose.pinned.yml must start with the release managed header" >&2
+            exit 1
+          fi
           # Interpolation-only placeholder: the pinned file keeps ${PANELLA_API_KEY:?...} required
           # vars, and `config` interpolates — without a value this validation step would fail on
           # every runner (no .env in CI).
@@ -326,9 +284,11 @@ jobs:
             echo "- app: ${APP_REF}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload pinned compose file
+      - name: Upload pinned compose artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: compose-pinned
-          path: compose.pinned.yml
+          path: |
+            compose.pinned.yml
+            digests.json
           if-no-files-found: error
