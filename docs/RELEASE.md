@@ -21,18 +21,17 @@ This runbook is the operator register for image and Python package releases. Pre
    gh auth token | docker login ghcr.io -u "$(gh api user --jq .login)" --password-stdin
    ```
 
-3. Resolve the pushed digests and verify both signatures.
+3. Resolve the pushed digests. Pre-flip `workflow_dispatch` builds are unsigned by design, so
+   verify images by digest only; digest-pinning is the pre-flip integrity guarantee.
 
    ```bash
    SHA_TAG="sha-$(git rev-parse --short=12 HEAD)"
    STORE_DIGEST="$(docker buildx imagetools inspect ghcr.io/panellatech/panella-store:${SHA_TAG} --format '{{json .Manifest.Digest}}' | tr -d '"')"
    APP_DIGEST="$(docker buildx imagetools inspect ghcr.io/panellatech/panella-app:${SHA_TAG} --format '{{json .Manifest.Digest}}' | tr -d '"')"
-   CERT_IDENTITY_RE='^https://github\.com/panellatech/panella/\.github/workflows/release-images\.yml@refs/(tags/v.*|heads/main)$'
-   cosign verify --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp "${CERT_IDENTITY_RE}" "ghcr.io/panellatech/panella-store@${STORE_DIGEST}"
-   cosign verify --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp "${CERT_IDENTITY_RE}" "ghcr.io/panellatech/panella-app@${APP_DIGEST}"
    ```
 
-   Expected output includes a successful verification for each digest and a certificate identity ending in `.github/workflows/release-images.yml@refs/heads/main`.
+   Record the resolved `@sha256` image references for downstream digest-pinning. There is no
+   pre-flip cosign signature or Rekor entry to verify.
 
 4. Trigger the TestPyPI workflow from `main`.
 
@@ -43,6 +42,8 @@ This runbook is the operator register for image and Python package releases. Pre
    ```
 
    Expected outcome: the package build passes `check-wheel-contents.py` and `twine check`, then publishes or skips an existing duplicate on TestPyPI. Check `https://test.pypi.org/project/panella/0.2.0/`.
+
+   The pre-flip TestPyPI publish pins `attestations: false`, so — like the image dispatch — it writes **no** public Rekor entry while the repo is private. PEP 740 attestations (Sigstore keyless → Rekor) come online only with the flip-day real-PyPI publish, as provenance for public users.
 
 ## 2. One-Time Human Setup
 
@@ -143,7 +144,9 @@ Order is load-bearing.
 
 ### 4.1 Pre-Flip Register
 
-Use this register while GHCR packages are private.
+Use this register while GHCR packages are private. Pre-flip `workflow_dispatch` builds are unsigned
+by design and never write to Rekor, so there is no pre-flip signature to verify. Verify images by
+digest only; digest-pinning is the pre-flip integrity guarantee.
 
 ```bash
 gh auth status
@@ -151,14 +154,12 @@ gh auth token | docker login ghcr.io -u "$(gh api user --jq .login)" --password-
 SHA_TAG="sha-$(git rev-parse --short=12 HEAD)"
 STORE_DIGEST="$(docker buildx imagetools inspect ghcr.io/panellatech/panella-store:${SHA_TAG} --format '{{json .Manifest.Digest}}' | tr -d '"')"
 APP_DIGEST="$(docker buildx imagetools inspect ghcr.io/panellatech/panella-app:${SHA_TAG} --format '{{json .Manifest.Digest}}' | tr -d '"')"
-CERT_IDENTITY_RE='^https://github\.com/panellatech/panella/\.github/workflows/release-images\.yml@refs/(tags/v.*|heads/main)$'
-cosign verify --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp "${CERT_IDENTITY_RE}" "ghcr.io/panellatech/panella-store@${STORE_DIGEST}"
-cosign verify --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp "${CERT_IDENTITY_RE}" "ghcr.io/panellatech/panella-app@${APP_DIGEST}"
 # Placeholder is interpolation-only (required ${PANELLA_API_KEY:?} vars in the pinned file).
 PANELLA_API_KEY=verify-placeholder docker compose -f compose.pinned.yml config
 ```
 
-Expected identity: `https://github.com/panellatech/panella/.github/workflows/release-images.yml@refs/heads/main`.
+Cosign signatures and Rekor transparency come online with the first real tag release (`v<version>`);
+verification then pins the exact certificate identity `@refs/tags/v<version>` (not a regex).
 
 ### 4.2 Post-Flip Register
 
@@ -169,10 +170,10 @@ docker logout ghcr.io || true
 VERSION="X.Y.Z"
 STORE_DIGEST="$(docker buildx imagetools inspect ghcr.io/panellatech/panella-store:v${VERSION} --format '{{json .Manifest.Digest}}' | tr -d '"')"
 APP_DIGEST="$(docker buildx imagetools inspect ghcr.io/panellatech/panella-app:v${VERSION} --format '{{json .Manifest.Digest}}' | tr -d '"')"
-CERT_IDENTITY_RE='^https://github\.com/panellatech/panella/\.github/workflows/release-images\.yml@refs/(tags/v.*|heads/main)$'
-cosign verify --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp "${CERT_IDENTITY_RE}" "ghcr.io/panellatech/panella-store@${STORE_DIGEST}"
-cosign verify --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp "${CERT_IDENTITY_RE}" "ghcr.io/panellatech/panella-app@${APP_DIGEST}"
+CERT_IDENTITY="https://github.com/panellatech/panella/.github/workflows/release-images.yml@refs/tags/v${VERSION}"
+cosign verify --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity "${CERT_IDENTITY}" "ghcr.io/panellatech/panella-store@${STORE_DIGEST}"
+cosign verify --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity "${CERT_IDENTITY}" "ghcr.io/panellatech/panella-app@${APP_DIGEST}"
 /tmp/panella-release-verify/bin/python -m pip install "panella==${VERSION}"
 ```
 
-Expected identity: `https://github.com/panellatech/panella/.github/workflows/release-images.yml@refs/tags/vX.Y.Z`. The digest checked by `cosign verify` must exactly match the digest pinned into `compose.pinned.yml`.
+Verification pins the EXACT release-tag identity (`--certificate-identity ...@refs/tags/v${VERSION}`), not a regex — a mutable GHCR tag repointed to a digest signed from any other ref/tag fails verification. The digest checked by `cosign verify` must exactly match the digest pinned into `compose.pinned.yml`.

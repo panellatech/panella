@@ -1,8 +1,8 @@
 # Release images are explicit and pinnable: no latest tag is ever published.
 # Pre-flip dispatch testing publishes private GHCR images tagged only with sha/test refs.
-# Keyless signing writes this repo/workflow identity to the public Rekor transparency log even while
-# the repo is private. The name is already public through PyPI/domain exposure; the owner accepted
-# the Rekor exposure on 2026-07-07.
+# Keyless signing and Rekor transparency run only on tag releases (refs/tags/v*).
+# Pre-flip workflow_dispatch builds never write to Rekor; exposure begins with the first real tag
+# release.
 name: release-images
 
 on:
@@ -220,9 +220,11 @@ jobs:
           tags: ${{ steps.tags.outputs.app_tags }}
 
       - name: Install cosign
+        if: startsWith(github.ref, 'refs/tags/')
         uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
 
       - name: Sign pushed image digests
+        if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         env:
           STORE_REF: ${{ env.STORE_IMAGE }}@${{ steps.push_store.outputs.digest }}
@@ -233,20 +235,21 @@ jobs:
           cosign sign --yes "${APP_REF}"
 
       - name: Verify image signatures
+        if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         env:
           STORE_REF: ${{ env.STORE_IMAGE }}@${{ steps.push_store.outputs.digest }}
           APP_REF: ${{ env.APP_IMAGE }}@${{ steps.push_app.outputs.digest }}
-          CERT_IDENTITY_RE: ^https://github\.com/panellatech/panella/\.github/workflows/release-images\.yml@refs/(tags/v.*|heads/main)$
+          CERT_IDENTITY: https://github.com/panellatech/panella/.github/workflows/release-images.yml@${{ github.ref }}
         run: |
           set -euo pipefail
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            --certificate-identity-regexp "${CERT_IDENTITY_RE}" \
+            --certificate-identity "${CERT_IDENTITY}" \
             "${STORE_REF}"
           cosign verify \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            --certificate-identity-regexp "${CERT_IDENTITY_RE}" \
+            --certificate-identity "${CERT_IDENTITY}" \
             "${APP_REF}"
 
       - name: Generate digest-pinned compose file

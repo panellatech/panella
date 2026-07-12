@@ -134,9 +134,21 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
           packages-dir: dist/
           skip-existing: true
+          # attestations default to true (v1.11+): with id-token:write + trusted publishing to a
+          # PEP 740-capable index (TestPyPI qualifies), the action keyless-signs via Sigstore,
+          # writing a PUBLIC, append-only Rekor entry (SAN = this repo + workflow + ref + commit).
+          # TestPyPI is the ONLY pre-flip-reachable publish (target=pypi is blocked by the flip-day
+          # interlock above), so it must NOT leak the private repo's identity/cadence to the
+          # transparency log — same pre-flip zero-Rekor invariant the image cosign gating enforces.
+          # Off until flip; the real-PyPI step re-enables provenance for public users.
+          attestations: false
 
       - name: Publish to PyPI
         if: inputs.target == 'pypi'
         uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
         with:
           packages-dir: dist/
+          # Explicit (default already true): real-PyPI is flip-day only and the repo is public by
+          # then, so PEP 740 attestations (Sigstore keyless -> public Rekor) are DESIRABLE
+          # supply-chain provenance for downstream users.
+          attestations: true
