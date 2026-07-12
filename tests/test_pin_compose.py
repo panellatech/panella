@@ -264,6 +264,7 @@ def test_unrelated_comment_after_build_block_is_preserved(tmp_path: Path) -> Non
         b"    build:\n"
         b"      context: .\n"
         b"# root comment documenting the volumes section\n"
+        b"      target: app\n"
         b"volumes:\n"
         b"  data:\n"
     )
@@ -271,6 +272,8 @@ def test_unrelated_comment_after_build_block_is_preserved(tmp_path: Path) -> Non
     out_compose, _ = _run_pin(tmp_path, source)
     pinned = out_compose.read_bytes()
 
-    assert b"# root comment documenting the volumes section\n" in pinned
-    assert b"volumes:\n  data:\n" in pinned
+    # terra r3 P3: the nested key AFTER the emitted boundary comment proves the skip stayed armed —
+    # a mutant that clears the skip when emitting the comment would leak "target: app" and fail here.
+    assert b"target: app" not in pinned
+    assert b"# root comment documenting the volumes section\nvolumes:\n  data:\n" in pinned
     assert b"build:" not in pinned
