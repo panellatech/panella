@@ -52,7 +52,14 @@ def transform_compose(compose: bytes, *, store_ref: str, app_ref: str) -> bytes:
 
     for line in compose.splitlines(keepends=True):
         if build_block_indent is not None:
-            if line.strip() and _indentation(line) > build_block_indent:
+            # The whole build: block is removed. Blank and comment-only lines inside it carry no
+            # YAML content and must not terminate the skip — otherwise a nested key placed after a
+            # blank line (e.g. "target:") would leak into the pinned output as a stray top-level
+            # service key. Only a real, non-comment line at indent <= the build: key ends the block.
+            block_stripped = line.strip()
+            if not block_stripped or block_stripped.startswith(b"#"):
+                continue
+            if _indentation(line) > build_block_indent:
                 continue
             build_block_indent = None
 
@@ -69,20 +76,17 @@ def transform_compose(compose: bytes, *, store_ref: str, app_ref: str) -> bytes:
             current_service = stripped[:-1].decode("utf-8")
 
         if current_service in refs and indent == 4:
+            # Extraction fidelity with the retired inline transformer: EVERY matching occurrence is
+            # replaced/removed (a duplicate key is malformed compose the downstream `config`
+            # validation owns; this transform does not add its own rejection semantics).
             if stripped.startswith(b"image:"):
-                if seen[current_service]["image"]:
-                    raise ValueError(f"compose has more than one {current_service}.image line")
                 output.append(b" " * indent + b"image: " + refs[current_service] + _line_ending(line))
                 seen[current_service]["image"] = True
                 continue
             if stripped.startswith(b"pull_policy:"):
-                if seen[current_service]["pull_policy"]:
-                    raise ValueError(f"compose has more than one {current_service}.pull_policy line")
                 seen[current_service]["pull_policy"] = True
                 continue
             if stripped.startswith(b"build:"):
-                if seen[current_service]["build"]:
-                    raise ValueError(f"compose has more than one {current_service}.build block")
                 seen[current_service]["build"] = True
                 build_block_indent = indent
                 continue
