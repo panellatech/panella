@@ -17,3 +17,4 @@ dist-config/
 .b2b-evidence/
 eval/out/
 eval/data/
+panella_selfhost/_assets/compose.pinned.yml

@@ -32,7 +32,7 @@ panella-render-config = "panella_selfhost.render:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["panella", "panella_selfhost"]
-artifacts = ["config/**"]
+artifacts = ["config/**", "panella_selfhost/_assets/compose.pinned.yml"]
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -43,6 +43,10 @@ include = [
     "/README.md",
     "/LICENSE",
 ]
+# The pinned compose asset is generated (gitignored); hatchling ships VCS-ignored files only via
+# artifacts — a plain include entry is silently dropped, leaving the sdist (and the wheel built
+# from it) without the asset.
+artifacts = ["/panella_selfhost/_assets/compose.pinned.yml"]
 
 [tool.ruff]
 target-version = "py312"

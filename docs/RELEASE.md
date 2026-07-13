@@ -36,12 +36,17 @@ This runbook is the operator register for image and Python package releases. Pre
 4. Trigger the TestPyPI workflow from `main`.
 
    ```bash
-   gh workflow run release-pypi.yml --ref main -f target=testpypi
+   IMAGES_RUN_ID="$(gh run list --workflow release-images.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
+   gh workflow run release-pypi.yml --ref main -f target=dryrun -f images_run_id="${IMAGES_RUN_ID}"
+   gh workflow run release-pypi.yml --ref main -f target=testpypi -f images_run_id="${IMAGES_RUN_ID}"
    gh run list --workflow release-pypi.yml --limit 1
    gh run watch <run-id>
    ```
 
-   Expected outcome: the package build passes `check-wheel-contents.py` and `twine check`, then publishes or skips an existing duplicate on TestPyPI. Check `https://test.pypi.org/project/panella/0.2.0/`.
+   `dryrun` performs the same producer-run, artifact, digest-schema, wheel, and release-asset
+   validation but skips the whole environment-gated publish job. TestPyPI uses the same validated
+   `images_run_id`; upload is authoritative, so an existing version is an error rather than a
+   silently skipped duplicate. Check `https://test.pypi.org/project/panella/0.2.0/`.
 
    The pre-flip TestPyPI publish pins `attestations: false`, so — like the image dispatch — it writes **no** public Rekor entry while the repo is private. PEP 740 attestations (Sigstore keyless → Rekor) come online only with the flip-day real-PyPI publish, as provenance for public users.
 
@@ -80,7 +85,7 @@ This runbook is the operator register for image and Python package releases. Pre
 4. Verify environment approval actually pauses.
 
    ```bash
-   gh workflow run release-pypi.yml --ref main -f target=testpypi
+   gh workflow run release-pypi.yml --ref main -f target=testpypi -f images_run_id=<images-run-id>
    gh run list --workflow release-pypi.yml --limit 1
    ```
 
@@ -118,7 +123,8 @@ Order is load-bearing.
 4. Dispatch real PyPI from the tag ref and approve the `pypi` environment.
 
    ```bash
-   gh workflow run release-pypi.yml --ref "v${VERSION}" -f target=pypi
+   IMAGES_RUN_ID="$(gh run list --workflow release-images.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
+   gh workflow run release-pypi.yml --ref "v${VERSION}" -f target=pypi -f images_run_id="${IMAGES_RUN_ID}"
    gh run list --workflow release-pypi.yml --limit 1
    gh run watch <run-id>
    ```
@@ -177,3 +183,30 @@ cosign verify --certificate-oidc-issuer https://token.actions.githubusercontent.
 ```
 
 Verification pins the EXACT release-tag identity (`--certificate-identity ...@refs/tags/v${VERSION}`), not a regex — a mutable GHCR tag repointed to a digest signed from any other ref/tag fails verification. The digest checked by `cosign verify` must exactly match the digest pinned into `compose.pinned.yml`.
+
+## 5. Pinned compose release binding
+
+`release-pypi.yml` requires `images_run_id`: the GitHub Actions workflow-run object `id` for the
+successful `release-images.yml` producer. It validates the producer path, conclusion, checkout
+SHA (warn-only for `dryrun`), event/head-branch matrix, and exactly one `compose-pinned` artifact
+before downloading it by artifact ID. The metadata snapshot is saved before download; the content
+phase binds `digests.json` back to that exact snapshot, including `run_attempt`, so a rerun cannot
+silently substitute provenance from another attempt.
+
+The bundled `digests.json` schema is v1 with these exact ordered keys:
+
+```text
+schema, version, run_id, run_attempt, event, ref, head_sha, store_ref, app_ref, compose_sha256
+```
+
+`schema`, `run_id`, and `run_attempt` are JSON integers (`run_id` is the Actions run object's
+`id`); every other field is a non-empty JSON string. `compose_sha256` hashes the complete pinned
+compose bytes, including its managed header. The release job embeds that compose file into both the
+wheel and sdist, then requires byte equality, digest equality, and exact store/app image references
+before any distribution upload.
+
+Consuming a tag-push producer from `target=testpypi` additionally requires that `main`'s HEAD equal
+the tag commit at dispatch time: the non-dryrun rule `producer head_sha == consumer checkout SHA`
+and the publish guard's `refs/heads/main` requirement bind jointly. Dispatch TestPyPI right after
+tagging (before further commits land on `main`), or validate against a `workflow_dispatch` producer
+from `main` instead.

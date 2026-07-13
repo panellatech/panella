@@ -12,6 +12,37 @@ The compose stack builds two targets from the same Dockerfile: `store` runs the 
 SQLite Panella store, and `app` runs the governed facade. The facade mounts the store volume
 read-only for startup coherence checks; all writes go through the HTTP store adapter.
 
+## Zero-clone bootstrap
+
+For a released wheel, bootstrap one self-hosted box without cloning the repository:
+
+```bash
+uvx panella up --yes
+```
+
+`panella up` materializes the wheel-embedded digest-pinned compose file and `.env` in
+`~/panella-box` (or `PANELLA_HOME` / `--home`), starts the box, activates it with `panella init`,
+and prints a Claude Code connection block. The generated `.env` pins `PANELLA_UID`/`PANELLA_GID`
+to the invoking user so the containers can read the bind-mounted operator files on native Linux.
+One canonical home maps to one Compose project; use a different `--home` for a separate box. It is
+intentionally not a development command: when run from a clone, use `panella init` instead.
+
+The embedded compose asset is release-specific. Hand edits, drift, or an asset from a different
+release are refused rather than upgraded in place; follow [UPGRADE.md](UPGRADE.md) for upgrades.
+An air-gapped machine still needs the wheel and the digest-pinned images available locally: `up`
+does not fetch a compose file, but Docker may need to pull images unless they have been preloaded.
+
+`up`/agent workflows never need, and are never handed, the approval credential — bearer and
+approval-token are separate credentials, and the agent/MCP surface is candidates-only by design.
+Mode `0600` blocks other UIDs (including the container UID); for a full-shell agent under the same
+operator UID, the hard subject boundary is that agent's sandbox/permission model, or moving
+approval to another OS user/device (the operator console / C0-B `.mcpb` approval endpoint).
+
+The per-home lock uses POSIX `flock`; it coordinates concurrent `up` calls on the same host only.
+`up` and a separately started `init` are not a transaction and should not be run concurrently. If
+`.panella` is lost while project containers or volumes remain, `up` stops and prints a recovery or
+explicit destructive-reset command; it never deletes those resources itself.
+
 ## Environment
 
 | Variable | Default | Purpose |
