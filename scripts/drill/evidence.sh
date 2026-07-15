@@ -36,8 +36,9 @@ except OSError:
     print("real-user-panella-entries: CONFIG_ABSENT")
     raise SystemExit(0)
 except json.JSONDecodeError:
-    # A torn read of a concurrently-written config: report it as its own state rather than
-    # crashing the phase; the pre/post comparison still catches drill-caused differences.
+    # A torn read of a concurrently-written config: record it rather than crashing the phase, but
+    # the post comparison treats CONFIG_UNPARSEABLE as fail-closed — an unobservable config can't
+    # certify non-interference.
     print("real-user-panella-entries: CONFIG_UNPARSEABLE")
     raise SystemExit(0)
 
@@ -183,6 +184,13 @@ def entries(path):
 pre, post = entries(sys.argv[1]), entries(sys.argv[2])
 if post is None:
     print("FAIL: post snapshot missing the real-user panella-entries line")
+    sys.exit(1)
+# Fail-closed on an unobservable config: if either snapshot could not be parsed, we never actually
+# saw the real-user MCP registrations, so we cannot certify the drill left them unchanged. Two
+# identical CONFIG_UNPARSEABLE lines must NOT pass as "unchanged".
+UNPARSEABLE = "real-user-panella-entries: CONFIG_UNPARSEABLE"
+if pre == UNPARSEABLE or post == UNPARSEABLE:
+    print("FAIL: real-user config unparseable at pre or post — cannot certify MCP registrations were unchanged")
     sys.exit(1)
 # A pre snapshot from an older harness revision lacks the line; the drill must then have left
 # zero panella registrations behind.

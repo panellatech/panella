@@ -149,8 +149,13 @@ Order is load-bearing.
 7. Only after step 5's real-PyPI verification passes may the repo (and the GHCR packages above) be
    made public: `llms-install.md` and the README agent prompt tell agents to run
    `uvx panella@<VER>`, so the moment the repo is readable that instruction must resolve against
-   real PyPI. When publishing install pointers for a release, prefer the tag-pinned URL form
-   (`https://github.com/panellatech/panella/blob/v${VERSION}/llms-install.md`) over `blob/main`.
+   real PyPI. Any install pointer published for a specific release (announcement, changelog, listicle
+   submission) MUST use the tag-pinned URL form
+   (`https://github.com/panellatech/panella/blob/v${VERSION}/llms-install.md`), never `blob/main` —
+   a release pointer must not resolve against mutable `main`. The generic README paste-prompt keeps
+   `blob/main` deliberately (it is the "install latest" entry, anchored by the `uvx panella@<VER>`
+   version pin inside the doc); its own note already points readers at the tag-pinned form for a
+   pinned install.
 
 ## 4. Verify Commands
 
