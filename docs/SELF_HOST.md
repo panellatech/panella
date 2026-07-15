@@ -33,7 +33,8 @@ An air-gapped machine still needs the wheel and the digest-pinned images availab
 does not fetch a compose file, but Docker may need to pull images unless they have been preloaded.
 
 `up`/agent workflows never need, and are never handed, the approval credential — bearer and
-approval-token are separate credentials, and the agent/MCP surface is candidates-only by design.
+approval-token are separate credentials, and the agent-facing write path is propose-only by
+design (the MCP approval endpoints that do exist require that separate approval credential).
 Mode `0600` blocks subjects under *other* UIDs — since the arbitrary-uid work the containers run
 as the operator UID, so the container itself is not a separate subject; for a full-shell agent
 under the same operator UID, the hard subject boundary is that agent's sandbox/permission model,

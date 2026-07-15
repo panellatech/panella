@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # The evidence publish gate. Nothing from the drill bundle (PR bodies included) may be published
-# before this passes: exact-match scrub of every minted secret, a zero-hit re-scan, gitleaks, and
-# an optional extra scanner (PANELLA_EXTRA_SCAN=<executable> — it receives the bundle dir as $1).
+# before this passes: a completeness manifest (all three scenarios, all lifecycle phases, union
+# coverage for every secret-minting scenario), exact-match scrub of every minted secret, a
+# zero-hit re-scan, gitleaks, and an optional extra scanner (PANELLA_EXTRA_SCAN=<executable> —
+# it receives the bundle dir as $1).
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -17,18 +19,51 @@ if [ ! -f "${UNION}" ]; then
   exit 1
 fi
 
+# Completeness manifest: the gate covers a full D-1/D-2/D-3 protocol run, not whatever subset
+# happens to be on disk. A missing scenario kind or a missing phase file fails the gate.
+python3 - "${ROOT}" "${UNION}" <<'PY'
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+union_rows = [line.split("\t", 1)[0] for line in open(sys.argv[2]) if line.strip()]
+required_phases = {
+    "d1": ["pre.txt", "postup.txt", "preteardown.txt", "teardown.txt", "post.txt"],
+    "d2": ["pre.txt", "postup.txt", "preteardown.txt", "teardown.txt", "post.txt"],
+    "d3": ["pre.txt", "preteardown.txt", "teardown.txt", "post.txt"],
+}
+problems = []
+for kind, phases in required_phases.items():
+    dirs = sorted(p for p in root.glob(f"{kind}-*") if (p / "evidence").is_dir())
+    if not dirs:
+        problems.append(f"no {kind} scenario evidence present")
+        continue
+    for d in dirs:
+        problems.extend(
+            f"{d.name}: missing evidence phase {phase}"
+            for phase in phases
+            if not (d / "evidence" / phase).is_file()
+        )
+for kind in ("d1", "d2"):
+    problems.extend(
+        f"union missing label {kind}-{suffix}"
+        for suffix in ("owner-bearer", "approval-token", "api-key")
+        if f"{kind}-{suffix}" not in union_rows
+    )
+if problems:
+    print("gate manifest FAILED:", file=sys.stderr)
+    for p in problems:
+        print(f"  - {p}", file=sys.stderr)
+    sys.exit(1)
+print("gate manifest: all scenarios present with full phase evidence + union coverage")
+PY
+
 rm -rf "${BUNDLE}"
 mkdir -p "${BUNDLE}"
-found=0
 for dir in "${ROOT}"/d1-* "${ROOT}"/d2-* "${ROOT}"/d3-*; do
   [ -d "${dir}/evidence" ] || continue
-  found=1
   cp -R "${dir}/evidence" "${BUNDLE}/$(basename "${dir}")"
 done
-if [ "${found}" = "0" ]; then
-  echo "no scenario evidence found under ${ROOT}" >&2
-  exit 1
-fi
 
 python3 "${HERE}/scrub_evidence.py" --evidence-root "${BUNDLE}" --secrets "${UNION}"
 

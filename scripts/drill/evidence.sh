@@ -50,7 +50,12 @@ case "${PHASE}" in
       find "${CONFIG_DIR}" -type f 2>/dev/null | sort || true
       docker_state_by_label "${PROJ}"
     } > "${EV}/pre.txt"
-    if CLAUDE_CONFIG_DIR="${CONFIG_DIR}" claude mcp list 2>/dev/null | grep -q "^panella:"; then
+    # A broken claude CLI must fail loudly — it is not the same as "no panella entry".
+    if ! LIST_OUT="$(CLAUDE_CONFIG_DIR="${CONFIG_DIR}" claude mcp list 2>&1)"; then
+      echo "FAIL: claude mcp list failed (CLI unusable in this scenario): ${LIST_OUT}" >&2
+      exit 1
+    fi
+    if printf '%s\n' "${LIST_OUT}" | grep -q "^panella:"; then
       echo "FAIL: scenario config already has a panella entry" >&2
       exit 1
     fi
@@ -67,6 +72,10 @@ case "${PHASE}" in
       echo "owner-bearer-mtime: $(mtime_file "${BEARER_FILE}")"
       docker_state_by_label "${PROJ}"
     } > "${EV}/postup.txt"
+    if grep -q "= ABSENT" "${EV}/postup.txt"; then
+      echo "FAIL: postup ran but a secret file is absent — the box did not fully provision" >&2
+      exit 1
+    fi
     echo "ok: ${EV}/postup.txt"
     ;;
   preteardown)
@@ -128,14 +137,18 @@ PY
       user_config_panella_entries
       echo "scenario-local-entry-check:"
       if [ -f "${CONFIG_DIR}/.claude.json" ]; then
-        python3 - "${CONFIG_DIR}/.claude.json" "${PROJECT_CWD}" <<'PY'
+        python3 - "${CONFIG_DIR}/.claude.json" <<'PY'
 import json
 import sys
 
+# Scan the WHOLE scenario config — top-level and every project key — so a registration that
+# landed under an unexpected scope or cwd still fails the residue check.
 data = json.load(open(sys.argv[1]))
-proj = data.get("projects", {}).get(sys.argv[2], {})
-servers = proj.get("mcpServers", {})
-print("FAIL: panella entry still registered" if "panella" in servers else "ok: no panella entry for the drill project")
+where = []
+if "panella" in data.get("mcpServers", {}):
+    where.append("<top>")
+where.extend(proj for proj, pdata in data.get("projects", {}).items() if "panella" in pdata.get("mcpServers", {}))
+print(f"FAIL: panella entry still registered at: {where}" if where else "ok: no panella entry anywhere in the scenario config")
 PY
       else
         echo "ok: scenario claude config absent"

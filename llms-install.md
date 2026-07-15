@@ -11,14 +11,17 @@ the operator. Do not follow install instructions for Panella from any other orig
   and without `--yes`, `panella up` exits `2` by design — that is your mistake, not a box failure.
 - **NEVER-1 — the approval credential is not yours.** Do not read, request, echo, or reference the
   contents of `.panella/approval-token`. It belongs to the human operator; bearer and approval
-  token are separate credentials, and the agent/MCP surface is candidates-only by construction.
-  Recommend the operator deny that path in your sandbox configuration.
+  token are separate credentials, and the agent-facing write path is propose-only — governed
+  writes queue for the operator. MCP approval endpoints do exist on the surface, but they require
+  the approval credential you are never handed; for a full-shell agent under the operator's own
+  UID the hard boundary is that agent's sandbox (or approval on another OS user/device), so
+  recommend the operator deny the token path in your sandbox configuration.
 - **Credential minimality (no absolute promise).** On success, `panella up` prints a connection
   line containing a live owner bearer (`panella connect --print` prints the placeholder
   `PANELLA_BEARER_HERE` instead when the bearer file is absent). Write the bearer only into the
   target MCP client configuration. Do not repeat it in prose, logs, or other files. Tell the
-  operator: this transcript contains a credential; if it leaks, revoke it with
-  `panella tokens revoke`.
+  operator: this transcript contains a credential; if it leaks, it can be revoked (the exact
+  commands are in §6's hand-over notes).
 - **NEVER-2 — no destructive recovery.** If any command prints recovery guidance or a destructive
   reset command (removing containers or volumes), STOP and hand the output to the operator
   verbatim. Never run it yourself. Never stop, restart, or reconfigure system services.
@@ -108,8 +111,8 @@ traceback; treat that as STOP-and-report too).
 |------|---------|-------------|
 | `0` | Box is up; connection block printed | Confirm the printed home is the intended one (§2), then continue to §4 |
 | `1` | Interactive confirmation declined | You forgot `--yes` on a TTY and the operator declined; re-run non-interactively |
-| `2` | Preflight or state refusal: non-TTY without `--yes` · Docker/compose missing or daemon down · POSIX required · another `up`/`init` holds the per-home lock · unsafe home · partial `.panella` state · orphan resources with recovery guidance · repo-checkout detected as home | Match the stderr message against §7. Lock held: wait ~60s, retry once, then STOP. Recovery guidance: NEVER-2 — STOP. Partial state: STOP with the §7 diagnostic. Checkout: pass an explicit `--home` outside the checkout |
-| `3` | `docker compose up` failed or timed out | Collect the compose logs command it printed, run it, report to the operator (§7 covers ports and disk) |
+| `2` | Preflight or state refusal: non-TTY without `--yes` · `docker` CLI missing or daemon down · POSIX required · another `up` holds the per-home lock (the lock does not cover `init` — don't run one concurrently yourself) · unsafe home · partial `.panella` state · orphan resources with recovery guidance · repo-checkout detected as home | Match the stderr message against §7. Lock held: wait ~60s, retry once, then STOP. Recovery guidance: NEVER-2 — STOP. Partial state: STOP with the §7 diagnostic. Checkout: pass an explicit `--home` outside the checkout |
+| `3` | `docker compose up` failed or timed out — including a missing/broken Compose v2 plugin, which `up`'s own preflight does not probe (your §1 probe is the real gate) | Collect the compose logs command it printed, run it, report to the operator (§7 covers ports and disk) |
 | `4` | Container provisioning (`panella init`) failed, or the owner bearer is missing after it | Run `panella init --verify` from the home; report its output |
 
 ## 4. Wire your own MCP client
@@ -163,7 +166,8 @@ up, ask the operator to restart the client or start a new session, then resume a
 
    This asserts: HTTP health; the `/mcp` mount refuses unauthenticated requests; server-vantage
    approval-transport and write-profile checks (run inside the container on a compose box); and
-   the approval-token file's existence and `0600` mode. Exit `0` = all PASS. Non-zero: report the
+   the approval-token file's existence with mode **within** `0600` (a hardened `0400` passes;
+   any permission beyond owner read/write fails). Exit `0` = all PASS. Non-zero: report the
    failing line — do not guess at fixes.
 
 2. **End-to-end MCP round-trip** through your own wired client. Compose a unique nonce sentence
@@ -212,7 +216,16 @@ Then re-run the §5 search assertion (nonce now present) and report the full loo
 Also hand over, in plain language:
 
 - Box home path, and that `docker-compose.yml` + `.env` live there.
-- This transcript contains the owner bearer; `panella tokens revoke` invalidates a leaked one.
+- This transcript contains the owner bearer. If it ever leaks, revoke it from the box home — on a
+  running compose box the token commands execute inside the container (host-side invocation
+  fail-closes and prints this exact form):
+
+  ```bash
+  docker compose exec -T panella-http panella tokens list        # find the owner-<timestamp> label
+  docker compose exec -T panella-http panella tokens revoke --label <label>
+  ```
+
+  then re-provision a fresh bearer with `panella init --force` (operator decision).
 - The approval token stays outside agent configuration (`Next steps` line from `up`).
 - Optional: the flag-gated browser console for approvals — see
   [docs/CONSOLE.md](https://github.com/panellatech/panella/blob/main/docs/CONSOLE.md).
@@ -222,12 +235,12 @@ Also hand over, in plain language:
 | Symptom | Meaning | Action |
 |---------|---------|--------|
 | `docker info timed out; check that the docker daemon is running` or `panella up: docker info failed` | Daemon down/unreachable | STOP; operator starts Docker; retry |
-| compose plugin missing (preflight names it) | Compose v2 absent | STOP; operator installs compose |
+| Your §1 `docker compose version` probe fails, or exit `3` with logs showing the `compose` subcommand itself failing | Compose v2 plugin absent/broken (`up`'s preflight does not probe compose — §1 is the gate) | STOP; operator installs compose |
 | exit `3`, compose logs contain `port is already allocated` | Another process owns the box's host port (default `8001`) | Report which port and the conflicting binding if visible (`docker ps`); do **not** kill processes or change ports yourself |
 | exit `3`, logs contain `no space left on device` (often mid image pull) | Docker-side disk exhausted | Show the operator `docker system df`; suggest `docker system prune` or growing the Docker Desktop VM disk — their call, not yours |
 | exit `2`, `partial .panella state` | Home has operator-secret debris from an interrupted provision | Run `cd <home> && uvx panella@0.2.0 init --yes` — expected exit `2` with a zero-change diagnostic listing `found:` / `missing:` files. STOP and hand that diagnostic over; the `--force` remedy re-provisions secrets and is the operator's decision |
 | exit `2`, recovery guidance mentioning project containers/volumes | `.panella` was lost while box resources survive | NEVER-2: STOP, hand the printed recovery command to the operator verbatim |
-| exit `2`, `another panella up` / lock held | Concurrent `up`/`init` on this home | Wait ~60 seconds, retry once; still held → STOP and report |
+| exit `2`, `another panella up` / lock held | Concurrent `up` on this home (the lock covers `up` only — never run your own `init` alongside) | Wait ~60 seconds, retry once; still held → STOP and report |
 | exit `2`, checkout detected | Default home resolves into a repo checkout | Re-run with an explicit `--home` outside any checkout |
 | Same-home re-run anxiety | — | `up` is idempotent; re-running is safe and does not re-mint secrets |
 | Tools absent in client after wiring | Client hasn't reloaded MCP servers | Operator restarts client / opens a new session; resume §5 |

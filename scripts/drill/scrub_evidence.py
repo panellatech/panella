@@ -16,6 +16,7 @@ from pathlib import Path
 
 def load_union(path: Path) -> list[tuple[str, bytes]]:
     rows: list[tuple[str, bytes]] = []
+    seen: dict[bytes, str] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
@@ -24,9 +25,16 @@ def load_union(path: Path) -> list[tuple[str, bytes]]:
             raise SystemExit(f"malformed union row (expected label<TAB>value): {label!r}")
         if len(value) < 8:
             raise SystemExit(f"suspiciously short secret for {label!r}; refusing to scrub with it")
-        rows.append((label, value.encode("utf-8")))
+        encoded = value.encode("utf-8")
+        if encoded in seen:
+            raise SystemExit(f"duplicate secret value under {seen[encoded]!r} and {label!r} — a re-mint should differ; investigate")
+        seen[encoded] = label
+        rows.append((label, encoded))
     if not rows:
         raise SystemExit("empty secret union — nothing to gate against; refusing to pass vacuously")
+    # Longest-first so a secret that contains another as a substring is replaced before the
+    # shorter one can punch a hole through its middle and leave unmatched fragments behind.
+    rows.sort(key=lambda row: len(row[1]), reverse=True)
     return rows
 
 
