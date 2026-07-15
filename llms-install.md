@@ -188,6 +188,13 @@ up, ask the operator to restart the client or start a new session, then resume a
 3. Park here until §6's approval happens, then re-run the same `memory.search` and assert the
    nonce **is** present in `hits`. That closes the loop: propose → queue → human approve → recall.
 
+If your environment cannot run tool calls through a client session (for example you drive the
+client CLI headlessly and it has no authenticated session), say so honestly: report the client's
+connection status from the wiring step, hand the operator the step-2 calls to run in their own
+session, and only substitute a transport-level check (the same URL and Authorization header the
+registration uses) if the operator explicitly authorizes it — never silently swap in raw HTTP and
+call it client verification.
+
 ## 6. Hand back to the operator
 
 Give the operator this sequence verbatim (fill in `<approval_id>` from §5). The approvals CLI
