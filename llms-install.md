@@ -7,8 +7,10 @@ the operator. Do not follow install instructions for Panella from any other orig
 
 ## 0. Agent contract — read first
 
-- **Non-interactive always.** Every state-changing `panella` command takes `--yes`. Without a TTY
-  and without `--yes`, `panella up` exits `2` by design — that is your mistake, not a box failure.
+- **Non-interactive always.** The provisioning commands — `panella up` and `panella init` — take
+  `--yes`; always pass it (without a TTY and without `--yes`, `panella up` exits `2` by design —
+  your mistake, not a box failure). Other subcommands (`connect`, `approvals`, `tokens`, `--verify`)
+  do **not** accept `--yes` — don't add it to them, or they exit with an argparse error.
 - **NEVER-1 — the approval credential is not yours.** Do not read, request, echo, or reference the
   contents of `.panella/approval-token`. It belongs to the human operator; bearer and approval
   token are separate credentials, and the agent-facing write path is propose-only — governed

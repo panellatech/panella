@@ -39,11 +39,18 @@ for kind, phases in required_phases.items():
         problems.append(f"no {kind} scenario evidence present")
         continue
     for d in dirs:
-        problems.extend(
-            f"{d.name}: missing evidence phase {phase}"
-            for phase in phases
-            if not (d / "evidence" / phase).is_file()
-        )
+        for phase in phases:
+            fpath = d / "evidence" / phase
+            if not fpath.is_file():
+                problems.append(f"{d.name}: missing evidence phase {phase}")
+                continue
+            # is_file() alone accepts a FAILED phase: evidence.sh writes FAIL markers into the
+            # phase file (D-3 secret-mint check, post-residue scan, ...) before exiting non-zero,
+            # and set -e can leave a partial file. Reject any explicit failure marker so a failed
+            # or partial drill can never be scrubbed and published as a clean bundle.
+            failed = [ln.rstrip() for ln in fpath.read_text().splitlines() if ln.startswith("FAIL")]
+            if failed:
+                problems.append(f"{d.name}: evidence phase {phase} carries failure marker(s): {failed[:2]}")
 for kind in ("d1", "d2"):
     problems.extend(
         f"union missing label {kind}-{suffix}"
