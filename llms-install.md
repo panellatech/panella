@@ -41,10 +41,12 @@ the operator. Do not follow install instructions for Panella from any other orig
   `uvx --from <path>/panella-<VER>-py3-none-any.whl panella <cmd>`), that mapping *is* your runner —
   use it for every command. Do not mix runners mid-install. `<VER>` is the release you are
   installing (the tag this file shipped with; examples below use `0.2.0`).
-  **Every `uvx panella@0.2.0 …` in the examples below — install, verification, approvals hand-back,
-  troubleshooting — is a stand-in for *that* recorded runner; substitute yours in all of them.** An
-  agent that installs from a local wheel but then verifies with `uvx panella@0.2.0` would hit real
-  PyPI (failing in an air-gapped or pre-release drill) or check a different CLI than it installed.
+  **Below, `<runner>` means exactly the runner you record here** — write it out as your chosen form
+  (`uvx panella@0.2.0`, or `uvx --from <wheel> panella`, or a bare `panella` after `uv tool install`).
+  Every `<runner>` in the examples — install, verification, approvals hand-back, troubleshooting — is
+  that same runner. An agent that installs from a local wheel but then verifies with real-PyPI
+  `uvx panella@0.2.0` would fail in an air-gapped/pre-release drill, or check a different CLI than the
+  one it installed.
 
 ## 1. Prerequisites — check, don't fix
 
@@ -171,7 +173,7 @@ up, ask the operator to restart the client or start a new session, then resume a
 1. **Box self-check** (from the box home):
 
    ```bash
-   cd "$PANELLA_HOME" && uvx panella@0.2.0 init --verify
+   cd "$PANELLA_HOME" && <runner> init --verify
    ```
 
    This asserts: HTTP health; the `/mcp` mount refuses unauthenticated requests; server-vantage
@@ -218,8 +220,8 @@ only from `--token` or the `PANELLA_BEARER` environment variable — it is not a
 ```bash
 cd <box-home>
 export PANELLA_BEARER="$(cat .panella/owner-bearer)"
-uvx panella@0.2.0 approvals list
-uvx panella@0.2.0 approvals approve <approval_id>
+<runner> approvals list
+<runner> approvals approve <approval_id>
 ```
 
 Then re-run the §5 search assertion (nonce now present) and report the full loop as verified.
@@ -248,7 +250,7 @@ Also hand over, in plain language:
 | Your §1 `docker compose version` probe fails, or exit `3` with logs showing the `compose` subcommand itself failing | Compose v2 plugin absent/broken (`up`'s preflight does not probe compose — §1 is the gate) | STOP; operator installs compose |
 | exit `3`, compose logs contain `port is already allocated` | Another process owns the box's host port (default `8001`) | Report which port and the conflicting binding if visible (`docker ps`); do **not** kill processes or change ports yourself |
 | exit `3`, logs contain `no space left on device` (often mid image pull) | Docker-side disk exhausted | Show the operator `docker system df`; suggest `docker system prune` or growing the Docker Desktop VM disk — their call, not yours |
-| exit `2`, `partial .panella state` | Home has operator-secret debris from an interrupted provision | Run `cd <home> && uvx panella@0.2.0 init --yes` — expected exit `2` with a zero-change diagnostic listing `found:` / `missing:` files. STOP and hand that diagnostic over; the `--force` remedy re-provisions secrets and is the operator's decision |
+| exit `2`, `partial .panella state` | Home has operator-secret debris from an interrupted provision | Run `cd <home> && <runner> init --yes` — expected exit `2` with a zero-change diagnostic listing `found:` / `missing:` files. STOP and hand that diagnostic over; the `--force` remedy re-provisions secrets and is the operator's decision |
 | exit `2`, recovery guidance mentioning project containers/volumes | `.panella` was lost while box resources survive | NEVER-2: STOP, hand the printed recovery command to the operator verbatim |
 | exit `2`, `another panella up` / lock held | Concurrent `up` on this home (the lock covers `up` only — never run your own `init` alongside) | Wait ~60 seconds, retry once; still held → STOP and report |
 | exit `2`, checkout detected | Default home resolves into a repo checkout | Re-run with an explicit `--home` outside any checkout |

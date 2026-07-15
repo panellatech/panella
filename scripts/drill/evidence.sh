@@ -74,6 +74,7 @@ case "${PHASE}" in
       echo "FAIL: scenario config already has a panella entry" >&2
       exit 1
     fi
+    echo "PHASE_OK pre" >> "${EV}/pre.txt"  # positive marker, written only after every check passed
     echo "ok: ${EV}/pre.txt"
     ;;
   postup)
@@ -91,6 +92,7 @@ case "${PHASE}" in
       echo "FAIL: postup ran but a secret file is absent — the box did not fully provision" >&2
       exit 1
     fi
+    echo "PHASE_OK postup" >> "${EV}/postup.txt"
     echo "ok: ${EV}/postup.txt"
     ;;
   preteardown)
@@ -144,6 +146,7 @@ PY
         docker_state_by_label "${PROJ}"
       } > "${EV}/preteardown.txt"
     fi
+    echo "PHASE_OK preteardown" >> "${EV}/preteardown.txt"
     echo "ok: ${EV}/preteardown.txt"
     ;;
   post)
@@ -203,6 +206,7 @@ PY
       echo "FAIL: real user config panella registrations drifted during the drill" >&2
       exit 1
     fi
+    echo "PHASE_OK post" >> "${EV}/post.txt"
     echo "ok: ${EV}/post.txt"
     ;;
   *)

@@ -46,5 +46,6 @@ if [ -n "${LEFT_C}${LEFT_V}${LEFT_N}" ]; then
   exit 1
 fi
 
+echo "PHASE_OK teardown" >> "${EVIDENCE_DIR}/teardown.txt"  # only after emptiness assertions passed
 rm -rf "${HOME_DIR}"
 echo "ok: ${PROJ} fully removed; evidence kept at ${EVIDENCE_DIR}"

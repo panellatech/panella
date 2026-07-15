@@ -55,11 +55,17 @@ for kind, phases in required_phases.items():
             if not fpath.is_file():
                 problems.append(f"{d.name}: missing evidence phase {phase}")
                 continue
-            # is_file() alone accepts a FAILED phase: evidence.sh writes FAIL markers into the
-            # phase file (D-3 secret-mint check, post-residue scan, ...) before exiting non-zero,
-            # and set -e can leave a partial file. Reject any explicit failure marker so a failed
-            # or partial drill can never be scrubbed and published as a clean bundle.
-            failed = [ln.rstrip() for ln in fpath.read_text().splitlines() if ln.startswith("FAIL")]
+            # is_file() alone accepts a FAILED phase: evidence.sh/teardown.sh write the phase file
+            # BEFORE their checks run, so a phase that exits non-zero (broken claude CLI, leftover
+            # resources, set -e mid-write) leaves a file with NO failure marker at all. Require the
+            # POSITIVE sentinel that each phase appends only after every check for it passed
+            # ("PHASE_OK <phase>") — a failed or partial phase never reaches it, so it can never be
+            # scrubbed and published as a clean bundle.
+            body = fpath.read_text()
+            phase_name = phase[:-4] if phase.endswith(".txt") else phase
+            if f"PHASE_OK {phase_name}" not in body:
+                problems.append(f"{d.name}: evidence phase {phase} lacks its success sentinel (failed/partial run)")
+            failed = [ln.rstrip() for ln in body.splitlines() if ln.startswith("FAIL")]
             if failed:
                 problems.append(f"{d.name}: evidence phase {phase} carries failure marker(s): {failed[:2]}")
 for kind in ("d1", "d2"):
