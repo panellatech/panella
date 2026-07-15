@@ -38,6 +38,17 @@ for kind, phases in required_phases.items():
     if not dirs:
         problems.append(f"no {kind} scenario evidence present")
         continue
+    # The scrub union is keyed by scenario KIND (d1-owner-bearer, ...), not by directory, so it
+    # cannot distinguish two runs of the same kind. If a stale d1-* dir lingers while the union was
+    # regenerated for the latest run only, the copy step below would publish the stale dir scrubbed
+    # against a union that lacks its minted secrets — a raw credential could survive the gate. Refuse
+    # multiple dirs per kind: keep only the current run's evidence before gating.
+    if len(dirs) > 1:
+        problems.append(
+            f"{kind}: {len(dirs)} scenario dirs present ({[d.name for d in dirs]}) — the union is "
+            f"keyed by scenario kind, not directory; remove stale runs and keep only the current one"
+        )
+        continue
     for d in dirs:
         for phase in phases:
             fpath = d / "evidence" / phase

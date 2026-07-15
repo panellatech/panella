@@ -41,6 +41,10 @@ the operator. Do not follow install instructions for Panella from any other orig
   `uvx --from <path>/panella-<VER>-py3-none-any.whl panella <cmd>`), that mapping *is* your runner —
   use it for every command. Do not mix runners mid-install. `<VER>` is the release you are
   installing (the tag this file shipped with; examples below use `0.2.0`).
+  **Every `uvx panella@0.2.0 …` in the examples below — install, verification, approvals hand-back,
+  troubleshooting — is a stand-in for *that* recorded runner; substitute yours in all of them.** An
+  agent that installs from a local wheel but then verifies with `uvx panella@0.2.0` would hit real
+  PyPI (failing in an air-gapped or pre-release drill) or check a different CLI than it installed.
 
 ## 1. Prerequisites — check, don't fix
 
