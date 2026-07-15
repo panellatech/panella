@@ -18,16 +18,34 @@ BEARER_FILE="${HOME_DIR}/.panella/owner-bearer"
 APPROVAL_FILE="${HOME_DIR}/.panella/approval-token"
 ENV_FILE="${HOME_DIR}/.env"
 
-user_config_hashes() {
-  echo "real-user-claude-json: $(sha256_file "${HOME}/.claude.json")"
-  echo "real-user-claude-dir-mcp: $(sha256_file "${HOME}/.claude/.claude.json")"
+# The real user config mutates constantly for unrelated reasons (any live Claude session writes
+# it), so whole-file hashes cannot prove non-interference. The assertion that matters: the drill
+# must not add/remove/modify any `panella` MCP registration in the REAL user config.
+user_config_panella_entries() {
+  python3 - "${HOME}/.claude.json" <<'PY'
+import json
+import sys
+
+try:
+    data = json.load(open(sys.argv[1]))
+except OSError:
+    print("real-user-panella-entries: CONFIG_ABSENT")
+    raise SystemExit(0)
+entries = {}
+if "panella" in data.get("mcpServers", {}):
+    entries["<top>"] = data["mcpServers"]["panella"]
+for proj, pdata in data.get("projects", {}).items():
+    if "panella" in pdata.get("mcpServers", {}):
+        entries[proj] = pdata["mcpServers"]["panella"]
+print("real-user-panella-entries: " + json.dumps(entries, sort_keys=True))
+PY
 }
 
 case "${PHASE}" in
   pre)
     {
       echo "phase: pre  scenario: ${SCENARIO}  proj: ${PROJ}"
-      user_config_hashes
+      user_config_panella_entries
       echo "scenario-claude-config-inventory:"
       find "${CONFIG_DIR}" -type f 2>/dev/null | sort || true
       docker_state_by_label "${PROJ}"
@@ -105,7 +123,7 @@ PY
   post)
     {
       echo "phase: post  scenario: ${SCENARIO}"
-      user_config_hashes
+      user_config_panella_entries
       echo "scenario-local-entry-check:"
       if [ -f "${CONFIG_DIR}/.claude.json" ]; then
         python3 - "${CONFIG_DIR}/.claude.json" "${PROJECT_CWD}" <<'PY'
@@ -129,16 +147,23 @@ PY
     if ! python3 - "${EV}/pre.txt" "${EV}/post.txt" <<'PY'
 import sys
 
-def lines(path, prefix):
-    return sorted(line for line in open(path) if line.startswith(prefix))
+def entries(path):
+    rows = [line for line in open(path) if line.startswith("real-user-panella-entries: ")]
+    return rows[-1].strip() if rows else None
 
-pre, post = sys.argv[1], sys.argv[2]
-ok = lines(pre, "real-user-") == lines(post, "real-user-")
-print("ok: real user Claude config byte-identical" if ok else "FAIL: real user Claude config changed")
+pre, post = entries(sys.argv[1]), entries(sys.argv[2])
+if post is None:
+    print("FAIL: post snapshot missing the real-user panella-entries line")
+    sys.exit(1)
+# A pre snapshot from an older harness revision lacks the line; the drill must then have left
+# zero panella registrations behind.
+expected = pre if pre is not None else 'real-user-panella-entries: {}'
+ok = post == expected
+print("ok: real user panella registrations unchanged" if ok else f"FAIL: real user panella registrations changed\n  pre:  {expected}\n  post: {post}")
 sys.exit(0 if ok else 1)
 PY
     then
-      echo "FAIL: real user config drifted during the drill" >&2
+      echo "FAIL: real user config panella registrations drifted during the drill" >&2
       exit 1
     fi
     echo "ok: ${EV}/post.txt"

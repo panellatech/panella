@@ -63,9 +63,15 @@ handled in §7.
 ```bash
 export PANELLA_HOME="$HOME/panella-box"   # or the directory the operator chose
 mkdir -p "$PANELLA_HOME" && cd "$PANELLA_HOME"
-uvx panella@0.2.0 up --yes
+uvx panella@0.2.0 up --yes --home "$PWD"
 ```
 
+- **Always pass `--home "$PWD"`.** `up` does not infer the home from your working directory — it
+  reads `--home`, else `PANELLA_HOME`, else silently defaults to `~/panella-box`. If you run
+  commands as separate shell invocations, an `export` from an earlier invocation is gone, and a
+  bare `up --yes` will succeed (exit `0`) against the wrong directory. `--home "$PWD"` after the
+  `cd` makes the directory you chose and the directory you install into the same thing by
+  construction.
 - The box home defaults to `~/panella-box` when `PANELLA_HOME` and `--home` are both absent.
   Record the resolved (symlink-free) path; one home maps to one Compose project.
 - Pin the version. `uvx panella@<VER> up --yes` is the whole install: it materializes a
@@ -87,6 +93,12 @@ Next steps: keep the operator approval token outside agent configuration.
 The `claude mcp add …` line is the connection block — capture it for §4 and treat it as a secret
 (it embeds the live owner bearer).
 
+**Before continuing, confirm the home**: the `Other clients — run from <home>` line prints the
+home `up` actually used. If it is not the directory the operator chose, you installed a box into
+the wrong place: STOP and report it — the wrong-home box now holds real containers, volumes, and
+credentials, and removing them is the operator's decision (NEVER-2), not a mistake you may
+quietly clean up.
+
 ## 3. Exit codes — what `panella up` means
 
 These are the expected, designed paths (an uncaught OS exception can still surface as a raw
@@ -94,7 +106,7 @@ traceback; treat that as STOP-and-report too).
 
 | Code | Meaning | Your action |
 |------|---------|-------------|
-| `0` | Box is up; connection block printed | Continue to §4 |
+| `0` | Box is up; connection block printed | Confirm the printed home is the intended one (§2), then continue to §4 |
 | `1` | Interactive confirmation declined | You forgot `--yes` on a TTY and the operator declined; re-run non-interactively |
 | `2` | Preflight or state refusal: non-TTY without `--yes` · Docker/compose missing or daemon down · POSIX required · another `up`/`init` holds the per-home lock · unsafe home · partial `.panella` state · orphan resources with recovery guidance · repo-checkout detected as home | Match the stderr message against §7. Lock held: wait ~60s, retry once, then STOP. Recovery guidance: NEVER-2 — STOP. Partial state: STOP with the §7 diagnostic. Checkout: pass an explicit `--home` outside the checkout |
 | `3` | `docker compose up` failed or timed out | Collect the compose logs command it printed, run it, report to the operator (§7 covers ports and disk) |
