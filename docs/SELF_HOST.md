@@ -34,9 +34,11 @@ does not fetch a compose file, but Docker may need to pull images unless they ha
 
 `up`/agent workflows never need, and are never handed, the approval credential — bearer and
 approval-token are separate credentials, and the agent/MCP surface is candidates-only by design.
-Mode `0600` blocks other UIDs (including the container UID); for a full-shell agent under the same
-operator UID, the hard subject boundary is that agent's sandbox/permission model, or moving
-approval to another OS user/device (the operator console / C0-B `.mcpb` approval endpoint).
+Mode `0600` blocks subjects under *other* UIDs — since the arbitrary-uid work the containers run
+as the operator UID, so the container itself is not a separate subject; for a full-shell agent
+under the same operator UID, the hard subject boundary is that agent's sandbox/permission model,
+or moving approval to another OS user/device (the operator console / C0-B `.mcpb` approval
+endpoint).
 
 The per-home lock uses POSIX `flock`; it coordinates concurrent `up` calls on the same host only.
 `up` and a separately started `init` are not a transaction and should not be run concurrently. If

@@ -1,0 +1,27 @@
+# Panella
+
+> Governed, self-hosted memory for AI agents. A standard MCP server where every write is proposed,
+> approved by a named person, and made durable only against a chain-verified approval receipt.
+> Default-deny, fully auditable, Apache-2.0, runs on your own box.
+
+## For agents
+
+- [Agent install guide](https://github.com/panellatech/panella/blob/main/llms-install.md): install
+  and onboard a box end-to-end (prerequisites, `uvx panella up`, client wiring, verification,
+  operator hand-back)
+
+## Docs
+
+- [README](https://github.com/panellatech/panella/blob/main/README.md): product overview and quickstart
+- [Quickstart](https://github.com/panellatech/panella/blob/main/docs/QUICKSTART.md): fresh box to first approved memory
+- [Self-hosting](https://github.com/panellatech/panella/blob/main/docs/SELF_HOST.md): configuration and Docker topology
+- [Governance](https://github.com/panellatech/panella/blob/main/docs/GOVERNANCE.md): the approval and audit model
+- [Security](https://github.com/panellatech/panella/blob/main/SECURITY.md): security posture and reporting
+- [Console](https://github.com/panellatech/panella/blob/main/docs/CONSOLE.md): flag-gated operator console
+- [Upgrade](https://github.com/panellatech/panella/blob/main/docs/UPGRADE.md): backup, upgrade, rollback
+- [Tenancy](https://github.com/panellatech/panella/blob/main/docs/TENANCY.md): multi-tenant boundaries
+
+## Optional
+
+- [Release runbook](https://github.com/panellatech/panella/blob/main/docs/RELEASE.md): how releases are built, signed, and verified
+- [Contributing](https://github.com/panellatech/panella/blob/main/CONTRIBUTING.md): development setup and expectations

@@ -146,6 +146,12 @@ Order is load-bearing.
 
    Repeat for `panella-app`.
 
+7. Only after step 5's real-PyPI verification passes may the repo (and the GHCR packages above) be
+   made public: `llms-install.md` and the README agent prompt tell agents to run
+   `uvx panella@<VER>`, so the moment the repo is readable that instruction must resolve against
+   real PyPI. When publishing install pointers for a release, prefer the tag-pinned URL form
+   (`https://github.com/panellatech/panella/blob/v${VERSION}/llms-install.md`) over `blob/main`.
+
 ## 4. Verify Commands
 
 ### 4.1 Pre-Flip Register
