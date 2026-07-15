@@ -127,12 +127,16 @@ adapt this shape (HTTP transport, streamable; header `Authorization: Bearer <own
 {
   "mcpServers": {
     "panella": {
+      "type": "http",
       "url": "http://127.0.0.1:8001/mcp",
       "headers": { "Authorization": "Bearer <owner-bearer>" }
     }
   }
 }
 ```
+
+(Clients that infer the transport ignore `"type"`; the `cursor` render omits it, the
+`claude-desktop` render includes it — keep it when adapting to an unknown client.)
 
 **Claude Code** (you, most likely): run the captured `claude mcp add` line **from the operator
 session's original project directory** (contract §0):

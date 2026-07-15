@@ -20,9 +20,13 @@ ENV_FILE="${HOME_DIR}/.env"
 
 # The real user config mutates constantly for unrelated reasons (any live Claude session writes
 # it), so whole-file hashes cannot prove non-interference. The assertion that matters: the drill
-# must not add/remove/modify any `panella` MCP registration in the REAL user config.
+# must not add/remove/modify any `panella` MCP registration in the REAL user config. Entries are
+# FINGERPRINTED, never dumped — a real registration carries a live Authorization header, and the
+# scrub union only knows drill-minted secrets, so raw config in evidence would be an unscrubable
+# credential leak.
 user_config_panella_entries() {
   python3 - "${HOME}/.claude.json" <<'PY'
+import hashlib
 import json
 import sys
 
@@ -31,12 +35,22 @@ try:
 except OSError:
     print("real-user-panella-entries: CONFIG_ABSENT")
     raise SystemExit(0)
+except json.JSONDecodeError:
+    # A torn read of a concurrently-written config: report it as its own state rather than
+    # crashing the phase; the pre/post comparison still catches drill-caused differences.
+    print("real-user-panella-entries: CONFIG_UNPARSEABLE")
+    raise SystemExit(0)
+
+def fingerprint(entry):
+    canonical = json.dumps(entry, sort_keys=True).encode()
+    return "sha256/12:" + hashlib.sha256(canonical).hexdigest()[:12]
+
 entries = {}
 if "panella" in data.get("mcpServers", {}):
-    entries["<top>"] = data["mcpServers"]["panella"]
+    entries["<top>"] = fingerprint(data["mcpServers"]["panella"])
 for proj, pdata in data.get("projects", {}).items():
     if "panella" in pdata.get("mcpServers", {}):
-        entries[proj] = pdata["mcpServers"]["panella"]
+        entries[proj] = fingerprint(pdata["mcpServers"]["panella"])
 print("real-user-panella-entries: " + json.dumps(entries, sort_keys=True))
 PY
 }
