@@ -57,11 +57,13 @@ case "${PHASE}" in
     echo "ok: ${EV}/pre.txt"
     ;;
   postup)
+    # Fingerprints are truncated (12 hex chars) and labeled so secret scanners don't
+    # pattern-match them as credentials; equality comparison is all the evidence needs.
     {
       echo "phase: postup  scenario: ${SCENARIO}"
-      echo "approval-token-sha256: $(sha256_file "${APPROVAL_FILE}")"
+      echo "approval-token fingerprint(sha256/12) = $(sha256_file "${APPROVAL_FILE}" | cut -c1-12)"
       echo "approval-token-mtime: $(mtime_file "${APPROVAL_FILE}")"
-      echo "owner-bearer-sha256: $(sha256_file "${BEARER_FILE}")"
+      echo "owner-bearer fingerprint(sha256/12) = $(sha256_file "${BEARER_FILE}" | cut -c1-12)"
       echo "owner-bearer-mtime: $(mtime_file "${BEARER_FILE}")"
       docker_state_by_label "${PROJ}"
     } > "${EV}/postup.txt"
