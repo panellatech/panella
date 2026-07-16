@@ -112,8 +112,19 @@ def test_container_images_preserve_non_root_group_zero_writable_paths_and_harden
         "app": "/app/data /app/dist-config",
     }
     suid_strip = "find / -xdev -perm /6000 -type f -exec chmod a-s {} + 2>/dev/null || true"
+    # CI-only derived stage (never pushed or signed): deterministic hash-fallback
+    # injection for the airgap boot gates. It is exempt from the single-USER shape
+    # (root sandwich for pip uninstall) but must still END as uid 10001 and must not
+    # redefine any runtime configuration it inherits from the store stage.
+    ci_only_stage = "store-hash-fallback-test"
 
-    assert stages.keys() == expected_paths.keys()
+    assert stages.keys() == expected_paths.keys() | {ci_only_stage}
+    ci_instructions = stages[ci_only_stage]
+    assert all(
+        instruction in {"USER", "RUN"} for instruction, _ in ci_instructions
+    ), f"{ci_only_stage} may only sandwich RUNs between USER switches"
+    ci_users = [argument for instruction, argument in ci_instructions if instruction == "USER"]
+    assert ci_users and ci_users[-1] == "10001", f"{ci_only_stage} must end as uid 10001"
     for stage_name, paths in expected_paths.items():
         instructions = stages[stage_name]
         user_indexes = [index for index, (instruction, _) in enumerate(instructions) if instruction == "USER"]

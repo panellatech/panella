@@ -89,34 +89,25 @@ def encode_sentence_transformer(model: str) -> tuple[int, str]:
 
 
 def check_onnx() -> tuple[int, str]:
+    # Exact coupling: call the same factory the serving process calls
+    # (sqlite_vec.py routes ONNX init through get_onnx_embedding_model, which
+    # returns None on missing deps and downloads/uses the same cache itself).
     try:
-        import onnxruntime  # noqa: F401
-        import tokenizers  # noqa: F401
-        from mcp_memory_service.embeddings import ONNXEmbeddingModel
+        from mcp_memory_service.embeddings import get_onnx_embedding_model
     except Exception as exc:
+        fail(f"MCP_MEMORY_USE_ONNX set but the upstream ONNX module is unavailable ({exc})")
+    model = get_onnx_embedding_model(DEFAULT_MODEL)
+    if model is None:
         fail(
-            "MCP_MEMORY_USE_ONNX requires onnxruntime and tokenizers; mount/populate "
-            "$HOME/.cache/mcp_memory/onnx_models/all-MiniLM-L6-v2/onnx/model.onnx or unset "
-            f"MCP_MEMORY_USE_ONNX ({exc})"
-        )
-    model_path = (
-        Path(os.environ.get("HOME", "/home/panella"))
-        / ".cache/mcp_memory/onnx_models/all-MiniLM-L6-v2/onnx/model.onnx"
-    )
-    if not model_path.is_file():
-        fail(
-            "MCP_MEMORY_USE_ONNX cache missing; mount/populate "
-            "$HOME/.cache/mcp_memory/onnx_models/all-MiniLM-L6-v2/onnx/model.onnx or unset "
-            "MCP_MEMORY_USE_ONNX"
+            "MCP_MEMORY_USE_ONNX set but upstream returned no ONNX model "
+            "(onnxruntime/tokenizers missing, or the model cache at "
+            "$HOME/.cache/mcp_memory/onnx_models/ is absent and not downloadable); "
+            "populate the cache or unset MCP_MEMORY_USE_ONNX"
         )
     try:
-        vector = ONNXEmbeddingModel().encode(["x"])[0]
+        vector = model.encode(["x"])[0]
     except Exception as exc:
-        fail(
-            "MCP_MEMORY_USE_ONNX initialization/encode failed; mount/populate "
-            "$HOME/.cache/mcp_memory/onnx_models/all-MiniLM-L6-v2/onnx/model.onnx or unset "
-            f"MCP_MEMORY_USE_ONNX ({exc})"
-        )
+        fail(f"MCP_MEMORY_USE_ONNX encode failed ({exc})")
     if len(vector) <= 0:
         fail("MCP_MEMORY_USE_ONNX returned an empty vector")
     return len(vector), "onnx"
