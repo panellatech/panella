@@ -1,0 +1,15 @@
+When was the board meeting moved to?
+How many dimensions do the embeddings have?
+Why is the container image so large on amd64?
+What does the health endpoint return when ready?
+How is embedding drift between two builds measured?
+What keeps a volume from hiding the baked model?
+How often does the review watcher re-trigger?
+What is the top-ten overlap used to measure?
+Which merge style keeps history linear and anonymous?
+What does the size gate check?
+How does offline mode prevent downloads at runtime?
+What compiler dependency does CPU torch drop?
+What must survive the image upgrade?
+What does pip check verify?
+How are pinned model snapshots made reproducible?

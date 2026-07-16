@@ -37,7 +37,25 @@ ENV PYTHONUNBUFFERED=1 \
 # the Rust extension under Apple-Silicon Docker (Virtualization.framework VM); 46.0.7 is proven
 # good there (bisected 45.0.5 OK / 46.0.7 OK / 47.0.0+48.0.2+49.0.0 SIGILL), and upstream
 # requires >=46.0.6. Image-layer mitigation only — drop once upstream wheels stop faulting.
-RUN pip install "mcp-memory-service[sqlite]==10.67.1" "cryptography<47"
+# ---- CPU-only ML stack (C0-3b image slimming) ----
+# pip's default resolution of mcp-memory-service pulls the CUDA torch wheel on BOTH amd64 and aarch64
+# (torch 2.13 ships CUDA wheels for both) — ~2.9GB nvidia + ~0.65GB triton of dead weight the CPU-only
+# deploy targets never use. Pre-install the +cpu torch build from the dedicated PyTorch CPU index —
+# a single trusted index for that one command (torch AND its own dependency closure resolve only from
+# there; no --extra-index-url, so no dependency-confusion surface). Then install mcp-memory-service
+# from PyPI with store-constraints.txt pinning torch to that +cpu build so the CUDA closure is never
+# resolved. This whole block MUST stay ahead of the guard_patch RUN below (guard_patch is the last
+# step allowed to touch site-packages).
+COPY docker/store/store-constraints.txt /tmp/store-constraints.txt
+RUN pip install --index-url https://download.pytorch.org/whl/cpu torch==2.13.0+cpu
+RUN pip install "mcp-memory-service[sqlite]==10.67.1" "cryptography<47" -c /tmp/store-constraints.txt
+# Authoritative build-time gate (fail-fast, protects every build incl. local): the shipped torch MUST
+# be the CPU build with no CUDA linkage and no CUDA/nvidia/triton packages, or the image build fails
+# here — before the model bake / guard / user setup. pip check catches any constraints conflict.
+RUN pip check \
+ && python -c "import torch; assert torch.__version__ == '2.13.0+cpu', torch.__version__; assert torch.version.cuda is None, torch.version.cuda; print('C0-3b torch assert OK:', torch.__version__)" \
+ && if pip list --format=freeze | grep -iqE '(^nvidia|^cuda|triton)'; then echo 'C0-3b FAIL: CUDA/nvidia/triton residue in image'; pip list --format=freeze | grep -iE '(^nvidia|^cuda|triton)'; exit 1; fi \
+ && echo 'C0-3b no-CUDA-residue assert OK'
 
 # ---- baked embedding model + fail-loud guards (C0-3a) ----
 ARG BAKE_EMBEDDING_MODEL=1

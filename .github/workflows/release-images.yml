@@ -102,12 +102,12 @@ jobs:
           fi
 
       - name: Free runner disk for the store image
-        # The store target's amd64 layer is ~3GB compressed (mcp-memory-service pulls the CUDA
-        # torch wheel on amd64; aarch64 wheels are CPU-only, so local Apple-Silicon/VPS builds
-        # never see this). A stock ubuntu runner then runs out of disk at the scan-proxy `load:`
-        # (proven: run 28818511823). Inline rm of the runner's known preinstalled toolchains
-        # (~25GB) — deliberately NOT a third-party cleanup action; this workflow's supply-chain
-        # bar is SHA-pinned-or-nothing. Slimming the image itself (CPU torch) is the C0-3 slice.
+        # Headroom, no longer load-bearing after C0-3b. Before slimming, mcp-memory-service pulled the
+        # CUDA torch wheel on BOTH amd64 and aarch64 (~3GB compressed) and a stock ubuntu runner ran
+        # out of disk at the scan-proxy `load:` (proven: run 28818511823). The store now pins
+        # torch==2.13.0+cpu (store-constraints.txt) so the image is ~1.7GB/arch with no CUDA closure;
+        # this runner cleanup is kept only as cheap headroom for the multi-arch buildx + QEMU + scan
+        # proxies. Inline rm (not a third-party action) keeps the supply-chain bar SHA-pinned-or-nothing.
         shell: bash
         run: |
           set -euo pipefail
@@ -159,10 +159,11 @@ jobs:
           exit-code: "1"
           ignore-unfixed: "true"
           format: table
-          # The store image is ~5.5GB (mcp-memory-service pulls the CUDA torch wheel on amd64), and
-          # trivy's 5m default deadline expires mid-layer-decompress ("context deadline exceeded"),
-          # failing the scan with ZERO findings — a false block, not a vuln. 20m covers the large image.
-          # (Image slimming — CPU-only torch — is the real fix, tracked as the C0-3 model-bake slice.)
+          # Before C0-3b the store image was ~5.5GB (CUDA torch) and trivy's 5m default deadline
+          # expired mid-layer-decompress ("context deadline exceeded") — a false ZERO-finding block.
+          # The image is now CPU-slim (~1.7GB) and scans well under 5m, but the 20m deadline is kept
+          # as headroom, symmetric with the app scan, so a future size regression cannot silently
+          # reintroduce the context-deadline false block.
           timeout: "20m"
 
       - name: Build app amd64 scan proxy
