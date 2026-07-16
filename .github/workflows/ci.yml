@@ -149,3 +149,65 @@ jobs:
           # actionable and would block every merge for issues we cannot resolve.
           ignore-unfixed: "true"
           format: table
+      # C0-3a sentinels are anchored to the ==10.67.1 pin; bumping the pin must re-review
+      # guard_patch + these greps (guard_patch's version assert fails the build first).
+      - name: Build CI-only deterministic hash-fallback target
+        run: docker build --target store-hash-fallback-test -t panella-store-hashtest:${{ github.sha }} .
+      - name: Airgap Case A — baked model loads without fallback
+        run: |
+          set -eu
+          # --debug overrides the stock CMD only to make INFO logs visible: the positive
+          # sentinel below is logger.info, and the stock invocation configures no root
+          # handler (upstream basicConfig runs only under --debug; cli/main.py:129).
+          # The embedding code path is identical either way.
+          docker run -d --name airgap-a --network none -e MCP_API_KEY=ci-airgap-dummy -v /data panella-store-ci:${{ github.sha }} memory server --http --debug
+          for attempt in $(seq 1 60); do
+            status="$(docker inspect -f '{{.State.Health.Status}}' airgap-a)"
+            [ "$status" = healthy ] && break
+            sleep 3
+          done
+          [ "$(docker inspect -f '{{.State.Health.Status}}' airgap-a)" = healthy ] || { docker logs airgap-a 2>&1; exit 1; }
+          docker logs airgap-a 2>&1 | grep -q "Embedding model loaded successfully"
+          docker logs airgap-a 2>&1 | grep -q "embedding preflight: success"
+          # Explicit if/exit per marker: under `set -e` a `!`-inverted command never aborts
+          # the step, so a bare `! grep` loop would gate on the LAST marker only.
+          docker logs airgap-a > /tmp/airgap-a.log 2>&1
+          for marker in \
+            "Falling back to pure-Python hash embeddings" \
+            "using pure-Python hash embeddings" \
+            "Attempting normal model loading" \
+            "Failed to load from cache" \
+            "Attempting to download" \
+            "ONNX model creation failed"; do
+            if grep -qiF "$marker" /tmp/airgap-a.log; then
+              echo "forbidden marker present: $marker"
+              exit 1
+            fi
+          done
+      - name: Airgap Case B — guard rejects deterministic hash fallback
+        run: |
+          set -eu
+          docker run -d --name airgap-b --network none -e MCP_API_KEY=ci-airgap-dummy -e PANELLA_SKIP_EMBEDDING_PREFLIGHT=1 -v /data panella-store-hashtest:${{ github.sha }}
+          for attempt in $(seq 1 40); do
+            [ "$(docker inspect -f '{{.State.Status}}' airgap-b)" = exited ] && break
+            sleep 3
+          done
+          [ "$(docker inspect -f '{{.State.Status}}' airgap-b)" = exited ] || { docker logs airgap-b 2>&1; exit 1; }
+          [ "$(docker inspect -f '{{.State.ExitCode}}' airgap-b)" != 0 ]
+          docker logs airgap-b 2>&1 | grep -q "PANELLA: refusing pure-Python hash-embedding fallback"
+      - name: Airgap Case C — explicit breakglass permits hash fallback
+        run: |
+          set -eu
+          docker run -d --name airgap-c --network none -e MCP_API_KEY=ci-airgap-dummy -e PANELLA_SKIP_EMBEDDING_PREFLIGHT=1 -e PANELLA_REQUIRE_REAL_EMBEDDINGS=0 -v /data panella-store-hashtest:${{ github.sha }}
+          for attempt in $(seq 1 60); do
+            status="$(docker inspect -f '{{.State.Health.Status}}' airgap-c)"
+            [ "$status" = healthy ] && break
+            sleep 3
+          done
+          [ "$(docker inspect -f '{{.State.Health.Status}}' airgap-c)" = healthy ] || { docker logs airgap-c 2>&1; exit 1; }
+          docker logs airgap-c 2>&1 | grep -qF "EMBEDDING PREFLIGHT SKIPPED"
+          docker logs airgap-c 2>&1 | grep -qF "HASH FALLBACK BREAKGLASS ENABLED"
+          docker logs airgap-c 2>&1 | grep -qiF "hash embeddings"
+      - name: Remove airgap test containers
+        if: always()
+        run: docker rm -f airgap-a airgap-b airgap-c || true

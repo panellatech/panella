@@ -10,7 +10,7 @@ connects with one line. Default-deny, fully auditable, runs on your own box. Apa
 ```bash
 python -m pip install .               # the panella CLI, from this checkout
 mkdir -p .panella && echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
-docker compose up -d --wait           # first boot downloads the embedding model — allow a few minutes
+docker compose up -d --wait           # embedding model is baked into the image — no first-boot download
 panella init                          # one command: owner token, approval token, governance overlay
 printf 'PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\nPANELLA_MCP_PROFILE=mcp-write\n' >> .env
 # native Linux: apply the uid override from docs/SELF_HOST.md first (Docker Desktop: skip)
@@ -64,7 +64,7 @@ explicit choice — the guarantees below are about the governed path.)
 python -m pip install .   # install the panella CLI from this checkout
 mkdir -p .panella         # create it yourself — a compose-created bind mount would be root-owned
 echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
-docker compose up -d --wait   # first boot downloads the embedding model — allow a few minutes
+docker compose up -d --wait   # embedding model is baked into the image — no first-boot download
 panella init              # provisions owner bearer + local approval token + governance overlay
 printf 'PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\nPANELLA_MCP_PROFILE=mcp-write\n' >> .env
 # native Linux: apply the uid override from docs/SELF_HOST.md first, so the box (a non-root

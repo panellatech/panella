@@ -8,7 +8,8 @@
 # local code. The release workflow emits compose.pinned.yml with build/pull_policy removed and
 # digest-pinned images for the post-flip pull-by-digest path.
 #
-# Boots with NO model/BYOK key: the store embeds locally (ONNX), the facade serves the governed
+# Boots with NO model/BYOK key: the store embeds locally with SentenceTransformer and a model baked
+# into the image (zero first-boot egress), the facade serves the governed
 # surface (health, tokens, audit, coherence gate; routine /v1/memory/* opens with the P3b
 # generic serving profile — docs/SELF_HOST.md "What serves today"). PANELLA_API_KEY is the only
 # required secret — the shared store<->facade auth, generated locally, never a provider key.
@@ -33,14 +34,16 @@ services:
     environment:
       MCP_API_KEY: ${PANELLA_API_KEY:?generate the internal secret once -- echo "PANELLA_API_KEY=$(openssl rand -hex 32)" >> .env}
       # An arbitrary PANELLA_UID is not in the image passwd, so `~` cannot resolve to /home/panella.
-      # Pin HOME explicitly so the ONNX embedding cache lands in the mounted /home/panella/.cache
-      # volume instead of an unwritable /.cache or /root/.cache (OpenShift arbitrary-uid pattern).
+      # Pin HOME explicitly so the optional ONNX opt-in cache and miscellaneous caches land in the
+      # mounted /home/panella/.cache volume instead of an unwritable /.cache or /root/.cache; the
+      # HF model is baked at /opt/hf-cache (OpenShift arbitrary-uid pattern).
       # XDG_CACHE_HOME nails the same target for any XDG-aware cache lib that ignores HOME.
       HOME: /home/panella
       XDG_CACHE_HOME: /home/panella/.cache
     volumes:
       - panella-store:/data
-      # Embedding-model cache (local ONNX embeddings) — survives container recreation.
+      # Optional MCP_MEMORY_USE_ONNX cache, miscellaneous caches, and pre-bake leftovers — survives
+      # container recreation; the baked HF model lives at /opt/hf-cache, outside this volume.
       - panella-model-cache:/home/panella/.cache
     ports:
       # Loopback only: the upstream dashboard/API for the box owner, never the LAN.

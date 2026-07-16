@@ -12,6 +12,48 @@ The compose stack builds two targets from the same Dockerfile: `store` runs the 
 SQLite Panella store, and `app` runs the governed facade. The facade mounts the store volume
 read-only for startup coherence checks; all writes go through the HTTP store adapter.
 
+## Embedding model: baked, offline by default
+
+The store image bakes `sentence-transformers/all-MiniLM-L6-v2` at revision
+`1110a243fdf4706b3f48f1d95db1a4f5529b4d41`. Its ten required model files are SHA-256-manifested
+at build time, and released images are cosign-signed. Runtime starts with `HF_HUB_OFFLINE=1`,
+`TRANSFORMERS_OFFLINE=1`, and `HF_HUB_DISABLE_TELEMETRY=1`: ordinary first boot therefore makes
+no model or telemetry network request.
+
+Before serving, the store entrypoint verifies that the build-time fail-loud guard is present and
+loads/encodes with the selected backend. A missing baked model or unusable local backend stops the
+container before it serves. The guard independently rejects upstream's pure-Python hash-embedding
+fallback; it remains active even if preflight is skipped.
+
+`BAKE_EMBEDDING_MODEL=0` is an expert bring-your-own-model build contract, not an image-size
+toggle. Choose one of these explicit paths: build the default model into the image (the normal
+setting); make a custom model available in the runtime cache; or deliberately allow first-start
+download for a custom model with all three settings below:
+
+```yaml
+HF_HOME: /home/panella/.cache/huggingface
+HF_HUB_OFFLINE: "0"
+TRANSFORMERS_OFFLINE: "0"
+```
+
+The same three-setting recipe is required when `MCP_EMBEDDING_MODEL` selects a custom model not
+already cached. Preflight is the first downloader in that mode and persists it below `HF_HOME`.
+
+`MCP_MEMORY_USE_ONNX=1` is an opt-in path. It requires `onnxruntime`, `tokenizers`, and a usable
+`$HOME/.cache/mcp_memory/onnx_models/all-MiniLM-L6-v2/onnx/model.onnx` cache; mount/populate that
+cache or leave the variable unset. Upstream can still transiently fall back from a failed ONNX
+initialization to SentenceTransformer, so treat ONNX as an explicit operational choice rather than
+the default model path.
+
+`MCP_EXTERNAL_EMBEDDING_URL` delegates to upstream's external fail-loud path only for the
+`sqlite_vec` backend. `hybrid` still needs its local SQLite primary and local model; `cloudflare`
+uses Workers AI and has no local-model preflight requirement.
+
+Two independent emergency knobs exist. `PANELLA_SKIP_EMBEDDING_PREFLIGHT=1` skips only the
+entrypoint's model checks and prints a warning on every boot; failures then surface at serving
+start. `PANELLA_REQUIRE_REAL_EMBEDDINGS=0` permits the guarded hash fallback and also prints a
+warning. Silent degraded hash embeddings require both settings to be deliberately enabled.
+
 ## Zero-clone bootstrap
 
 For a released wheel, bootstrap one self-hosted box without cloning the repository:
@@ -68,7 +110,9 @@ explicit destructive-reset command; it never deletes those resources itself.
 Compose creates three named volumes: `panella-store`, `panella-model-cache`, and
 `panella-http-data`. It also mounts local `.panella/` to `/app/local` for an optional
 operator-owned governance overlay; the local approval token should live in `panella-http-data`
-with mode `0600`. The store runs with local SQLite embeddings and no provider API key.
+with mode `0600`. The store runs with local SQLite embeddings and no provider API key. Its named
+model-cache volume is for the optional ONNX cache and other runtime caches; the default
+SentenceTransformer model is baked at `/opt/hf-cache` and is not hidden by that volume.
 
 ## Approval Setup
 

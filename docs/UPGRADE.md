@@ -5,6 +5,14 @@ The one rule: **back up first.** Everything below assumes the compose topology i
 [SELF_HOST.md](SELF_HOST.md) (a `panella-store` volume mounted read-only into the facade, plus a
 `panella-http-data` volume for the facade's own token/audit/outbox state).
 
+## Baked embedding-model upgrade
+
+Upgrading to this release switches ordinary boxes automatically to the baked embedding model from
+the same weights family. Any old Hugging Face cache in the named volume becomes an ignored,
+harmless orphan and can be cleaned up optionally. The numeric drift evidence is deferred to the
+C0-3b evidence run. Custom-model users are unaffected: they still download at runtime only when
+they use the documented explicit custom-model egress recipe.
+
 ## Step 0 — Backup
 
 ```bash

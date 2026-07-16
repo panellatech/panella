@@ -3,7 +3,8 @@
 # Two independent targets, composed by docker-compose.yml:
 #   store — near-stock upstream mcp-memory-service, PINNED to the version whose HTTP contract
 #           the facade adapter is proven against (tests/fixtures/panella_openapi_v10.67.1.json;
-#           the [sqlite] extra = local ONNX embeddings, so the store runs with NO API key).
+#           the [sqlite] extra only adds onnxruntime; the store runs SentenceTransformer/torch
+#           locally with a model baked at build time, and needs no provider API key either way).
 #   app   — this repo's memory HTTP facade (panella.http.app:create_app) plus the
 #           package-rendered per-distribution config artifact (/app/dist-config).
 #
@@ -38,9 +39,50 @@ ENV PYTHONUNBUFFERED=1 \
 # requires >=46.0.6. Image-layer mitigation only — drop once upstream wheels stop faulting.
 RUN pip install "mcp-memory-service[sqlite]==10.67.1" "cryptography<47"
 
+# ---- baked embedding model + fail-loud guards (C0-3a) ----
+ARG BAKE_EMBEDDING_MODEL=1
+ENV HF_HOME=/opt/hf-cache \
+    PANELLA_REQUIRE_REAL_EMBEDDINGS=1
+COPY docker/store/embedding_preflight.py docker/store/verify_model_manifest.py \
+     docker/store/guard_patch.py docker/store/model-manifest.sha256 /usr/local/share/panella/
+COPY --chmod=0755 docker/store/store-entrypoint.sh /usr/local/bin/store-entrypoint.sh
+# The guard bakes a fail-loud refusal of upstream's silent hash-embedding fallback into the
+# installed source (version -> anchor -> fresh-child verified); this is the LAST step allowed to
+# touch site-packages. Remove once upstream ships a native fail-fast env (tracked issue).
+RUN python /usr/local/share/panella/guard_patch.py --apply --verify
+RUN mkdir -p /opt/hf-cache && chgrp -R 0 /opt/hf-cache && chmod -R g=rX /opt/hf-cache \
+    && chmod -R a+rX /usr/local/share/panella
+# BAKE=0 is expert "bring your own model" mode (contract in docs/SELF_HOST.md), never a quiet
+# size toggle; the baked model lives outside /home/panella/.cache because the named volume masks
+# that path on every upgraded box and would silently un-pin the model.
+RUN if [ "$BAKE_EMBEDDING_MODEL" = "1" ]; then \
+      python -c "from huggingface_hub import snapshot_download; snapshot_download( \
+        repo_id='sentence-transformers/all-MiniLM-L6-v2', \
+        revision='1110a243fdf4706b3f48f1d95db1a4f5529b4d41', \
+        allow_patterns=['modules.json','sentence_bert_config.json','config_sentence_transformers.json', \
+                        'config.json','model.safetensors','tokenizer.json','tokenizer_config.json', \
+                        'vocab.txt','special_tokens_map.json','1_Pooling/config.json'])" \
+      && python /usr/local/share/panella/verify_model_manifest.py /opt/hf-cache \
+           /usr/local/share/panella/model-manifest.sha256 \
+           --repo sentence-transformers/all-MiniLM-L6-v2 \
+           --revision 1110a243fdf4706b3f48f1d95db1a4f5529b4d41 \
+      && HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 python -c "import glob; \
+           from sentence_transformers import SentenceTransformer; \
+           p = glob.glob('/opt/hf-cache/hub/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/*')[0]; \
+           v = SentenceTransformer(p, device='cpu').encode('bake smoke test'); \
+           assert len(v) == 384, len(v)" \
+      && chgrp -R 0 /opt/hf-cache && chmod -R g=rX /opt/hf-cache; \
+    fi
+# Runtime default = zero egress + zero telemetry from process start; custom-model egress is an
+# explicit three-env override (docs/SELF_HOST.md).
+ENV HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
+    HF_HUB_DISABLE_TELEMETRY=1
+
 # /home/panella/.cache must exist owned by panella BEFORE the named volume mounts over it —
 # a mountpoint Docker has to create itself is root-owned and the uid-10001 store could
-# never persist its ONNX/HF embedding-model cache there.
+# never persist its optional MCP_MEMORY_USE_ONNX cache, miscellaneous caches, or pre-bake
+# leftovers there; the HF model itself is baked into the image at /opt/hf-cache.
 RUN useradd --create-home --uid 10001 panella \
     && mkdir -p /data /home/panella/.cache \
     && chown -R panella:panella /data /home/panella/.cache \
@@ -53,7 +95,15 @@ EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=45s --retries=12 \
     CMD ["python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4).status == 200 else 1)"]
 
+ENTRYPOINT ["store-entrypoint.sh"]
 CMD ["memory", "server", "--http"]
+
+# Deterministic hash-fallback injection for CI cases B/C; never pushed or signed. This is the
+# sole exception to the "guard_patch is the last site-packages mutation" rule.
+FROM store AS store-hash-fallback-test
+USER 0
+RUN pip uninstall -y sentence-transformers
+USER 10001
 
 # --------------------------------------------------------------------------------------------
 FROM python:3.12-slim AS app
