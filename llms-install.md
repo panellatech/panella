@@ -88,7 +88,9 @@ uvx panella@0.2.0 up --yes --home "$PWD"
 - Pin the version. `uvx panella@<VER> up --yes` is the whole install: it materializes a
   release-pinned `docker-compose.yml` and `.env` into the home, starts the containers, provisions
   tokens and governance, and prints a Claude Code connection block. There is no `curl | sh` path.
-- First boot downloads an embedding model inside the containers — allow a few minutes.
+- First boot pulls the box images — allow a few minutes. The default embedding model is baked
+  into the store image, so there is no first-boot model download (custom-model exceptions:
+  `docs/SELF_HOST.md`).
 - Re-running `up` on the same home is idempotent: it re-checks state and does not re-mint secrets
   or recreate healthy containers.
 

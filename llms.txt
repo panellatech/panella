@@ -14,6 +14,7 @@
 
 - [README](https://github.com/panellatech/panella/blob/main/README.md): product overview and quickstart
 - [Quickstart](https://github.com/panellatech/panella/blob/main/docs/QUICKSTART.md): fresh box to first approved memory
+- [Team recipe](https://github.com/panellatech/panella/blob/main/docs/recipes/claude-code-team-memory.md): one governed box for a small Claude Code team — install, teammate on-ramp, daily approval rhythm, offboarding
 - [Self-hosting](https://github.com/panellatech/panella/blob/main/docs/SELF_HOST.md): configuration and Docker topology
 - [Governance](https://github.com/panellatech/panella/blob/main/docs/GOVERNANCE.md): the approval and audit model
 - [Security](https://github.com/panellatech/panella/blob/main/SECURITY.md): security posture and reporting

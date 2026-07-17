@@ -77,6 +77,11 @@ For the full copy-paste path from a fresh box to your first approved, recalled m
 connecting Claude Code, Claude Desktop, Cursor, or any other MCP client — see
 **[docs/QUICKSTART.md](docs/QUICKSTART.md)** (about 15 minutes).
 
+Setting up one shared box for a small team? Follow the team recipe —
+**[docs/recipes/claude-code-team-memory.md](docs/recipes/claude-code-team-memory.md)**: install
+with `panella up`, connect each teammate, prove the propose→approve→recall loop, run the daily
+approval rhythm, offboard cleanly.
+
 ## For agents
 
 If you are an AI agent installing Panella for an operator, read and follow

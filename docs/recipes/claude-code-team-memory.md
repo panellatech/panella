@@ -16,137 +16,124 @@ background — a fact becomes durable only when a named human approves it.
 
 ## 2. Prerequisites
 
-- A Linux or macOS host your teammates' Claude Code sessions can reach. Start with the box on
-  loopback on a single machine (this recipe's shape); if your team is not all on that one machine,
-  see [docs/SELF_HOST.md](../SELF_HOST.md) for LAN/tailnet hardening notes before you open the bind
-  beyond `127.0.0.1` — that step is out of scope here.
-- **Native Linux only**: apply the uid override from
-  [docs/SELF_HOST.md](../SELF_HOST.md#running-as-your-own-uid-native-linux) BEFORE Step 4. Bind
-  mounts preserve host uids there and the image runs as uid `10001`, so without the override the
-  container cannot read the `0600` operator files `panella init` writes and Step 4's
-  `[container]` verify lines FAIL. (macOS Docker Desktop is unaffected — its file sharing maps
-  ownership for you.)
-- Docker and Docker Compose.
-- A clone of this repository (`git clone` + `python -m pip install .` from the checkout — see
-  step 1 below).
+- A Linux or macOS host your teammates' Claude Code sessions can reach (WSL2 counts as Linux).
+  Start with the box on loopback on a single machine (this recipe's shape); if your team is not
+  all on that one machine, see [docs/SELF_HOST.md](../SELF_HOST.md) for LAN/tailnet hardening
+  notes before you open the bind beyond `127.0.0.1` — that step is out of scope here.
+- Docker and the Docker Compose v2 plugin.
+- [`uv`](https://docs.astral.sh/uv/) — the install below uses `uv tool install`.
 - About 15 minutes.
 
-## 3. AGENT RUNBOOK
+## 3. Install the box — operator, one command
 
-This runbook is run **by the box operator** (or the operator's own agent) on the host that will run
-the box. Teammates never run it — they only connect their clients later (§5). Each step is one
-command, its expected output, and a one-line triage if it doesn't match.
+Run this on the host that will hold the box. Teammates never run it — they only connect their
+clients later (§6).
 
-**One boundary caveat before you paste this at an agent** (full rationale in §4): Step 4
-(`panella init`) creates `.panella/approval-token`, the operator-only approval credential, in the
-working directory. If you let an agent run Step 4 in a workspace it can also read, that agent can
-read the approval token and approve its own candidates — the credential separation this recipe sells
-is then instruction-deep, not mechanical. To keep it mechanical, run **Step 4 and the operator
-steps (9–10) yourself**, or put `.panella/` outside the agent's readable workspace / run the agent
-as a different uid (§4). The freely agent-delegable steps are the rest: clone, start, connect,
-submit, recall.
-
-### Step 1 — clone and install the CLI
+`panella up` is the whole install: it materializes a release-pinned `docker-compose.yml` and
+`.env` into a **box home** directory, starts the containers, provisions tokens and governance
+(`panella init`), and prints a Claude Code connection block. Choose the home explicitly:
 
 ```bash
-git clone <this-repo-url> panella && cd panella
-python -m pip install .
+uv tool install panella==0.2.0      # pin the release you are installing
+mkdir -p ~/panella-box && cd ~/panella-box
+panella up --yes --home "$PWD"
 ```
 
-**Expected:** `pip` finishes with `Successfully installed panella-<version>`.
-**On failure:** confirm `python -m pip --version` works and you have network access to fetch
-build dependencies; retry with `python -m pip install -v .` for verbose output.
+This is the persistent-runner form of the install contract in
+[llms-install.md](../../llms-install.md) §0 (`uv tool install`, then plain `panella` for every
+later command) — chosen here because the operator keeps using the CLI daily (§7), not just for
+the install. The explicit `--home "$PWD"` makes the directory you chose and the directory `up`
+provisions the same thing by construction.
 
-### Step 2 — generate the internal service secret
-
-```bash
-mkdir -p .panella
-touch .env
-grep -q '^PANELLA_API_KEY=' .env || echo "PANELLA_API_KEY=$(openssl rand -hex 32)" >> .env
-```
-
-This appends rather than truncates: on native Linux you added `UID`/`GID` to `.env` in the
-prerequisite above, and a `>` redirect here would wipe them (Compose would then fall back to the
-wrong uid and Step 4's in-container verify would FAIL). The `grep` guard also keeps a re-run from
-minting a second key line.
-
-**Expected:** no output; `.env` contains a `PANELLA_API_KEY=...` line (plus any `UID`/`GID` lines
-from the prerequisite).
-**On failure:** if `openssl` is missing, generate 32 random hex bytes any other way (e.g.
-`python3 -c "import secrets; print(secrets.token_hex(32))"`) and append it to `.env` by hand.
-
-### Step 3 — start the box
-
-```bash
-docker compose up -d --wait
-```
-
-**Expected:** both `panella` and `panella-http` services report healthy; the command returns.
-**On failure:** run `docker compose logs panella-http` — a missing `.env` (Step 2 skipped) is the
-most common cause; `docker compose up -d --wait` again after fixing it.
-
-### Step 4 — provision the box (one shot) — operator runs this
-
-This is the step that mints the operator-only approval token (see the boundary caveat at the top of
-§3). Run it yourself in a boundary-preserving setup rather than delegating it to an agent.
-
-```bash
-set -o pipefail
-OWNER_BEARER="$(panella init --yes | tee /dev/stderr | sed -n '1p')" || echo "INIT FAILED — do not proceed"
-```
-
-The `set -o pipefail` line is load-bearing: without it, the capture pipeline reports `sed`'s exit
-code and a failed `panella init` would still look like a successful assignment.
-
-**Expected:** the first stdout line is the owner bearer (also saved to `.panella/owner-bearer`,
-mode `0600`); stderr shows the approval token and governance overlay written, `.env` updated with
-`PANELLA_GOVERNANCE_OVERLAY` and `PANELLA_MCP_PROFILE=mcp-write`, the compose stack restarted, and
-a block of self-verify lines all starting `PASS`. No `INIT FAILED` line.
-**On failure:** `INIT FAILED` (or any `FAIL` verify line) means the box is not yet write-capable —
-re-run `panella init --yes` after resolving the printed cause; do not proceed to Step 5 until every
-line reads `PASS`.
-
-> NOTE — capture the bearer: the line above is printed exactly once. If you lose it, mint a fresh
-> one with `docker compose exec -T panella-http panella tokens mint --label owner-replacement`
-> (verified below in §5) rather than re-running `panella init --yes` on an already-provisioned box.
-
-### Step 5 — print the Claude Code connection snippet
-
-```bash
-panella connect --print claude-code
-```
-
-**Expected:** one line on stdout —
+**Expected:** exit `0`; after the containers report healthy, stdout ends with a
 `claude mcp add --transport http panella http://127.0.0.1:8001/mcp --header "Authorization: Bearer <bearer>"`
-(the bearer is read from `.panella/owner-bearer` automatically) — plus a stderr warning that the
-output embeds a live credential.
-**On failure:** if the bearer in the printed line reads `PANELLA_BEARER_HERE`, the automatic
-owner-bearer read failed — fall back to
-`panella connect --print claude-code --token "$OWNER_BEARER"` using the bearer captured in Step 4.
+line — the connection block, which embeds a live credential — followed by
+`Other clients — run from <home>: …`. Confirm that printed home is the directory you chose. The
+first run pulls the box images, so allow a few minutes; the embedding model is baked into the
+image, so there is no first-boot model download.
+**On failure:** `up` normally exits with a designed code and a one-line cause on stderr; match
+it against the exit-code and troubleshooting tables in [llms-install.md](../../llms-install.md)
+(§3 and §7). A raw traceback instead of a designed message is not one of those paths — stop and
+report it as found. Re-running `up` on the same home is idempotent: it does not re-mint secrets
+or recreate healthy containers.
 
-### Step 6 — connect Claude Code
+The box home (`~/panella-box` here) now holds `docker-compose.yml`, `.env`, and the operator
+secrets under `.panella/`. One home is one box is one Compose project — **every later command in
+this recipe (token minting, approvals, uninstall) runs from this directory**, which is how it
+lands on the right box. On native Linux there is no manual uid step: `up` pins the container
+identity to your uid/gid in the generated `.env` and pre-creates `.panella` with safe modes.
 
-Run the exact line Step 5 printed, for example:
+Two neighbouring paths lead to the same box; both are documented once elsewhere, and this recipe
+deliberately does not restate them:
+
+- **Delegate the install to an agent.** Paste the prompt from the
+  [README "For agents" section](../../README.md#for-agents); the agent follows
+  [llms-install.md](../../llms-install.md) — the same `panella up`, plus wiring its own MCP
+  client, objective verification, and an approval hand-back. Read §4 below first: it changes
+  where the approval credential may live.
+- **Working from a git clone** (developing Panella, or building images yourself): use
+  `panella init` in the checkout instead of `up` — see the
+  [README quickstart](../../README.md#quickstart) and [docs/QUICKSTART.md](../QUICKSTART.md).
+  Everything from §4 on applies unchanged, with box home = your checkout directory.
+
+## 4. The governance boundary — who runs what
+
+`panella up` mints two separate credentials into `<box-home>/.panella/`:
+
+- the **owner bearer** (`.panella/owner-bearer`) — what MCP clients hold. It can route requests
+  and *propose* candidates; it can never approve them.
+- the **approval token** (`.panella/approval-token`) — operator-only. Approving requires it, and
+  the finalizer independently re-verifies it before anything becomes durable
+  ([docs/GOVERNANCE.md](../GOVERNANCE.md)). That is why agent automation stops exactly at the
+  approval step: submitting is scriptable, approving is not.
+
+Panella enforces this by **credential separation**, not filesystem sandboxing. On a single-uid
+host, a process that can read the operator's files could in principle read
+`.panella/approval-token` too — Panella does not claim the agent "cannot" read it in that setup.
+What is true is narrower and still load-bearing: approving requires a credential the agent's
+process is never *given*. Keep that credential on the operator's side of a real boundary:
+
+- run the approval steps (§5 and §7) from your own shell, never inside the agent's session;
+- if you delegated the install (§3), the box home is readable by that agent — deny
+  `.panella/approval-token` in the agent's sandbox configuration, keep the box home outside the
+  agent's workspace root, or run the agent as a different OS user;
+- the operator console ([docs/CONSOLE.md](../CONSOLE.md)) and the CLI `approvals` commands are
+  both just front ends to the same server-side check — neither is a stronger boundary than the
+  credential itself.
+
+## 5. Prove the loop: propose → queue → approve → recall
+
+### Step 1 — connect your own Claude Code
+
+Run the exact `claude mcp add …` line that `up` printed, **from the project directory where you
+use Claude Code** (Claude Code's default scope registers the server for the current project
+path, so running it from the box home would register it for the wrong project):
 
 ```bash
-claude mcp add --transport http panella http://127.0.0.1:8001/mcp --header "Authorization: Bearer $OWNER_BEARER"
+claude mcp add --transport http panella http://127.0.0.1:8001/mcp --header "Authorization: Bearer <bearer>"
 ```
 
 **Expected:** `claude mcp add` confirms the server was added; `claude mcp list` shows `panella`.
-**On failure:** re-check the URL is reachable (`curl -sf http://127.0.0.1:8001/v1/health`); re-run
-`claude mcp remove panella` then retry the add.
+**On failure:** if you lost the printed line, regenerate it from the box home with
+`panella connect --print claude-code` — it reads the bearer from `.panella/owner-bearer`
+automatically. A `PANELLA_BEARER_HERE` placeholder in the output means that file is missing,
+unreadable, or malformed — mint a replacement bearer instead (§6's in-container
+`tokens mint`, with a label like `owner-replacement`) and pass it via `--token`, or re-provision
+with `panella init --force` (an operator decision: it mints a new bearer and does not revoke
+existing ones).
 
-### Step 7 — smoke-test the read path
+### Step 2 — smoke-test the read path
 
-In the connected Claude Code session, call the `memory.search` MCP tool for any query, for example
-"team preferences".
+In the connected Claude Code session, call the `memory.search` MCP tool for any query, for
+example "team preferences".
 
-**Expected:** a response with an empty or near-empty result set — this is fine, it proves the read
-path works before anything has been approved yet.
-**On failure:** a connection or auth error means Step 6 did not complete — re-check
-`claude mcp list` and the header value.
+**Expected:** a response with an empty or near-empty result set — this is fine, it proves the
+read path works before anything has been approved yet.
+**On failure:** a connection or auth error means Step 1 did not complete — re-check
+`claude mcp list` and the header value, and that `curl -sf http://127.0.0.1:8001/v1/health`
+succeeds on the box host.
 
-### Step 8 — submit a marker candidate
+### Step 3 — submit a marker candidate
 
 In the same session, ask the agent to store a fact through Panella, for example: "Use Panella to
 remember that this box is the team's shared Claude Code memory — store it in room `preferences`
@@ -157,79 +144,59 @@ name the room and type explicitly rather than relying on the agent to guess them
 
 **Expected:** the tool call reports the candidate was queued (an `approval_id`, not a durable
 write) — the write profile cannot write durably by itself.
-**On failure:** an error here usually means the box is not write-capable — re-run
-`panella init --yes` and confirm every Step 4 line reads `PASS` before retrying.
+**On failure:** an error here usually means the box is not write-capable — run
+`panella init --verify` from the box home and confirm every line reads `PASS` before retrying.
 
-### STOP — hand back to a human
+### STOP — approval is a human move
 
-**An approval is now pending. A HUMAN must run the next block — the agent stops here.**
+**A candidate is now pending. The operator runs the next step from their own shell — an agent
+stops here.**
 
-### Step 9 — operator: authenticate and review
+### Step 4 — operator: review and approve
 
-Run this block from the operator's own shell (not the agent's), on the box host, in the checkout
-directory. A fresh shell does not inherit the agent's `$OWNER_BEARER` variable — read the bearer
-from the file `panella init` saved for exactly this purpose:
+From the box home. The `approvals` CLI reads the approval token automatically from
+`.panella/approval-token`; the owner bearer is taken only from `--token` or the `PANELLA_BEARER`
+environment variable — it is not auto-read:
 
 ```bash
+cd ~/panella-box
 export PANELLA_BEARER="$(cat .panella/owner-bearer)"
 panella approvals list
-```
-
-**Expected:** a table with one row — `ID  WING  ROOM  TYPE  CREATED  PREVIEW` — showing the marker
-candidate from Step 8.
-**On failure:** `No pending approvals.` means Step 8 did not actually queue (re-check the agent's
-tool call succeeded); a token error means `.panella/owner-bearer` is missing or not the bearer from
-Step 4 — re-check you are in the directory Step 4 ran in.
-
-### Step 10 — operator: approve it
-
-```bash
 panella approvals approve <id>
 ```
 
-Substitute `<id>` with the `ID` column value from Step 9.
+Substitute `<id>` with the `ID` column value from the listed marker candidate.
 
-**Expected:** `approved <id> durable_id=<n>`.
-**On failure:** `approval token file not found` means `.panella/approval-token` is missing or
-unreadable from this shell — confirm you're in the same directory Step 4 ran in.
+**Expected:** `approvals list` shows a table with one row — `ID  BY  WING  ROOM  TYPE  CREATED
+PREVIEW`; `approve` prints `approved <id> durable_id=<digest>`.
+**On failure:** `No pending approvals.` means Step 3 did not actually queue (re-check the agent's
+tool call succeeded). An `approval token file not found` error means you are not in the box home —
+the approval-token path resolves relative to the current directory. Any other auth error:
+re-check the `PANELLA_BEARER` export (empty if you skipped the `cd`), the readability of the two
+`.panella` files, and that `curl -sf http://127.0.0.1:8001/v1/health` still succeeds.
 
-### Step 11 — agent: confirm the fact is now recallable
+### Step 5 — confirm the fact is now recallable
 
 Back in the connected Claude Code session, call `memory.search` again for the same query as
-Step 7.
+Step 2.
 
-**Expected:** the hit set now includes the fact approved in Step 10.
+**Expected:** the hit set now includes the fact approved in Step 4.
 **On failure:** repeat the search once — indexing can lag the approval by a moment. If it still
-does not appear, re-check Step 10 returned a `durable_id`.
+does not appear, re-check Step 4 returned a `durable_id`.
 
 ### Done
 
 The box is provisioned, one teammate is connected, and the full submit-approve-recall loop is
-proven end to end. Repeat §5 below for each additional teammate.
+proven end to end. Repeat §6 below for each additional teammate.
 
-## 4. The governance boundary
+## 6. Team on-ramp
 
-The agent installs everything above except the power to approve itself. Panella enforces this by
-**credential separation**, not filesystem sandboxing: the owner bearer (what the agent's MCP client
-holds) can only route requests and submit candidates; approving requires a second credential — the
-operator-only approval token — that is never handed to the agent, and the finalizer independently
-re-verifies it before anything becomes durable (`docs/GOVERNANCE.md`). That is why `--yes`
-automation stops exactly at Step 8: submitting is scriptable, approving is not.
-
-On a single-uid host, a process that can read the operator's files could in principle read
-`.panella/approval-token` too — Panella does not claim the agent "cannot" read it in that setup.
-What is true is narrower and still load-bearing: approving requires a credential the agent's
-process is never given. Keep that credential on the operator's side of a real boundary — run
-approvals from the operator's own shell/session (Steps 9-10 above), and on a shared host keep
-`.panella/` outside the agent's workspace root and/or run the agent as a different user. The
-operator console (`docs/CONSOLE.md`) and the CLI's `approvals` commands are both just front ends to
-that same server-side check — neither is a stronger boundary than the credential itself.
-
-## 5. Team on-ramp
-
-Each additional teammate needs a bearer pointed at the same box — never hand out the operator's own
-`.panella/owner-bearer`. Both paths below mint a *separate* token so the operator's own bearer never
-leaves the host. Two ways to do that:
+Each additional teammate needs a bearer pointed at the same box — never hand out the operator's
+own `.panella/owner-bearer`. Both paths below mint a *separate* token so the operator's own bearer
+never leaves the host. Run them from the box home; the token commands execute inside the running
+container (run from the box home, the CLI itself enforces this: a bare `panella tokens mint`
+fail-closes and prints the in-container form below, rather than writing to a host-side token
+database the box never reads). Two ways to do it:
 
 - **One shared team bearer.** Mint a single extra bearer and give its connect snippet to everyone.
   Simple, but you can't tell teammates apart in the audit trail and can't cut one off without
@@ -240,9 +207,7 @@ leaves the host. Two ways to do that:
   panella connect --print claude-code --token "$TEAM_BEARER"
   ```
 
-- **Mint a fresh bearer per teammate**, inside the running container (a bare host-side
-  `panella tokens mint` writes to the *host's* default token DB — not the box the team is actually
-  talking to):
+- **Mint a fresh bearer per teammate:**
 
   ```bash
   TEAMMATE_BEARER="$(docker compose exec -T panella-http panella tokens mint --label teammate-<name>)"
@@ -253,15 +218,14 @@ leaves the host. Two ways to do that:
   `connect` fall back to reading the *operator's* `.panella/owner-bearer` — exactly the wrong
   credential to hand a teammate.
 
-**Offboard one teammate:** revoke their labelled bearer — run it **inside the container** so it hits
-the box's token DB, not a host-side one:
+**Offboard one teammate:** revoke their labelled bearer:
 
 ```bash
 docker compose exec -T panella-http panella tokens revoke --label teammate-<name>
 ```
 
 The bearer is rejected on every surface (HTTP `/v1` and `/mcp`) immediately; the others are
-untouched. `panella tokens list` (also in-container) shows each token's label, principal, and status
+untouched. `panella tokens list` shows each token's label, principal, and status
 (`active` / `revoked@…`). To see what to revoke:
 
 ```bash
@@ -270,19 +234,20 @@ docker compose exec -T panella-http panella tokens list
 
 **Honesty constraint:** labels give you *revocation and recognition*, but NOT least-privilege
 identity or per-teammate audit attribution — every bearer minted this way is bound to the same
-owner/root principal (the `/mcp` surface requires it), and the audit trail records the *principal*,
-so all teammates' actions still appear under that shared identity. Per-user scoping and per-user
-attribution do not exist yet. (Rotating `PANELLA_API_KEY` or re-running `panella init --force` does
-NOT invalidate a bearer — bearers resolve from the token DB alone; `tokens revoke` is the operation
-that actually cuts one off.)
+owner/root principal (the `/mcp` surface requires it), and the audit trail records the
+*principal*, so all teammates' actions still appear under that shared identity. Per-user scoping
+and per-user attribution do not exist yet. (Rotating `PANELLA_API_KEY` or re-running
+`panella init --force` does NOT invalidate a bearer — bearers resolve from the token DB alone;
+`tokens revoke` is the operation that actually cuts one off.)
 
-## 6. Daily rhythm
+## 7. Daily rhythm
 
 The operator CLI commands below (`approvals`, `stats`, `audit`) read the owner bearer from
 `--token` or `PANELLA_BEARER` — they do NOT auto-read `.panella/owner-bearer`. In a fresh daily
-shell, export it once first (from the checkout directory):
+shell, export it once first, from the box home:
 
 ```bash
+cd ~/panella-box
 export PANELLA_BEARER="$(cat .panella/owner-bearer)"
 ```
 
@@ -302,17 +267,29 @@ export PANELLA_BEARER="$(cat .panella/owner-bearer)"
   `stats` shows aggregate counts per wing. `audit tail`'s table shows the most recent
   approval/reject events (when, what, which tenant); the table does NOT print the acting
   principal — use `panella audit tail --json --limit 20` when you need attribution fields on the
-  raw entries. (All teammates currently act as the shared owner principal — see §5's honesty
+  raw entries. (All teammates currently act as the shared owner principal — see §6's honesty
   constraint — so per-person attribution is limited either way.)
 
-## 7. Uninstall / reset
+## 8. Uninstall / reset
+
+From the box home, in this order — `panella up` refuses to reprovision a home whose `.panella`
+was deleted while the box's containers or volumes still exist, so take the stack down before
+removing the home:
 
 ```bash
+cd ~/panella-box
 docker compose down -v
-rm -rf .panella
+cd .. && rm -rf panella-box
+```
+
+Then disconnect the clients. Claude Code's default scope keys the registration to the project
+path — the same reason §5 Step 1 ran the `add` from the project directory — so each user runs
+this in each project directory where they added it:
+
+```bash
 claude mcp remove panella
 ```
 
 This stops the box, deletes its volumes (all stored memories and the token database), removes the
-local operator secrets, and disconnects Claude Code. There is no recovery after `down -v` without a
-prior `panella backup`.
+compose file, `.env`, and the local operator secrets, and disconnects Claude Code. There is no
+recovery after `down -v` without a prior `panella backup`.

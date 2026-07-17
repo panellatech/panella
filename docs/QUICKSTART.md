@@ -131,3 +131,8 @@ Search Panella for operator-approved local preferences.
 The returned hits should include the memory text you submitted. If it does not
 appear immediately, repeat the search once; the store indexes the approved
 durable write moments after approval finalizes.
+
+## Next steps
+
+- One box for your whole team — teammate bearers, offboarding, and the daily
+  approval rhythm: [recipes/claude-code-team-memory.md](recipes/claude-code-team-memory.md)
