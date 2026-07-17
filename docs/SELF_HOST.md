@@ -1,11 +1,16 @@
 # Self Hosting Panella
 
-## One Command
+## Start a box from a checkout
+
+The released path is the one-command `panella up` (see "Zero-clone bootstrap" below). From a
+checkout, the equivalent is compose plus the one-shot init — without `panella init` the stack
+serves read-only and unprovisioned (no owner/approval credentials, no governance overlay):
 
 ```bash
 echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
 mkdir -m 0700 .panella      # create it yourself first — see the native-Linux note below for why
 docker compose up --wait
+panella init --yes          # mints both credentials, writes the overlay, restarts write-capable
 ```
 
 The compose stack builds two targets from the same Dockerfile: `store` runs the pinned local
@@ -64,7 +69,11 @@ uvx panella up --yes
 
 `panella up` materializes the wheel-embedded digest-pinned compose file and `.env` in
 `~/panella-box` (or `PANELLA_HOME` / `--home`), starts the box, activates it with `panella init`,
-and prints a Claude Code connection block. The generated `.env` pins `PANELLA_UID`/`PANELLA_GID`
+and prints a Claude Code connection block. The bare form above is the shortest path;
+for unattended or agent-driven runs, use the hardened invocation from the
+[llms-install.md](../llms-install.md) runner contract — pin the release and pass an explicit
+home (`uvx panella@<ver> up --yes --home "$PWD"`, or `uv tool install panella==<ver>` then
+`panella up --yes --home "$PWD"`). The generated `.env` pins `PANELLA_UID`/`PANELLA_GID`
 to the invoking user so the containers can read the bind-mounted operator files on native Linux.
 One canonical home maps to one Compose project; use a different `--home` for a separate box. It is
 intentionally not a development command: when run from a clone, use `panella init` instead.
@@ -108,11 +117,13 @@ explicit destructive-reset command; it never deletes those resources itself.
 ## Data
 
 Compose creates three named volumes: `panella-store`, `panella-model-cache`, and
-`panella-http-data`. It also mounts local `.panella/` to `/app/local` for an optional
-operator-owned governance overlay; the local approval token should live in `panella-http-data`
-with mode `0600`. The store runs with local SQLite embeddings and no provider API key. Its named
-model-cache volume is for the optional ONNX cache and other runtime caches; the default
-SentenceTransformer model is baked at `/opt/hf-cache` and is not hidden by that volume.
+`panella-http-data`. It also mounts local `.panella/` read-only to `/app/local` — that host
+directory carries the operator-owned governance overlay and the operator-only approval token
+(`.panella/approval-token`, mode `0600`, minted by `panella init`); the facade's own state
+(bearer token DB, audit files) lives in `panella-http-data`. The store runs with local SQLite
+embeddings and no provider API key. Its named model-cache volume is for the optional ONNX cache
+and other runtime caches; the default SentenceTransformer model is baked at `/opt/hf-cache` and
+is not hidden by that volume.
 
 ## Approval Setup
 

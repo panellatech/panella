@@ -1,138 +1,131 @@
 # Quickstart: 15 minutes to your first approved memory
 
-This path starts a local Panella box, provisions the owner bearer and local
-approval files, connects an MCP client, queues one memory candidate, approves it
-with the operator-only token, and recalls it.
+One person, one box, the full governed loop: install, connect an MCP client, queue one memory
+candidate, approve it with the operator-only token, and recall it.
 
-The two secrets stay separate:
+The two secrets stay separate throughout:
 
-- Owner bearer: paste only into the agent/MCP client config.
-- Approval token: operator-only; never paste it into an agent/MCP client config.
+- **Owner bearer**: paste only into the agent/MCP client config.
+- **Approval token**: operator-only; never paste it into an agent/MCP client config.
 
-## 0-3 min: start the local box
+(Delegating the install to an AI agent instead? Point it at
+[llms-install.md](../llms-install.md) — the agent-facing runbook for the same install.)
 
-```bash
-mkdir -p .panella
-echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
-docker compose up --wait
-```
+## 0-5 min: install and start the box
 
-The first boot uses the safe read-only MCP profile. Writes are enabled only after
-the next step creates the local approval overlay.
-
-## 3-5 min: provision first-run access
-
-Run `panella init` from the checkout on the host. It mints the owner bearer in
-the running `panella-http` container when compose is up, writes
-`.panella/approval-token` and `.panella/owner-bearer` with mode `0600`, writes
-`.panella/governance.yaml`, updates `.env` for write-capable MCP, restarts
-compose, and verifies the running box.
+`panella up` is the whole install: it materializes a release-pinned `docker-compose.yml` and
+`.env` into a **box home** directory, starts the containers, provisions the owner bearer,
+approval token, and governance overlay (`panella init`), and prints a Claude Code connection
+block:
 
 ```bash
-OWNER_BEARER="$(panella init --yes | tee /dev/stderr | sed -n '1p')"
+uv tool install panella==0.2.0      # pin the release you are installing
+mkdir -p ~/panella-box && cd ~/panella-box
+panella up --yes --home "$PWD"
 ```
 
-Store the owner bearer now. It is printed once and is not recoverable from the
-token database later. It is also saved to `.panella/owner-bearer` so
-`panella connect` can read it automatically.
+The first run pulls the box images — allow a few minutes. The embedding model is baked into the
+image, so there is no first-boot model download. On success, stdout ends with:
 
-The approval token value is not printed. Keep `.panella/approval-token` local and
-operator-only.
-
-## 5-7 min: restart with write-capable MCP
-
-`panella init --yes` writes these compose dotenv lines and runs
-`docker compose up -d --wait` for you:
-
-```dotenv
-PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml
-PANELLA_MCP_PROFILE=mcp-write
+```
+Claude Code
+claude mcp add --transport http panella http://127.0.0.1:8001/mcp --header "Authorization: Bearer <bearer>"
+Other clients — run from <home>: `panella connect --print claude-desktop` or `panella connect --print cursor`
+Next steps: keep the operator approval token outside agent configuration.
 ```
 
-Verify the running box:
+The `claude mcp add …` line embeds the live owner bearer — treat it as a secret. The bearer is
+also saved to `.panella/owner-bearer` (mode `0600`) in the box home, so `panella connect` can
+re-print it and you can export it for the approvals CLI later (the approvals CLI does not
+auto-read it). The operator-only approval token lives at `.panella/approval-token`; nothing in
+this walkthrough ever pastes it anywhere.
+
+Verify the box end to end, then stay in the box home — the compose project, `.env`, and both
+credential files resolve relative to it:
 
 ```bash
 panella init --verify
 ```
 
-Expected result: every line starts with `PASS`.
+Expected: every line starts with `PASS`.
 
-## 7-9 min: connect your MCP client
+## 5-7 min: connect your MCP client
 
-Print the snippet for your client and paste it into that client.
+**Claude Code**: run the exact `claude mcp add` line `up` printed, **from the project directory
+where you use Claude Code** — the default scope registers the server for the current project
+path, so running it from the box home would register it for the wrong project.
 
-Claude Code:
-
-```bash
-panella connect --print claude-code
-```
-
-Claude Desktop:
+**Claude Desktop / Cursor**: print the snippet from the box home and merge it into that
+client's MCP settings file (preserve your other servers):
 
 ```bash
-panella connect --print claude-desktop
+panella connect --print claude-desktop   # or: cursor
 ```
 
-Cursor:
+Each snippet contains only the owner bearer for `http://127.0.0.1:8001/mcp` — never the
+approval token.
 
-```bash
-panella connect --print cursor
-```
+## 7-10 min: queue a memory candidate
 
-Each snippet contains only the owner bearer for
-`http://127.0.0.1:8001/mcp`. It never includes the approval token or the token
-file path.
-
-## 9-12 min: queue a memory candidate
-
-In the MCP client, ask the agent to store a memory through Panella:
+In the connected client, ask the agent to store a memory through Panella:
 
 ```text
-Use Panella to remember: Panella remembers operator-approved local preferences.
+Use Panella to remember that this box passed its quickstart — store it in room `preferences`
+with memory_type `owner_preference`.
 ```
 
-The write is queued as a candidate. The MCP write profile cannot write durably by
-itself.
+The write queues as a candidate (the tool result carries an `approval_id`, not a durable
+write) — the MCP write profile cannot write durably by itself. Reads stay clean until approval:
+a `memory.search` for the same text does not return it yet.
 
-List pending candidates from the operator shell and capture the first id:
+## 10-12 min: approve it
+
+Approval is double-factor: the owner bearer admits the route, and the operator-only approval
+token (read automatically from `.panella/approval-token`) authorizes the decision. From the box
+home:
 
 ```bash
-PENDING_JSON="$(curl -sS \
-  -H "Authorization: Bearer $OWNER_BEARER" \
-  -H "X-Approval-Token: $(cat .panella/approval-token)" \
-  http://127.0.0.1:8001/v1/approvals/pending)"
-printf '%s\n' "$PENDING_JSON" | python3 -m json.tool
-APPROVAL_ID="$(printf '%s\n' "$PENDING_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["pending"][0]["approval_id"])')"
+export PANELLA_BEARER="$(cat .panella/owner-bearer)"
+panella approvals list
+panella approvals approve <id>
 ```
 
-## 12-14 min: approve it
+Expected: the list shows your candidate in a table (`ID  BY  WING  ROOM  TYPE  CREATED
+PREVIEW`); `approve` prints `approved <id> durable_id=<digest>`.
 
-Approval is double-factor: the owner bearer admits the HTTP route, and the
-operator token authorizes the local approval action.
-
-```bash
-curl -sS -X POST \
-  -H "Authorization: Bearer $OWNER_BEARER" \
-  -H "X-Approval-Token: $(cat .panella/approval-token)" \
-  "http://127.0.0.1:8001/v1/approvals/$APPROVAL_ID/approve" | python3 -m json.tool
-```
-
-A `panella approvals` CLI is coming in B2b; for now the curl route is the
-documented operator approval surface.
-
-## 14-15 min: recall it
+## 12-13 min: recall it
 
 In the MCP client, ask:
 
 ```text
-Search Panella for operator-approved local preferences.
+Search Panella for: this box passed its quickstart.
 ```
 
-The returned hits should include the memory text you submitted. If it does not
-appear immediately, repeat the search once; the store indexes the approved
-durable write moments after approval finalizes.
+The hits now include the approved memory. If it does not appear immediately, repeat the search
+once; the store indexes the approved durable write moments after approval finalizes.
+
+## From a git checkout instead
+
+Developing Panella, or building the images yourself? The checkout flow provisions the same box
+with `panella init` — one shot: it mints both credentials, writes the governance overlay,
+updates `.env` for the write-capable MCP profile, and restarts the stack:
+
+```bash
+python -m pip install .
+mkdir -p .panella      # create it yourself — a compose-created bind mount would be root-owned
+echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
+# native Linux: apply the uid override from SELF_HOST.md first (Docker Desktop: skip)
+docker compose up -d --wait
+panella init --yes
+panella init --verify
+```
+
+Box home = the checkout directory; everything above applies unchanged.
 
 ## Next steps
 
 - One box for your whole team — teammate bearers, offboarding, and the daily
   approval rhythm: [recipes/claude-code-team-memory.md](recipes/claude-code-team-memory.md)
+- Approvals in the browser — the flag-gated operator console: [CONSOLE.md](CONSOLE.md)
+- Configuration and Docker topology: [SELF_HOST.md](SELF_HOST.md) · backup, upgrade, rollback:
+  [UPGRADE.md](UPGRADE.md)

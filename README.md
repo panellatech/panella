@@ -8,14 +8,9 @@ background rewrite. A standard **MCP server**: Claude Code, Claude Desktop, Curs
 connects with one line. Default-deny, fully auditable, runs on your own box. Apache-2.0.
 
 ```bash
-python -m pip install .               # the panella CLI, from this checkout
-mkdir -p .panella && echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
-docker compose up -d --wait           # embedding model is baked into the image — no first-boot download
-panella init                          # one command: owner token, approval token, governance overlay
-printf 'PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\nPANELLA_MCP_PROFILE=mcp-write\n' >> .env
-# native Linux: apply the uid override from docs/SELF_HOST.md first (Docker Desktop: skip)
-docker compose up -d --wait           # restart write-capable
-panella connect --print claude-code   # swap PANELLA_BEARER_HERE for the bearer init printed, then paste
+uv tool install panella
+panella up --yes --home ~/panella-box   # one command: box + tokens + governance,
+                                        # then it prints your `claude mcp add …` connect line
 ```
 
 Your agent proposes a memory → it queues → you approve it (CLI, console, or API) → your agent recalls
@@ -60,17 +55,21 @@ explicit choice — the guarantees below are about the governed path.)
 
 ## Quickstart
 
+From the released package, the install is the one `panella up` command above. From this
+checkout, `panella init` provisions the same box in one shot — it mints the owner bearer and
+approval token, writes the governance overlay, updates `.env` for the write-capable MCP
+profile, and restarts the stack:
+
 ```bash
 python -m pip install .   # install the panella CLI from this checkout
 mkdir -p .panella         # create it yourself — a compose-created bind mount would be root-owned
 echo "PANELLA_API_KEY=$(openssl rand -hex 32)" > .env
-docker compose up -d --wait   # embedding model is baked into the image — no first-boot download
-panella init              # provisions owner bearer + local approval token + governance overlay
-printf 'PANELLA_GOVERNANCE_OVERLAY=/app/local/governance.yaml\nPANELLA_MCP_PROFILE=mcp-write\n' >> .env
 # native Linux: apply the uid override from docs/SELF_HOST.md first, so the box (a non-root
 # uid) can read the operator-owned .panella files (Docker Desktop: skip)
-docker compose up -d --wait   # restart into the write-capable MCP profile
+docker compose up -d --wait   # embedding model is baked into the image — no first-boot download
+panella init --yes        # one shot: tokens + governance overlay + write-capable restart
 panella init --verify     # confirms the box is serving and write-capable
+panella connect --print claude-code   # the `claude mcp add …` line to paste
 ```
 
 For the full copy-paste path from a fresh box to your first approved, recalled memory — including

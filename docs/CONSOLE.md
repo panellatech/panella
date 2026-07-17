@@ -33,12 +33,14 @@ Loopback-only by design (see "Security notes" below).
 The page asks for two secrets. Paste them into the two password fields — nothing is submitted
 until you click Connect, and nothing is saved anywhere: reload the page and you paste them again.
 
-- **Owner bearer token** — mint one with `panella tokens mint` (see `docs/QUICKSTART.md` for the
-  compose-exec form). This is the same bearer your MCP client uses.
-- **Approval token** — the operator-only `local_cli` credential from your approval overlay setup
-  (see `docs/QUICKSTART.md`'s "arm local approval" step — the file you generated with
-  `openssl rand -hex 32` and wrote to the operator token file). Required only for the pending list
-  and approve/reject actions; search, audit, and stats work with the bearer alone.
+- **Owner bearer token** — the same bearer your MCP client uses. `panella up` / `panella init`
+  print it once and save it to `.panella/owner-bearer` in the box home; or mint a separate
+  labelled bearer for the console — see the team recipe's on-ramp
+  (`docs/recipes/claude-code-team-memory.md` §6) for the in-container `tokens mint` form.
+- **Approval token** — the operator-only `local_cli` credential at `.panella/approval-token`
+  in the box home, minted by `panella init` (and by `panella up`, which runs init) with mode
+  `0600`. Required only for the pending list and approve/reject actions; search, audit, and
+  stats work with the bearer alone.
 
 ## Security notes
 
