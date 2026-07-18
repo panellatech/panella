@@ -288,11 +288,111 @@
   function renderSearchResults(list, hits) {
     clearChildren(list);
     for (const hit of hits) {
-      const row = document.createElement("li");
-      // Search hits are stored memory content — same untrusted-content rule as content_preview.
-      row.appendChild(document.createTextNode(JSON.stringify(hit)));
-      list.appendChild(row);
+      list.appendChild(buildSearchHit(hit));
     }
+  }
+
+  // Hits are free-form dicts passed through from the store (SearchResponse.hits is
+  // list[dict[str, Any]]), so every extraction below is defensive: a missing or oddly-typed
+  // field degrades to an omitted segment, and the complete record stays available verbatim
+  // behind the "raw record" toggle.
+  function searchHitContent(hit) {
+    for (const key of ["content", "text", "preview"]) {
+      if (typeof hit[key] === "string" && hit[key].trim() !== "") {
+        return hit[key];
+      }
+    }
+    return "";
+  }
+
+  function searchHitApprovalRef(hit, metadata) {
+    const tags = Array.isArray(hit.tags) ? hit.tags : [];
+    for (const tag of tags) {
+      if (typeof tag === "string" && tag.startsWith("approval_ref:")) {
+        const ref = tag.slice("approval_ref:".length).trim();
+        if (ref !== "") {
+          return ref;
+        }
+        // An empty/whitespace suffix is malformed, not an answer — keep scanning, then fall back.
+      }
+    }
+    if (typeof metadata.source_id === "string" && metadata.source_id.startsWith("approval_queue:")) {
+      const ref = metadata.source_id.slice("approval_queue:".length).trim();
+      if (ref !== "") {
+        return ref;
+      }
+    }
+    return "";
+  }
+
+  function searchHitMetaLine(hit) {
+    const metadata = hit.metadata && typeof hit.metadata === "object" ? hit.metadata : {};
+    const segments = [];
+    const wing = typeof hit.wing === "string" ? hit.wing : "";
+    const room = typeof hit.room === "string" ? hit.room : "";
+    if (wing || room) {
+      segments.push(wing + "/" + room);
+    }
+    // Prefer the governed type from metadata (what the operator approved — matches the pending
+    // row's label) over the store's own top-level ingestion type (e.g. "observation").
+    const memoryType =
+      typeof metadata.memory_type === "string" && metadata.memory_type !== "" ? metadata.memory_type :
+      typeof hit.memory_type === "string" ? hit.memory_type : "";
+    if (memoryType !== "") {
+      segments.push(memoryType);
+    }
+    const approvalRef = searchHitApprovalRef(hit, metadata);
+    const created =
+      typeof metadata.created_at === "string" ? metadata.created_at :
+      typeof hit.created_at === "string" ? hit.created_at : "";
+    if (created !== "") {
+      segments.push(created.slice(0, 10));
+    }
+    if (approvalRef !== "") {
+      // "approval ref" states what the record carries; the console cannot verify the decision
+      // behind it (tags/metadata on an ungoverned direct write are caller-supplied), so it never
+      // claims "approved".
+      segments.push("approval ref #" + approvalRef);
+    }
+    return segments.join(" · ");
+  }
+
+  function buildSearchHit(hit) {
+    const row = document.createElement("li");
+
+    // Stored memory content is attacker-influenced — same stored-XSS rule as content_preview:
+    // textContent only, never innerHTML.
+    const content = document.createElement("div");
+    content.className = "hit-content";
+    const contentText = searchHitContent(hit);
+    content.appendChild(document.createTextNode(contentText !== "" ? contentText : "(record has no content field)"));
+    row.appendChild(content);
+
+    const metaLine = searchHitMetaLine(hit);
+    if (metaLine !== "") {
+      const meta = document.createElement("div");
+      meta.className = "item-meta";
+      meta.appendChild(document.createTextNode(metaLine));
+      row.appendChild(meta);
+    }
+
+    const details = document.createElement("details");
+    details.className = "hit-raw";
+    const summary = document.createElement("summary");
+    summary.appendChild(document.createTextNode("raw record"));
+    details.appendChild(summary);
+    const pre = document.createElement("pre");
+    let raw = "";
+    try {
+      raw = JSON.stringify(hit, null, 2);
+    } catch (_err) {
+      raw = String(hit);
+    }
+    pre.appendChild(document.createTextNode(raw));
+    details.appendChild(pre);
+    row.appendChild(details);
+
+    return row;
   }
 
   // --- audit -----------------------------------------------------------------------------------

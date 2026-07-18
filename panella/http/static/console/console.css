@@ -93,6 +93,29 @@ li:last-child {
   font-size: 0.8rem;
 }
 
+.hit-content {
+  margin-bottom: 0.15rem;
+}
+
+.hit-raw {
+  margin-top: 0.3rem;
+}
+
+.hit-raw summary {
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.hit-raw pre {
+  overflow-x: auto;
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem;
+  margin: 0.4rem 0 0;
+}
+
 .item-actions button {
   margin-right: 0.5rem;
 }
