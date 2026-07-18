@@ -13,6 +13,8 @@ panella up --yes --home ~/panella-box   # one command: box + tokens + governance
                                         # then it prints your `claude mcp add …` connect line
 ```
 
+![End to end in one terminal: panella up brings the box up and prints the connect line, a Claude Code agent proposes a memory and reports it queued, panella approvals list shows the pending row, a named person approves it, and the agent then recalls the approved fact.](docs/assets/panella-demo.gif)
+
 Your agent proposes a memory → it queues → you approve it (CLI, console, or API) → your agent recalls
 it next turn. No governed write becomes durable truth without a named approver and a committed,
 chain-verified approval receipt: approve through the CLI, console, or API and the decision is
