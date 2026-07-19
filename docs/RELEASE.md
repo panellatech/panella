@@ -157,6 +157,21 @@ Order is load-bearing.
    version pin inside the doc); its own note already points readers at the tag-pinned form for a
    pinned install.
 
+8. Publish the release to the MCP registry (after step 5's real-PyPI verification passes).
+
+   ```bash
+   gh workflow run registry-publish.yml --ref main
+   gh run list --workflow registry-publish.yml --limit 1
+   gh run watch <run-id>
+   curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.panellatech%2Fpanella"
+   ```
+
+   The workflow preflights that the PyPI version referenced by `server.json` exists and that its
+   rendered README carries the `mcp-name` ownership marker, then publishes via GitHub OIDC
+   (org namespace `io.github.panellatech/*`; no stored token). `server.json` versions are
+   test-locked to `pyproject.toml` (`tests/test_registry_metadata.py`), so a tag cannot ship
+   with drifted registry metadata.
+
 ## 4. Verify Commands
 
 ### 4.1 Pre-Flip Register

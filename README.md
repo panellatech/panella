@@ -1,5 +1,7 @@
 # Panella
 
+<!-- mcp-name: io.github.panellatech/panella -->
+
 **Governed, self-hosted memory for AI agents.**
 
 Your agents write to a memory your company actually controls: a governed write is proposed, approved
@@ -13,7 +15,7 @@ panella up --yes --home ~/panella-box   # one command: box + tokens + governance
                                         # then it prints your `claude mcp add …` connect line
 ```
 
-![End to end in one terminal: panella up brings the box up and prints the connect line, a Claude Code agent proposes a memory and reports it queued, panella approvals list shows the pending row, a named person approves it, and the agent then recalls the approved fact.](docs/assets/panella-demo.gif)
+![End to end in one terminal: panella up brings the box up and prints the connect line, a Claude Code agent proposes a memory and reports it queued, panella approvals list shows the pending row, a named person approves it, and the agent then recalls the approved fact.](https://raw.githubusercontent.com/panellatech/panella/main/docs/assets/panella-demo.gif)
 
 Your agent proposes a memory → it queues → you approve it (CLI, console, or API) → your agent recalls
 it next turn. No governed write becomes durable truth without a named approver and a committed,
@@ -76,10 +78,10 @@ panella connect --print claude-code   # the `claude mcp add …` line to paste
 
 For the full copy-paste path from a fresh box to your first approved, recalled memory — including
 connecting Claude Code, Claude Desktop, Cursor, or any other MCP client — see
-**[docs/QUICKSTART.md](docs/QUICKSTART.md)** (about 15 minutes).
+**[docs/QUICKSTART.md](https://github.com/panellatech/panella/blob/main/docs/QUICKSTART.md)** (about 15 minutes).
 
 Setting up one shared box for a small team? Follow the team recipe —
-**[docs/recipes/claude-code-team-memory.md](docs/recipes/claude-code-team-memory.md)**: install
+**[docs/recipes/claude-code-team-memory.md](https://github.com/panellatech/panella/blob/main/docs/recipes/claude-code-team-memory.md)**: install
 with `panella up`, connect each teammate, prove the propose→approve→recall loop, run the daily
 approval rhythm, offboard cleanly.
 
@@ -106,13 +108,13 @@ keeping approval on another OS user or device.
 
 ## Operate it
 
-- **[docs/SELF_HOST.md](docs/SELF_HOST.md)** — configuration and the Docker topology.
-- **[docs/CONSOLE.md](docs/CONSOLE.md)** — the flag-gated operator console: pending approvals, search,
+- **[docs/SELF_HOST.md](https://github.com/panellatech/panella/blob/main/docs/SELF_HOST.md)** — configuration and the Docker topology.
+- **[docs/CONSOLE.md](https://github.com/panellatech/panella/blob/main/docs/CONSOLE.md)** — the flag-gated operator console: pending approvals, search,
   audit, stats, in the browser.
 - **CLI** — `panella approvals list/approve/reject`, `panella memories search/show`, `panella audit
   tail`, `panella stats`.
-- **[docs/UPGRADE.md](docs/UPGRADE.md)** — backup, upgrade, and rollback.
-- **[docs/GOVERNANCE.md](docs/GOVERNANCE.md)** · **[SECURITY.md](SECURITY.md)** — the governance model
+- **[docs/UPGRADE.md](https://github.com/panellatech/panella/blob/main/docs/UPGRADE.md)** — backup, upgrade, and rollback.
+- **[docs/GOVERNANCE.md](https://github.com/panellatech/panella/blob/main/docs/GOVERNANCE.md)** · **[SECURITY.md](https://github.com/panellatech/panella/blob/main/SECURITY.md)** — the governance model
   and the security posture.
 
 ## Why governed memory comes first
@@ -143,7 +145,7 @@ PANELLA_CONFIG_DIR=./dist-config PANELLA_API_KEY=dev-secret PANELLA_FRESH_BOX=1 
 
 ## License
 
-[Apache-2.0](LICENSE). The double-factor approval trust chain (`/v1/approvals`) is the heart of the
+[Apache-2.0](https://github.com/panellatech/panella/blob/main/LICENSE). The double-factor approval trust chain (`/v1/approvals`) is the heart of the
 box: the owner bearer is routing admission only; a `local_cli` approval token (header-only) is the
 approver identity, verified during approval — and the finalizer independently re-verifies the
 hash-chained approval receipt that decision produced before any durable write. The private gateway
