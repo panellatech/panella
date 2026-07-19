@@ -2,7 +2,7 @@
 
 **Honest summary up front: if you want a personal assistant that quietly gets smarter, several
 excellent memory layers do that well — and Panella is not trying to be one.** Panella is for teams
-and companies that need to answer *"who decided this was true?"* with evidence.
+and companies that need to answer *"on whose authority is this true?"* with evidence.
 
 ## The two branches
 
@@ -14,10 +14,12 @@ extracted, merged, summarized, and updated in the background, automatically. It 
 speed and zero ceremony, and for a single-user assistant that is a reasonable, deliberate design.
 
 **Branch two — governed writes.** Panella takes the other branch: an agent's write to a governed
-scope can only ever
-*propose*. The proposal queues, a named person approves it, and the decision itself is kept as a
+scope can only ever *propose*. The proposal queues, an authorized approver — a separate,
+operator-held credential, not the agent's own — signs it off, and the decision itself is kept as a
 chain-verified receipt the system can later prove. Nothing an agent submits becomes durable truth
-without that receipt.
+without that receipt. (The shipped approval transport records the canonical operator identity; if
+several people share that credential, the receipt proves the authority, not which teammate — give
+approvers distinct credentials when that distinction matters.)
 
 The branches are not interchangeable. Retrofitting governance onto an auto-consolidating core means
 governing what already happened; Panella gates the write itself.
@@ -47,7 +49,7 @@ and not an enterprise tier.
 
 | Dimension | Common pattern in the field | Panella |
 |---|---|---|
-| Write path | Agent writes land, then are consolidated automatically | Agent MCP writes to **governed scopes are propose-only by construction**; a person approves before durability. A scope is ungoverned only by explicit per-scope configuration |
+| Write path | Agent writes land, then are consolidated automatically | Agent MCP writes to **governed scopes are propose-only by construction**; a person approves before durability. The shipped agent profiles are governed end to end; ungoverned scopes arise only from a deployment's own profile configuration — audit any custom profile |
 | Approval identity | Caller's API key implies authority | **Two separate credentials**: the agent bearer can only propose; an operator-held approval token is the approver identity — kept outside the agent's sandbox or OS user, so an agent cannot approve its own memory |
 | Audit | Append-only log of what happened | **Chain-verified approval receipts**: the finalizer refuses to make a write durable without a receipt it can verify — whoever stamped the row |
 | Where governance lives | Managed platform / enterprise tier | **In the free, self-hosted core, by default** — governance is never a paid feature |
@@ -78,10 +80,11 @@ Ask any memory product — including us — these questions:
 4. Is governance in the free core, or does it arrive with the enterprise tier?
 5. Can you re-run the vendor's accuracy claims on your own hardware?
 
-Panella's answers: on the governed path, never — and a scope is only ever ungoverned by explicit
-per-scope configuration, stated in the docs; separate by construction, with the approval token kept
-outside the agent's sandbox or OS user; a chain-verified receipt; free core, always; yes — the
-in-repo bundle walks it: `make eval-up && make eval-dataset && make eval-retrieve`
+Panella's answers: on the governed path, never — and whether a scope is governed is decided by the
+deployment's profile configuration (the shipped profiles are governed; audit your custom ones);
+separate by construction, with the approval token kept outside the agent's sandbox or OS user; a
+chain-verified receipt; free core, always; yes — the in-repo bundle walks it:
+`make eval-up && make eval-dataset && make eval-retrieve`
 ([eval/README.md](https://github.com/panellatech/panella/blob/main/eval/README.md)).
 
 ---
