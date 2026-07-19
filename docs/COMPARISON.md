@@ -54,7 +54,7 @@ and not an enterprise tier.
 | Audit | Append-only log of what happened | **Chain-verified approval receipts**: the finalizer refuses to make a write durable without a receipt it can verify — whoever stamped the row |
 | Where governance lives | Managed platform / enterprise tier | **In the free, self-hosted core, by default** — governance is never a paid feature |
 | Background consolidation | Core feature | **Never.** Original content is immutable; updates version, never overwrite |
-| Deployment | Cloud-first, self-host varies | **Self-host-first**: one command (`panella up`) brings up a digest-pinned, cosign-signed, offline-friendly box on your hardware |
+| Deployment | Cloud-first, self-host varies | **Self-host-first**: one command (`panella up`) brings up a digest-pinned, offline-friendly box on your hardware; tagged release images are cosign-signed and verifiable |
 | Ambiguity handling | Best-effort merge | **Deny-closed**: unknown or ambiguous cases fall back to proposal-only, never silent auto-write |
 | Benchmark numbers | Vendor-published leaderboards | **None published, by design.** A reproducible eval bundle ships in-repo; run it on your own hardware and get your own numbers |
 
