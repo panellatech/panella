@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+import tempfile
+import tomllib
 from pathlib import Path
 
 import yaml
@@ -99,3 +103,43 @@ def test_real_pypi_publish_is_tag_ref_guarded() -> None:
     assert len(guard) == 1
     assert "refs/tags/v" in str(guard[0].get("run", ""))
     assert _pypi_step_index("Assert publish ref guard") < _pypi_step_index("Publish to PyPI")
+
+
+def _run_publish_ref_guard(target: str, github_ref: str) -> int:
+    """Execute the 'Assert publish ref guard' step's actual shell body and return its exit code.
+    Behavioral (not just structural): a future edit that neutered the guard while keeping the
+    'refs/tags/v' literal would still pass the structural test above but fail these cases."""
+    guard = _pypi_steps_named("Assert publish ref guard")
+    assert len(guard) == 1
+    script = str(guard[0]["run"])
+    with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False) as handle:
+        handle.write(script)
+        script_path = handle.name
+    try:
+        completed = subprocess.run(
+            ["bash", script_path],
+            cwd=ROOT,  # the guard reads the version from pyproject.toml
+            env={**os.environ, "TARGET": target, "GITHUB_REF": github_ref},
+            capture_output=True,
+            text=True,
+        )
+    finally:
+        os.unlink(script_path)
+    return completed.returncode
+
+
+def test_publish_ref_guard_rejects_invalid_refs_behaviorally() -> None:
+    # terra P2 (GH-bot): assert the guard actually REJECTS, not just that it contains a literal.
+    with open(ROOT / "pyproject.toml", "rb") as handle:
+        version = tomllib.load(handle)["project"]["version"]
+    tag_ref = f"refs/tags/v{version}"
+
+    # target=pypi: only the exact release tag passes; main and a wrong-version tag are rejected.
+    assert _run_publish_ref_guard("pypi", tag_ref) == 0
+    assert _run_publish_ref_guard("pypi", "refs/heads/main") != 0
+    assert _run_publish_ref_guard("pypi", "refs/tags/v0.0.0-not-this") != 0
+    # target=testpypi: only main passes; a tag ref is rejected.
+    assert _run_publish_ref_guard("testpypi", "refs/heads/main") == 0
+    assert _run_publish_ref_guard("testpypi", tag_ref) != 0
+    # any unknown target is rejected outright.
+    assert _run_publish_ref_guard("bogus", tag_ref) != 0
