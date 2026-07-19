@@ -87,14 +87,15 @@ def test_preflip_testpypi_publish_disables_rekor_attestations() -> None:
     assert pub[0].get("with", {}).get("attestations") is False
 
 
-def test_real_pypi_publish_is_flip_day_interlocked() -> None:
-    # The real-PyPI path signs attestations (public Rekor) by design, so it must be unreachable
-    # pre-flip: a dedicated interlock step fails target=pypi until the flip-day PR removes it.
-    # terra P1: asserting only the `if:` is hollow — a future reorder could run the signing
-    # Publish-to-PyPI step BEFORE this interlock (writing to Rekor) and still pass. So also assert
-    # the interlock (a) hard-fails with a non-zero exit and (b) PRECEDES the PyPI publish step.
-    interlock = _pypi_steps_named("Real PyPI flip-day interlock")
-    assert len(interlock) == 1
-    assert interlock[0].get("if") == "inputs.target == 'pypi'"
-    assert "exit 1" in str(interlock[0].get("run", ""))
-    assert _pypi_step_index("Real PyPI flip-day interlock") < _pypi_step_index("Publish to PyPI")
+def test_real_pypi_publish_is_tag_ref_guarded() -> None:
+    # FLIPPED 2026-07-19 (the flip-day PR): the pre-flip interlock step is deliberately gone —
+    # its presence would re-block every real release, so its absence is now the asserted state.
+    # The remaining pre-publish protection is the ref guard: target=pypi may only publish from
+    # refs/tags/v<version> (plus the `pypi` environment and PyPI trusted publishing, which live
+    # outside this file). Same ordering rule as the old interlock test: the guard must PRECEDE
+    # the signing Publish-to-PyPI step, or a reorder could publish before the check runs.
+    assert _pypi_steps_named("Real PyPI flip-day interlock") == []
+    guard = _pypi_steps_named("Assert publish ref guard")
+    assert len(guard) == 1
+    assert "refs/tags/v" in str(guard[0].get("run", ""))
+    assert _pypi_step_index("Assert publish ref guard") < _pypi_step_index("Publish to PyPI")
