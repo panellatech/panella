@@ -158,6 +158,10 @@ jobs:
           severity: HIGH,CRITICAL
           exit-code: "1"
           ignore-unfixed: "true"
+          # Constrained/unreachable HIGH CVEs, each with a per-CVE justification + expiry forcing
+          # function; everything else stays a hard block. Explicit path — trivy does not auto-detect
+          # the .yaml ignore form (only plain .trivyignore).
+          trivyignores: .trivyignore.yaml
           format: table
           # Before C0-3b the store image was ~5.5GB (CUDA torch) and trivy's 5m default deadline
           # expired mid-layer-decompress ("context deadline exceeded") — a false ZERO-finding block.
@@ -195,6 +199,9 @@ jobs:
           severity: HIGH,CRITICAL
           exit-code: "1"
           ignore-unfixed: "true"
+          # Same justified ignore file as the store scan (the app image shares the cryptography
+          # constraint); explicit path because trivy does not auto-detect the .yaml form.
+          trivyignores: .trivyignore.yaml
           format: table
           # Same long-deadline as the store scan — keep both symmetric so a future image-size shift
           # in either target does not silently reintroduce the context-deadline false block.

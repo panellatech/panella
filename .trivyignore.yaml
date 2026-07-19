@@ -1,0 +1,50 @@
+# Trivy vulnerability exceptions — release-images.yml store + app scans (HIGH,CRITICAL gate).
+#
+# Every entry here is a HIGH CVE that (a) cannot be patched inside a real, documented constraint
+# AND (b) is architecturally unreachable in Panella's shipped configuration. Each carries a
+# per-CVE statement and an `expired_at` forcing function: on that date the suppression lapses and
+# the CVE re-blocks the release, so this list cannot silently rot. Re-assess each on expiry —
+# lift the suppression the moment the underlying constraint clears (upstream cap raised / wheels
+# stop faulting / dependency bumped).
+#
+# Everything Trivy would otherwise report stays a hard block. Bucket-A CVEs (setuptools, wheel,
+# jaraco.context) are NOT here — they are fixed by version bumps in the Dockerfile.
+
+vulnerabilities:
+  - id: GHSA-537c-gmf6-5ccf
+    statement: >-
+      cryptography: vulnerable OpenSSL statically bundled in wheels before 48.0.1 (the patched
+      line begins at 48.0.1; installed is 46.0.7). The fix is unreachable here because it sits
+      inside the confirmed-SIGILL band: cryptography>=47 aarch64 wheels crash with SIGILL inside
+      the Rust extension under Apple-Silicon Docker (bisected 46.0.7 OK / 47.0.0 SIGILL / 48.0.2
+      SIGILL / 49.0.0 SIGILL — note 48.0.2 is itself a patched version that still faults; see the
+      Dockerfile store stage), so lifting the `<47` cap to patch this CVE would break `panella up`
+      on every Apple-Silicon Mac dev box. Reachability: the box serves loopback HTTP and
+      terminates no TLS (compose publishes 127.0.0.1:8001, no TLS in the container), so the
+      bundled-OpenSSL TLS attack surface is not exposed; cryptography is used only for local JWT
+      signing/verification. Lift when a patched wheel (>=48.0.1) stops faulting on Apple-Silicon
+      Docker (the Dockerfile cap comment tracks the same trigger).
+    expired_at: 2026-10-19
+  - id: CVE-2026-4372
+    statement: >-
+      transformers remote code execution when loading a model (the advisory notes it does not
+      require trust_remote_code). Capped by mcp-memory-service==10.67.1 (transformers<5.0.0); the
+      fix (transformers>=5.3.0) requires a major core-dependency bump to mcp-memory-service 11.x,
+      which is a separate structural change with its own validation/drift/eval arc (and breaks the
+      store guard's 10.67.1 version pin). Reachability: the store loads exactly one model —
+      sentence-transformers/all-MiniLM-L6-v2 baked at a pinned revision and manifest-verified at
+      build time — and runs fully offline (HF_HUB_OFFLINE=1, TRANSFORMERS_OFFLINE=1); no
+      attacker-controlled model or config can enter the default runtime, so the malicious-model
+      code-execution vector is unreachable in the shipped configuration. Lift on the
+      mcp-memory-service 11.x upgrade.
+    expired_at: 2026-10-19
+  - id: CVE-2026-5241
+    statement: >-
+      transformers arbitrary code execution via an overridden trust_remote_code setting. Same
+      constraint as CVE-2026-4372: capped by mcp-memory-service==10.67.1 (transformers<5.0.0), fix
+      needs the mcp-memory-service 11.x bump. Reachability: the shipped store never enables
+      trust_remote_code and loads only the one baked, manifest-verified model fully offline, so
+      neither the trust_remote_code override nor an attacker-controlled model/config can reach the
+      runtime. Unreachable in the shipped configuration. Lift on the mcp-memory-service 11.x
+      upgrade.
+    expired_at: 2026-10-19

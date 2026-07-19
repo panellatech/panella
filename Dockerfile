@@ -49,6 +49,11 @@ ENV PYTHONUNBUFFERED=1 \
 COPY docker/store/store-constraints.txt /tmp/store-constraints.txt
 RUN pip install --index-url https://download.pytorch.org/whl/cpu torch==2.13.0+cpu
 RUN pip install "mcp-memory-service[sqlite]==10.67.1" "cryptography<47" -c /tmp/store-constraints.txt
+# Patch the packaging-tooling CVEs Trivy blocks on (metadata-only, not in the serving path):
+# setuptools CVE-2025-47273, wheel CVE-2026-24049, jaraco.context CVE-2026-23949. Minimum-version
+# bumps only; none touch the torch/CUDA closure asserted below. (transformers + cryptography CVEs
+# are constrained — see .trivyignore.yaml.)
+RUN pip install -U 'setuptools>=78.1.1' 'wheel>=0.46.2' 'jaraco.context>=6.1.0'
 # Authoritative build-time gate (fail-fast, protects every build incl. local): the shipped torch MUST
 # be the CPU build with no CUDA linkage and no CUDA/nvidia/triton packages, or the image build fails
 # here — before the model bake / guard / user setup. pip check catches any constraints conflict.
@@ -148,6 +153,9 @@ COPY . /app
 # cryptography<47: same Apple-Silicon SIGILL mitigation as the store stage (transitive dep here;
 # the facade boot path never touches it, but a lazy import must not be a landmine).
 RUN pip install -e . "cryptography<47"
+# Same packaging-tooling CVE patch as the store stage (setuptools CVE-2025-47273,
+# wheel CVE-2026-24049, jaraco.context CVE-2026-23949) — metadata-only, minimum bumps.
+RUN pip install -U 'setuptools>=78.1.1' 'wheel>=0.46.2' 'jaraco.context>=6.1.0'
 
 # Package-artifact config render (plan v7 §1.6 part 2): the ONLY place the finalizer/wings
 # de-Owner happens. Renders from the shipped generic governance (docker build passes no env,
