@@ -13,7 +13,8 @@ something and it becoming durable truth?
 extracted, merged, summarized, and updated in the background, automatically. It optimizes for
 speed and zero ceremony, and for a single-user assistant that is a reasonable, deliberate design.
 
-**Branch two — governed writes.** Panella takes the other branch: an agent's write can only ever
+**Branch two — governed writes.** Panella takes the other branch: an agent's write to a governed
+scope can only ever
 *propose*. The proposal queues, a named person approves it, and the decision itself is kept as a
 chain-verified receipt the system can later prove. Nothing an agent submits becomes durable truth
 without that receipt.
@@ -46,8 +47,8 @@ and not an enterprise tier.
 
 | Dimension | Common pattern in the field | Panella |
 |---|---|---|
-| Write path | Agent writes land, then are consolidated automatically | Agent MCP writes are **propose-only by construction**; a person approves before durability |
-| Approval identity | Caller's API key implies authority | **Two separate credentials**: the agent bearer can only propose; an operator-held approval token is the approver identity. An agent cannot approve its own memory |
+| Write path | Agent writes land, then are consolidated automatically | Agent MCP writes to **governed scopes are propose-only by construction**; a person approves before durability. A scope is ungoverned only by explicit per-scope configuration |
+| Approval identity | Caller's API key implies authority | **Two separate credentials**: the agent bearer can only propose; an operator-held approval token is the approver identity — kept outside the agent's sandbox or OS user, so an agent cannot approve its own memory |
 | Audit | Append-only log of what happened | **Chain-verified approval receipts**: the finalizer refuses to make a write durable without a receipt it can verify — whoever stamped the row |
 | Where governance lives | Managed platform / enterprise tier | **In the free, self-hosted core, by default** — governance is never a paid feature |
 | Background consolidation | Core feature | **Never.** Original content is immutable; updates version, never overwrite |
@@ -78,8 +79,10 @@ Ask any memory product — including us — these questions:
 5. Can you re-run the vendor's accuracy claims on your own hardware?
 
 Panella's answers: on the governed path, never — and a scope is only ever ungoverned by explicit
-per-scope configuration, stated in the docs; separate by construction; a chain-verified receipt;
-free core, always; yes — `make eval-retrieve` in the repo.
+per-scope configuration, stated in the docs; separate by construction, with the approval token kept
+outside the agent's sandbox or OS user; a chain-verified receipt; free core, always; yes — the
+in-repo bundle walks it: `make eval-up && make eval-dataset && make eval-retrieve`
+([eval/README.md](https://github.com/panellatech/panella/blob/main/eval/README.md)).
 
 ---
 
