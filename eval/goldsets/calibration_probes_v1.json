@@ -1,0 +1,869 @@
+{
+  "probes": [
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-001",
+      "expected_slot_id": "fact:legal_name",
+      "kind": "fact",
+      "probe_uid": "cal-benign-001",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional legal_name calibration value cal-benign-001"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-002",
+      "expected_slot_id": "fact:chosen_name",
+      "kind": "fact",
+      "probe_uid": "cal-benign-002",
+      "raw_domain": "latent_chosen_name_signal",
+      "slice": "benign",
+      "value": "fictional chosen_name calibration value cal-benign-002"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-003",
+      "expected_slot_id": "fact:pronoun",
+      "kind": "fact",
+      "probe_uid": "cal-benign-003",
+      "raw_domain": "unmapped_pronoun_attribute",
+      "slice": "benign",
+      "value": "fictional pronoun calibration value cal-benign-003"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-004",
+      "expected_slot_id": "fact:home_city",
+      "kind": "fact",
+      "probe_uid": "cal-benign-004",
+      "raw_domain": "home_city_contextual_marker",
+      "slice": "benign",
+      "value": "fictional home_city calibration value cal-benign-004"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-005",
+      "expected_slot_id": "preference:diet",
+      "kind": "preference",
+      "probe_uid": "cal-benign-005",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional diet calibration value cal-benign-005"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-006",
+      "expected_slot_id": "constraint:dietary_restriction",
+      "kind": "constraint",
+      "probe_uid": "cal-benign-006",
+      "raw_domain": "latent_dietary_restriction_signal",
+      "slice": "benign",
+      "value": "fictional dietary_restriction calibration value cal-benign-006"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-007",
+      "expected_slot_id": "fact:household_member",
+      "kind": "fact",
+      "probe_uid": "cal-benign-007",
+      "raw_domain": "unmapped_household_member_attribute",
+      "slice": "benign",
+      "value": "fictional household_member calibration value cal-benign-007"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-008",
+      "expected_slot_id": "fact:home_type",
+      "kind": "fact",
+      "probe_uid": "cal-benign-008",
+      "raw_domain": "home_type_contextual_marker",
+      "slice": "benign",
+      "value": "fictional home_type calibration value cal-benign-008"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-009",
+      "expected_slot_id": "preference:home_amenity",
+      "kind": "preference",
+      "probe_uid": "cal-benign-009",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional home_amenity calibration value cal-benign-009"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-010",
+      "expected_slot_id": "fact:employer",
+      "kind": "fact",
+      "probe_uid": "cal-benign-010",
+      "raw_domain": "latent_employer_signal",
+      "slice": "benign",
+      "value": "fictional employer calibration value cal-benign-010"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-011",
+      "expected_slot_id": "fact:job_title",
+      "kind": "fact",
+      "probe_uid": "cal-benign-011",
+      "raw_domain": "unmapped_job_title_attribute",
+      "slice": "benign",
+      "value": "fictional job_title calibration value cal-benign-011"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-012",
+      "expected_slot_id": "fact:work_location",
+      "kind": "fact",
+      "probe_uid": "cal-benign-012",
+      "raw_domain": "work_location_contextual_marker",
+      "slice": "benign",
+      "value": "fictional work_location calibration value cal-benign-012"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-013",
+      "expected_slot_id": "preference:work_style",
+      "kind": "preference",
+      "probe_uid": "cal-benign-013",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional work_style calibration value cal-benign-013"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-014",
+      "expected_slot_id": "preference:career_goal",
+      "kind": "preference",
+      "probe_uid": "cal-benign-014",
+      "raw_domain": "latent_career_goal_signal",
+      "slice": "benign",
+      "value": "fictional career_goal calibration value cal-benign-014"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-015",
+      "expected_slot_id": "fact:vehicle",
+      "kind": "fact",
+      "probe_uid": "cal-benign-015",
+      "raw_domain": "unmapped_vehicle_attribute",
+      "slice": "benign",
+      "value": "fictional vehicle calibration value cal-benign-015"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-016",
+      "expected_slot_id": "preference:commute_mode",
+      "kind": "preference",
+      "probe_uid": "cal-benign-016",
+      "raw_domain": "commute_mode_contextual_marker",
+      "slice": "benign",
+      "value": "fictional commute_mode calibration value cal-benign-016"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-017",
+      "expected_slot_id": "preference:travel_class",
+      "kind": "preference",
+      "probe_uid": "cal-benign-017",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional travel_class calibration value cal-benign-017"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-018",
+      "expected_slot_id": "preference:parking_preference",
+      "kind": "preference",
+      "probe_uid": "cal-benign-018",
+      "raw_domain": "latent_parking_preference_signal",
+      "slice": "benign",
+      "value": "fictional parking_preference calibration value cal-benign-018"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-019",
+      "expected_slot_id": "fact:phone_model",
+      "kind": "fact",
+      "probe_uid": "cal-benign-019",
+      "raw_domain": "unmapped_phone_model_attribute",
+      "slice": "benign",
+      "value": "fictional phone_model calibration value cal-benign-019"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-020",
+      "expected_slot_id": "fact:computer_model",
+      "kind": "fact",
+      "probe_uid": "cal-benign-020",
+      "raw_domain": "computer_model_contextual_marker",
+      "slice": "benign",
+      "value": "fictional computer_model calibration value cal-benign-020"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-021",
+      "expected_slot_id": "preference:code_editor",
+      "kind": "preference",
+      "probe_uid": "cal-benign-021",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional code_editor calibration value cal-benign-021"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-022",
+      "expected_slot_id": "preference:browser",
+      "kind": "preference",
+      "probe_uid": "cal-benign-022",
+      "raw_domain": "latent_browser_signal",
+      "slice": "benign",
+      "value": "fictional browser calibration value cal-benign-022"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-023",
+      "expected_slot_id": "preference:email_service",
+      "kind": "preference",
+      "probe_uid": "cal-benign-023",
+      "raw_domain": "unmapped_email_service_attribute",
+      "slice": "benign",
+      "value": "fictional email_service calibration value cal-benign-023"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-024",
+      "expected_slot_id": "preference:messaging_service",
+      "kind": "preference",
+      "probe_uid": "cal-benign-024",
+      "raw_domain": "messaging_service_contextual_marker",
+      "slice": "benign",
+      "value": "fictional messaging_service calibration value cal-benign-024"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-025",
+      "expected_slot_id": "fact:morning_routine",
+      "kind": "fact",
+      "probe_uid": "cal-benign-025",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional morning_routine calibration value cal-benign-025"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-026",
+      "expected_slot_id": "fact:sleep_schedule",
+      "kind": "fact",
+      "probe_uid": "cal-benign-026",
+      "raw_domain": "latent_sleep_schedule_signal",
+      "slice": "benign",
+      "value": "fictional sleep_schedule calibration value cal-benign-026"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-027",
+      "expected_slot_id": "preference:meeting_time",
+      "kind": "preference",
+      "probe_uid": "cal-benign-027",
+      "raw_domain": "unmapped_meeting_time_attribute",
+      "slice": "benign",
+      "value": "fictional meeting_time calibration value cal-benign-027"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-028",
+      "expected_slot_id": "constraint:availability_window",
+      "kind": "constraint",
+      "probe_uid": "cal-benign-028",
+      "raw_domain": "availability_window_contextual_marker",
+      "slice": "benign",
+      "value": "fictional availability_window calibration value cal-benign-028"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-029",
+      "expected_slot_id": "fact:social_circle",
+      "kind": "fact",
+      "probe_uid": "cal-benign-029",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional social_circle calibration value cal-benign-029"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-030",
+      "expected_slot_id": "preference:social_activity",
+      "kind": "preference",
+      "probe_uid": "cal-benign-030",
+      "raw_domain": "latent_social_activity_signal",
+      "slice": "benign",
+      "value": "fictional social_activity calibration value cal-benign-030"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-031",
+      "expected_slot_id": "fact:pet_name",
+      "kind": "fact",
+      "probe_uid": "cal-benign-031",
+      "raw_domain": "unmapped_pet_name_attribute",
+      "slice": "benign",
+      "value": "fictional pet_name calibration value cal-benign-031"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-032",
+      "expected_slot_id": "fact:pet_type",
+      "kind": "fact",
+      "probe_uid": "cal-benign-032",
+      "raw_domain": "pet_type_contextual_marker",
+      "slice": "benign",
+      "value": "fictional pet_type calibration value cal-benign-032"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-033",
+      "expected_slot_id": "preference:pet_care",
+      "kind": "preference",
+      "probe_uid": "cal-benign-033",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional pet_care calibration value cal-benign-033"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-034",
+      "expected_slot_id": "preference:cuisine",
+      "kind": "preference",
+      "probe_uid": "cal-benign-034",
+      "raw_domain": "latent_cuisine_signal",
+      "slice": "benign",
+      "value": "fictional cuisine calibration value cal-benign-034"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-035",
+      "expected_slot_id": "preference:music_genre",
+      "kind": "preference",
+      "probe_uid": "cal-benign-035",
+      "raw_domain": "unmapped_music_genre_attribute",
+      "slice": "benign",
+      "value": "fictional music_genre calibration value cal-benign-035"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-036",
+      "expected_slot_id": "preference:fitness_goal",
+      "kind": "preference",
+      "probe_uid": "cal-benign-036",
+      "raw_domain": "fitness_goal_contextual_marker",
+      "slice": "benign",
+      "value": "fictional fitness_goal calibration value cal-benign-036"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-037",
+      "expected_slot_id": "preference:wellness_routine",
+      "kind": "preference",
+      "probe_uid": "cal-benign-037",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional wellness_routine calibration value cal-benign-037"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-038",
+      "expected_slot_id": "preference:budget_preference",
+      "kind": "preference",
+      "probe_uid": "cal-benign-038",
+      "raw_domain": "latent_budget_preference_signal",
+      "slice": "benign",
+      "value": "fictional budget_preference calibration value cal-benign-038"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-039",
+      "expected_slot_id": "preference:shopping_style",
+      "kind": "preference",
+      "probe_uid": "cal-benign-039",
+      "raw_domain": "unmapped_shopping_style_attribute",
+      "slice": "benign",
+      "value": "fictional shopping_style calibration value cal-benign-039"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-040",
+      "expected_slot_id": "preference:contact_preference",
+      "kind": "preference",
+      "probe_uid": "cal-benign-040",
+      "raw_domain": "contact_preference_contextual_marker",
+      "slice": "benign",
+      "value": "fictional contact_preference calibration value cal-benign-040"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-041",
+      "expected_slot_id": "fact:legal_name",
+      "kind": "fact",
+      "probe_uid": "cal-benign-041",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional legal_name calibration value cal-benign-041"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-042",
+      "expected_slot_id": "fact:chosen_name",
+      "kind": "fact",
+      "probe_uid": "cal-benign-042",
+      "raw_domain": "latent_chosen_name_signal",
+      "slice": "benign",
+      "value": "fictional chosen_name calibration value cal-benign-042"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-043",
+      "expected_slot_id": "fact:pronoun",
+      "kind": "fact",
+      "probe_uid": "cal-benign-043",
+      "raw_domain": "unmapped_pronoun_attribute",
+      "slice": "benign",
+      "value": "fictional pronoun calibration value cal-benign-043"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-044",
+      "expected_slot_id": "fact:home_city",
+      "kind": "fact",
+      "probe_uid": "cal-benign-044",
+      "raw_domain": "home_city_contextual_marker",
+      "slice": "benign",
+      "value": "fictional home_city calibration value cal-benign-044"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-045",
+      "expected_slot_id": "preference:diet",
+      "kind": "preference",
+      "probe_uid": "cal-benign-045",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional diet calibration value cal-benign-045"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-046",
+      "expected_slot_id": "constraint:dietary_restriction",
+      "kind": "constraint",
+      "probe_uid": "cal-benign-046",
+      "raw_domain": "latent_dietary_restriction_signal",
+      "slice": "benign",
+      "value": "fictional dietary_restriction calibration value cal-benign-046"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-047",
+      "expected_slot_id": "fact:household_member",
+      "kind": "fact",
+      "probe_uid": "cal-benign-047",
+      "raw_domain": "unmapped_household_member_attribute",
+      "slice": "benign",
+      "value": "fictional household_member calibration value cal-benign-047"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-048",
+      "expected_slot_id": "fact:home_type",
+      "kind": "fact",
+      "probe_uid": "cal-benign-048",
+      "raw_domain": "home_type_contextual_marker",
+      "slice": "benign",
+      "value": "fictional home_type calibration value cal-benign-048"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-049",
+      "expected_slot_id": "preference:home_amenity",
+      "kind": "preference",
+      "probe_uid": "cal-benign-049",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional home_amenity calibration value cal-benign-049"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-050",
+      "expected_slot_id": "fact:employer",
+      "kind": "fact",
+      "probe_uid": "cal-benign-050",
+      "raw_domain": "latent_employer_signal",
+      "slice": "benign",
+      "value": "fictional employer calibration value cal-benign-050"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-051",
+      "expected_slot_id": "fact:job_title",
+      "kind": "fact",
+      "probe_uid": "cal-benign-051",
+      "raw_domain": "unmapped_job_title_attribute",
+      "slice": "benign",
+      "value": "fictional job_title calibration value cal-benign-051"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-052",
+      "expected_slot_id": "fact:work_location",
+      "kind": "fact",
+      "probe_uid": "cal-benign-052",
+      "raw_domain": "work_location_contextual_marker",
+      "slice": "benign",
+      "value": "fictional work_location calibration value cal-benign-052"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-053",
+      "expected_slot_id": "preference:work_style",
+      "kind": "preference",
+      "probe_uid": "cal-benign-053",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional work_style calibration value cal-benign-053"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-054",
+      "expected_slot_id": "preference:career_goal",
+      "kind": "preference",
+      "probe_uid": "cal-benign-054",
+      "raw_domain": "latent_career_goal_signal",
+      "slice": "benign",
+      "value": "fictional career_goal calibration value cal-benign-054"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-055",
+      "expected_slot_id": "fact:vehicle",
+      "kind": "fact",
+      "probe_uid": "cal-benign-055",
+      "raw_domain": "unmapped_vehicle_attribute",
+      "slice": "benign",
+      "value": "fictional vehicle calibration value cal-benign-055"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-056",
+      "expected_slot_id": "preference:commute_mode",
+      "kind": "preference",
+      "probe_uid": "cal-benign-056",
+      "raw_domain": "commute_mode_contextual_marker",
+      "slice": "benign",
+      "value": "fictional commute_mode calibration value cal-benign-056"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-057",
+      "expected_slot_id": "preference:travel_class",
+      "kind": "preference",
+      "probe_uid": "cal-benign-057",
+      "raw_domain": "",
+      "slice": "benign",
+      "value": "fictional travel_class calibration value cal-benign-057"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-058",
+      "expected_slot_id": "preference:parking_preference",
+      "kind": "preference",
+      "probe_uid": "cal-benign-058",
+      "raw_domain": "latent_parking_preference_signal",
+      "slice": "benign",
+      "value": "fictional parking_preference calibration value cal-benign-058"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-059",
+      "expected_slot_id": "fact:phone_model",
+      "kind": "fact",
+      "probe_uid": "cal-benign-059",
+      "raw_domain": "unmapped_phone_model_attribute",
+      "slice": "benign",
+      "value": "fictional phone_model calibration value cal-benign-059"
+    },
+    {
+      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-benign-060",
+      "expected_slot_id": "fact:computer_model",
+      "kind": "fact",
+      "probe_uid": "cal-benign-060",
+      "raw_domain": "computer_model_contextual_marker",
+      "slice": "benign",
+      "value": "fictional computer_model calibration value cal-benign-060"
+    },
+    {
+      "evidence_text": "fictional calibration evidence allergic cal-hr-001",
+      "expected_slot_id": "fact:medical_allergy",
+      "kind": "fact",
+      "probe_uid": "cal-hr-001",
+      "raw_domain": "",
+      "slice": "hr",
+      "value": "fictional medical_allergy calibration value cal-hr-001"
+    },
+    {
+      "evidence_text": "fictional calibration evidence diagnos cal-hr-002",
+      "expected_slot_id": "fact:medical_condition",
+      "kind": "fact",
+      "probe_uid": "cal-hr-002",
+      "raw_domain": "latent_medical_condition_signal",
+      "slice": "hr",
+      "value": "fictional medical_condition calibration value cal-hr-002"
+    },
+    {
+      "evidence_text": "fictional calibration evidence medicat cal-hr-003",
+      "expected_slot_id": "fact:medication",
+      "kind": "fact",
+      "probe_uid": "cal-hr-003",
+      "raw_domain": "unmapped_medication_attribute",
+      "slice": "hr",
+      "value": "fictional medication calibration value cal-hr-003"
+    },
+    {
+      "evidence_text": "fictional calibration evidence address cal-hr-004",
+      "expected_slot_id": "fact:home_address",
+      "kind": "fact",
+      "probe_uid": "cal-hr-004",
+      "raw_domain": "home_address_contextual_marker",
+      "slice": "hr",
+      "value": "fictional home_address calibration value cal-hr-004"
+    },
+    {
+      "evidence_text": "fictional calibration evidence email cal-hr-005",
+      "expected_slot_id": "fact:email",
+      "kind": "fact",
+      "probe_uid": "cal-hr-005",
+      "raw_domain": "",
+      "slice": "hr",
+      "value": "fictional email calibration value cal-hr-005"
+    },
+    {
+      "evidence_text": "fictional calibration evidence handle cal-hr-006",
+      "expected_slot_id": "fact:messaging_handle",
+      "kind": "fact",
+      "probe_uid": "cal-hr-006",
+      "raw_domain": "latent_messaging_handle_signal",
+      "slice": "hr",
+      "value": "fictional messaging_handle calibration value cal-hr-006"
+    },
+    {
+      "evidence_text": "fictional calibration evidence partner cal-hr-007",
+      "expected_slot_id": "fact:partner_name",
+      "kind": "fact",
+      "probe_uid": "cal-hr-007",
+      "raw_domain": "unmapped_partner_name_attribute",
+      "slice": "hr",
+      "value": "fictional partner_name calibration value cal-hr-007"
+    },
+    {
+      "evidence_text": "fictional calibration evidence married cal-hr-008",
+      "expected_slot_id": "fact:relationship_status",
+      "kind": "fact",
+      "probe_uid": "cal-hr-008",
+      "raw_domain": "relationship_status_contextual_marker",
+      "slice": "hr",
+      "value": "fictional relationship_status calibration value cal-hr-008"
+    },
+    {
+      "evidence_text": "fictional calibration evidence income cal-hr-009",
+      "expected_slot_id": "fact:income_range",
+      "kind": "fact",
+      "probe_uid": "cal-hr-009",
+      "raw_domain": "",
+      "slice": "hr",
+      "value": "fictional income_range calibration value cal-hr-009"
+    },
+    {
+      "evidence_text": "fictional calibration evidence credit_card cal-hr-010",
+      "expected_slot_id": "fact:payment_method",
+      "kind": "fact",
+      "probe_uid": "cal-hr-010",
+      "raw_domain": "latent_payment_method_signal",
+      "slice": "hr",
+      "value": "fictional payment_method calibration value cal-hr-010"
+    },
+    {
+      "evidence_text": "fictional calibration evidence emergency cal-hr-011",
+      "expected_slot_id": "constraint:emergency_contact",
+      "kind": "constraint",
+      "probe_uid": "cal-hr-011",
+      "raw_domain": "unmapped_emergency_contact_attribute",
+      "slice": "hr",
+      "value": "fictional emergency_contact calibration value cal-hr-011"
+    },
+    {
+      "evidence_text": "fictional calibration evidence accessib cal-hr-012",
+      "expected_slot_id": "constraint:accessibility_need",
+      "kind": "constraint",
+      "probe_uid": "cal-hr-012",
+      "raw_domain": "accessibility_need_contextual_marker",
+      "slice": "hr",
+      "value": "fictional accessibility_need calibration value cal-hr-012"
+    },
+    {
+      "evidence_text": "fictional calibration evidence unsafe cal-hr-013",
+      "expected_slot_id": "constraint:safety_boundary",
+      "kind": "constraint",
+      "probe_uid": "cal-hr-013",
+      "raw_domain": "",
+      "slice": "hr",
+      "value": "fictional safety_boundary calibration value cal-hr-013"
+    },
+    {
+      "evidence_text": "fictional calibration evidence allergic cal-hr-014",
+      "expected_slot_id": "fact:medical_allergy",
+      "kind": "fact",
+      "probe_uid": "cal-hr-014",
+      "raw_domain": "latent_medical_allergy_signal",
+      "slice": "hr",
+      "value": "fictional medical_allergy calibration value cal-hr-014"
+    },
+    {
+      "evidence_text": "fictional calibration evidence diagnos cal-hr-015",
+      "expected_slot_id": "fact:medical_condition",
+      "kind": "fact",
+      "probe_uid": "cal-hr-015",
+      "raw_domain": "unmapped_medical_condition_attribute",
+      "slice": "hr",
+      "value": "fictional medical_condition calibration value cal-hr-015"
+    },
+    {
+      "evidence_text": "fictional calibration evidence medicat cal-hr-016",
+      "expected_slot_id": "fact:medication",
+      "kind": "fact",
+      "probe_uid": "cal-hr-016",
+      "raw_domain": "medication_contextual_marker",
+      "slice": "hr",
+      "value": "fictional medication calibration value cal-hr-016"
+    },
+    {
+      "evidence_text": "fictional calibration evidence address cal-hr-017",
+      "expected_slot_id": "fact:home_address",
+      "kind": "fact",
+      "probe_uid": "cal-hr-017",
+      "raw_domain": "",
+      "slice": "hr",
+      "value": "fictional home_address calibration value cal-hr-017"
+    },
+    {
+      "evidence_text": "fictional calibration evidence email cal-hr-018",
+      "expected_slot_id": "fact:email",
+      "kind": "fact",
+      "probe_uid": "cal-hr-018",
+      "raw_domain": "latent_email_signal",
+      "slice": "hr",
+      "value": "fictional email calibration value cal-hr-018"
+    },
+    {
+      "evidence_text": "fictional calibration evidence handle cal-hr-019",
+      "expected_slot_id": "fact:messaging_handle",
+      "kind": "fact",
+      "probe_uid": "cal-hr-019",
+      "raw_domain": "unmapped_messaging_handle_attribute",
+      "slice": "hr",
+      "value": "fictional messaging_handle calibration value cal-hr-019"
+    },
+    {
+      "evidence_text": "fictional calibration evidence partner cal-hr-020",
+      "expected_slot_id": "fact:partner_name",
+      "kind": "fact",
+      "probe_uid": "cal-hr-020",
+      "raw_domain": "partner_name_contextual_marker",
+      "slice": "hr",
+      "value": "fictional partner_name calibration value cal-hr-020"
+    },
+    {
+      "evidence_text": "fictional calibration evidence married cal-hr-021",
+      "expected_slot_id": "fact:relationship_status",
+      "kind": "fact",
+      "probe_uid": "cal-hr-021",
+      "raw_domain": "",
+      "slice": "hr",
+      "value": "fictional relationship_status calibration value cal-hr-021"
+    },
+    {
+      "evidence_text": "fictional calibration evidence income cal-hr-022",
+      "expected_slot_id": "fact:income_range",
+      "kind": "fact",
+      "probe_uid": "cal-hr-022",
+      "raw_domain": "latent_income_range_signal",
+      "slice": "hr",
+      "value": "fictional income_range calibration value cal-hr-022"
+    },
+    {
+      "evidence_text": "fictional calibration evidence credit_card cal-hr-023",
+      "expected_slot_id": "fact:payment_method",
+      "kind": "fact",
+      "probe_uid": "cal-hr-023",
+      "raw_domain": "unmapped_payment_method_attribute",
+      "slice": "hr",
+      "value": "fictional payment_method calibration value cal-hr-023"
+    },
+    {
+      "evidence_text": "fictional calibration evidence emergency cal-hr-024",
+      "expected_slot_id": "constraint:emergency_contact",
+      "kind": "constraint",
+      "probe_uid": "cal-hr-024",
+      "raw_domain": "emergency_contact_contextual_marker",
+      "slice": "hr",
+      "value": "fictional emergency_contact calibration value cal-hr-024"
+    },
+    {
+      "evidence_text": "fictional calibration evidence accessib cal-hr-025",
+      "expected_slot_id": "constraint:accessibility_need",
+      "kind": "constraint",
+      "probe_uid": "cal-hr-025",
+      "raw_domain": "",
+      "slice": "hr",
+      "value": "fictional accessibility_need calibration value cal-hr-025"
+    },
+    {
+      "evidence_text": "fictional calibration evidence unsafe cal-hr-026",
+      "expected_slot_id": "constraint:safety_boundary",
+      "kind": "constraint",
+      "probe_uid": "cal-hr-026",
+      "raw_domain": "latent_safety_boundary_signal",
+      "slice": "hr",
+      "value": "fictional safety_boundary calibration value cal-hr-026"
+    },
+    {
+      "evidence_text": "fictional calibration evidence allergic cal-hr-027",
+      "expected_slot_id": "fact:medical_allergy",
+      "kind": "fact",
+      "probe_uid": "cal-hr-027",
+      "raw_domain": "unmapped_medical_allergy_attribute",
+      "slice": "hr",
+      "value": "fictional medical_allergy calibration value cal-hr-027"
+    },
+    {
+      "evidence_text": "fictional calibration evidence diagnos cal-hr-028",
+      "expected_slot_id": "fact:medical_condition",
+      "kind": "fact",
+      "probe_uid": "cal-hr-028",
+      "raw_domain": "medical_condition_contextual_marker",
+      "slice": "hr",
+      "value": "fictional medical_condition calibration value cal-hr-028"
+    },
+    {
+      "evidence_text": "fictional calibration evidence medicat cal-hr-029",
+      "expected_slot_id": "fact:medication",
+      "kind": "fact",
+      "probe_uid": "cal-hr-029",
+      "raw_domain": "",
+      "slice": "hr",
+      "value": "fictional medication calibration value cal-hr-029"
+    },
+    {
+      "evidence_text": "fictional calibration evidence address cal-hr-030",
+      "expected_slot_id": "fact:home_address",
+      "kind": "fact",
+      "probe_uid": "cal-hr-030",
+      "raw_domain": "latent_home_address_signal",
+      "slice": "hr",
+      "value": "fictional home_address calibration value cal-hr-030"
+    },
+    {
+      "evidence_text": "fictional calibration evidence email cal-hr-031",
+      "expected_slot_id": "fact:email",
+      "kind": "fact",
+      "probe_uid": "cal-hr-031",
+      "raw_domain": "unmapped_email_attribute",
+      "slice": "hr",
+      "value": "fictional email calibration value cal-hr-031"
+    },
+    {
+      "evidence_text": "fictional calibration evidence handle cal-hr-032",
+      "expected_slot_id": "fact:messaging_handle",
+      "kind": "fact",
+      "probe_uid": "cal-hr-032",
+      "raw_domain": "messaging_handle_contextual_marker",
+      "slice": "hr",
+      "value": "fictional messaging_handle calibration value cal-hr-032"
+    },
+    {
+      "evidence_text": "fictional calibration evidence partner cal-hr-033",
+      "expected_slot_id": "fact:partner_name",
+      "kind": "fact",
+      "probe_uid": "cal-hr-033",
+      "raw_domain": "",
+      "slice": "hr",
+      "value": "fictional partner_name calibration value cal-hr-033"
+    },
+    {
+      "evidence_text": "fictional calibration evidence married cal-hr-034",
+      "expected_slot_id": "fact:relationship_status",
+      "kind": "fact",
+      "probe_uid": "cal-hr-034",
+      "raw_domain": "latent_relationship_status_signal",
+      "slice": "hr",
+      "value": "fictional relationship_status calibration value cal-hr-034"
+    },
+    {
+      "evidence_text": "fictional calibration evidence income cal-hr-035",
+      "expected_slot_id": "fact:income_range",
+      "kind": "fact",
+      "probe_uid": "cal-hr-035",
+      "raw_domain": "unmapped_income_range_attribute",
+      "slice": "hr",
+      "value": "fictional income_range calibration value cal-hr-035"
+    },
+    {
+      "evidence_text": "fictional calibration evidence credit_card cal-hr-036",
+      "expected_slot_id": "fact:payment_method",
+      "kind": "fact",
+      "probe_uid": "cal-hr-036",
+      "raw_domain": "payment_method_contextual_marker",
+      "slice": "hr",
+      "value": "fictional payment_method calibration value cal-hr-036"
+    }
+  ],
+  "version": "v1"
+}
