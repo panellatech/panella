@@ -145,3 +145,12 @@ clears the hard content bars in `synth_supersede.py`'s `_check_bars` (total case
 pair counts, hr-flagged pair counts, coexist-trap case count — see that module's docstring for the
 exact numbers). Cases are ordered by `case_id`; pairs within a case are ordered by
 `(earlier_id, later_id)`.
+
+Additionally, every template value carries a life-domain `aspect` tag (a closed vocabulary inside
+`synth_supersede.py`, exported as the `CONTENT_META` map), and the generator mechanically enforces
+ASPECT DISJOINTNESS for `unrelated` pairs: multi-fact draws that would label two same-aspect (or
+same-slot, or identical-content) facts `unrelated` are deterministically rejected and redrawn, and
+a post-generation sweep (`_check_aspect_disjointness`, also part of `--check`) asserts over the
+entire goldset that every `unrelated` pair joins two facts with different contents, different
+source slots, and different aspects — while `coexist` pairs need only different slots (sharing an
+aspect is what coexist means; see the discriminator note above).

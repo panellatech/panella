@@ -1,7 +1,16 @@
 """Determinism + schema-validity tests for eval/goldsets/synth_supersede.py."""
 from __future__ import annotations
 
-from eval.goldsets.synth_supersede import SEED, _check_bars, _validate_schema, generate
+import json
+
+from eval.goldsets.synth_supersede import (
+    CONTENT_META,
+    DEFAULT_OUT,
+    SEED,
+    _check_bars,
+    _validate_schema,
+    generate,
+)
 
 
 def test_generate_produces_at_least_90_cases() -> None:
@@ -66,6 +75,40 @@ def test_generate_clears_per_label_and_hr_pair_bars() -> None:
     for p in all_pairs:
         if "high_risk" in p:
             assert isinstance(p["high_risk"], bool), p
+
+
+def test_shipped_goldset_pairs_are_aspect_slot_content_disjoint() -> None:
+    """The blind-judge-finding invariant, recomputed INDEPENDENTLY of the generator's own
+    `_check_aspect_disjointness` sweep: load the COMMITTED supersede_v1.json and, via the exported
+    `CONTENT_META` aspect map, assert every `unrelated` pair (standalone AND multi) joins two facts
+    with different contents AND different source slots AND different aspects, and every `coexist`
+    pair two different slots. This is what makes every `unrelated` label defensible: no pair of
+    same-cluster facts (two music facts, two gym facts, a fact and its verbatim duplicate) is ever
+    presented as sharing no subject."""
+    data = json.loads(DEFAULT_OUT.read_text(encoding="utf-8"))
+    unrelated_checked = coexist_checked = 0
+    for case in data["cases"]:
+        content_by_id = {f["fact_id"]: f["content"] for f in case["facts"]}
+        for pair in case["pairs"]:
+            e_txt = content_by_id[pair["earlier_id"]]
+            l_txt = content_by_id[pair["later_id"]]
+            assert e_txt in CONTENT_META, (case["case_id"], e_txt)
+            assert l_txt in CONTENT_META, (case["case_id"], l_txt)
+            e_slot, e_aspect = CONTENT_META[e_txt]
+            l_slot, l_aspect = CONTENT_META[l_txt]
+            if pair["label"] == "unrelated":
+                unrelated_checked += 1
+                assert e_txt != l_txt, (case["case_id"], e_txt)
+                assert e_slot != l_slot, (case["case_id"], e_slot, e_txt, l_txt)
+                assert e_aspect != l_aspect, (case["case_id"], e_aspect, e_txt, l_txt)
+            elif pair["label"] == "coexist":
+                coexist_checked += 1
+                assert e_slot != l_slot, (case["case_id"], e_slot, e_txt, l_txt)
+            else:  # supersede: one shared slot, by construction
+                assert e_slot == l_slot, (case["case_id"], e_slot, l_slot, e_txt, l_txt)
+    # The invariant must have real coverage, not a vacuous pass over an empty file.
+    assert unrelated_checked >= 150
+    assert coexist_checked >= 30
 
 
 def test_cases_sorted_by_case_id() -> None:
