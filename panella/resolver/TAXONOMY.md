@@ -6,19 +6,19 @@ evaluation or goldset content.
 
 | Domain | Minimum slots |
 | --- | ---: |
-| identity | 4 |
-| health | 5 |
-| household | 4 |
-| work | 5 |
-| transport | 4 |
-| devices | 4 |
-| digital-services | 4 |
-| schedule | 4 |
-| social | 4 |
-| pets | 3 |
-| hobbies | 3 |
-| finance-adjacent | 4 |
-| safety-constraints | 4 |
+| identity | ≥4 |
+| health | ≥5 |
+| household | ≥4 |
+| work | ≥5 |
+| transport | ≥4 |
+| devices | ≥4 |
+| digital-services | ≥4 |
+| schedule | ≥4 |
+| social | ≥4 |
+| pets | ≥3 |
+| hobbies | ≥3 |
+| finance-adjacent | ≥4 |
+| safety-constraints | ≥4 |
 | **Total** | **52** |
 
 The registry must meet or exceed each minimum with canonical, generic slot
