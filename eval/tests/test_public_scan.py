@@ -124,3 +124,27 @@ def test_doc_bare_number_pattern_unaffected_by_the_new_rules() -> None:
 def test_clean_line_produces_no_hits() -> None:
     reasons = scan_line("eval/longmemeval/ingest_retrieve.py", "print('status: running', flush=True)\n")
     assert reasons == []
+
+
+def test_doc_bare_number_allowlist_permits_only_the_listed_literal() -> None:
+    """The c0-3b-drift evidence bundle's cosine acceptance THRESHOLD (a methodology constant, not a
+    measured result) is exempted per-file AND per-literal: the listed literal passes in the listed
+    file, but any other bare number in that same file still trips the rule."""
+    threshold = "0." + "9999"  # runtime-built, see module docstring
+    allowed_path = "docs/evidence/c0-3b-drift/evidence.md"
+    line_ok = f"drift accepted at threshold {threshold} for every corpus row\n"
+    assert scan_line(allowed_path, line_ok) == []
+    other_number = "0." + "538"
+    line_bad = f"and the run scored {other_number} overall\n"
+    assert any("bare 0.xxx in a doc file" in r for r in scan_line(allowed_path, line_bad))
+    # A line carrying BOTH the allowed literal and a stray number must still be flagged.
+    line_mixed = f"threshold {threshold} yielded {other_number}\n"
+    assert any("bare 0.xxx in a doc file" in r for r in scan_line(allowed_path, line_mixed))
+
+
+def test_doc_bare_number_allowlist_is_path_scoped() -> None:
+    """The same literal in a NON-allowlisted doc file is still caught — the exemption follows the
+    (path, literal) pair, never the literal alone."""
+    threshold = "0." + "9999"
+    line = f"similarity stayed above {threshold} throughout\n"
+    assert any("bare 0.xxx in a doc file" in r for r in scan_line("docs/GOVERNANCE.md", line))
