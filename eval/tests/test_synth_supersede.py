@@ -6,6 +6,7 @@ import json
 from eval.goldsets.synth_supersede import (
     CONTENT_META,
     DEFAULT_OUT,
+    HR_SLOTS,
     SEED,
     _check_bars,
     _validate_schema,
@@ -109,6 +110,29 @@ def test_shipped_goldset_pairs_are_aspect_slot_content_disjoint() -> None:
     # The invariant must have real coverage, not a vacuous pass over an empty file.
     assert unrelated_checked >= 150
     assert coexist_checked >= 30
+
+
+def test_hr_slot_pairs_carry_high_risk_flag() -> None:
+    """SCHEMA.md's high_risk definition, recomputed INDEPENDENTLY of the generator's own
+    `_check_hr_flags` sweep over both the generated data and the committed goldset: every pair
+    whose either fact's content maps (via the exported `CONTENT_META`) to a source slot in
+    `HR_SLOTS` must carry `high_risk: true` — including the hr-x-benign `unrelated` pairs inside
+    `sc-hrmulti-*` cases (the GH-bot r1 finding: those traps were silently excluded from the
+    scorer's hr false-merge slice). Conversely a pair carrying the flag must involve at least one
+    hr-slotted fact."""
+    for data in (generate(SEED), json.loads(DEFAULT_OUT.read_text(encoding="utf-8"))):
+        flagged_checked = 0
+        for case in data["cases"]:
+            content_by_id = {f["fact_id"]: f["content"] for f in case["facts"]}
+            for pair in case["pairs"]:
+                e_slot = CONTENT_META[content_by_id[pair["earlier_id"]]][0]
+                l_slot = CONTENT_META[content_by_id[pair["later_id"]]][0]
+                involves_hr = e_slot in HR_SLOTS or l_slot in HR_SLOTS
+                assert pair.get("high_risk", False) is involves_hr, (case["case_id"], pair)
+                if involves_hr:
+                    flagged_checked += 1
+        # Real coverage: hr supersede (16) + standalone hr unrelated (24) + hrmulti hr pairs (18).
+        assert flagged_checked >= 50
 
 
 def test_cases_sorted_by_case_id() -> None:

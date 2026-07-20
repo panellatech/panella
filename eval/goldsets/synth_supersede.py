@@ -355,6 +355,11 @@ def _build_content_meta() -> dict[str, tuple[str, str]]:
 # both recompute the relatedness invariants from it.
 CONTENT_META: dict[str, tuple[str, str]] = _build_content_meta()
 
+# The high-risk source slots (exported): every content whose CONTENT_META slot is in this set is a
+# sensitive fact, and per SCHEMA.md any pair containing at least one such fact must carry
+# `"high_risk": true` — `_check_hr_flags` (and the mirroring test) enforce the correspondence.
+HR_SLOTS: frozenset[str] = frozenset(t.slot for t in _HR_SUPERSEDE_SLOTS)
+
 
 def _dt(base: datetime, days_offset: int) -> str:
     return (base + timedelta(days=days_offset)).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -555,7 +560,13 @@ def _case_hr_multi_fact(idx: int, rng: random.Random, base: datetime) -> dict[st
     benign noise in the SAME case, not in isolation. The benign f3/f4 tuple is drawn under the same
     disjointness constraints as `_case_multi_fact`: content/slot-unique vs the hr facts,
     aspect-disjoint from the hr slot (pairs (f1,f3)/(f2,f4) are labeled unrelated), and internally
-    content/slot/aspect-disjoint (pair (f3,f4) is labeled unrelated too)."""
+    content/slot/aspect-disjoint (pair (f3,f4) is labeled unrelated too).
+
+    Pair-level `high_risk` flags follow SCHEMA.md's definition — a pair is high_risk when AT LEAST
+    ONE of its facts concerns a sensitive slot — so the (f1,f3)/(f2,f4) unrelated pairs carry
+    `high_risk: true` exactly like the standalone hr-unrelated traps (they feed the scorer's hr
+    false-merge slice); only the all-benign (f3,f4) pair is unflagged. `_check_hr_flags` enforces
+    this correspondence over the whole goldset."""
     case_id = f"sc-hrmulti-{idx:04d}"
     hr_t = _HR_SUPERSEDE_SLOTS[rng.randrange(len(_HR_SUPERSEDE_SLOTS))]
 
@@ -578,9 +589,9 @@ def _case_hr_multi_fact(idx: int, rng: random.Random, base: datetime) -> dict[st
     ]
     pairs = [
         {"earlier_id": "f1", "later_id": "f2", "label": "supersede", "high_risk": True},
-        {"earlier_id": "f1", "later_id": "f3", "label": "unrelated"},
+        {"earlier_id": "f1", "later_id": "f3", "label": "unrelated", "high_risk": True},
         {"earlier_id": "f3", "later_id": "f4", "label": "unrelated"},
-        {"earlier_id": "f2", "later_id": "f4", "label": "unrelated"},
+        {"earlier_id": "f2", "later_id": "f4", "label": "unrelated", "high_risk": True},
     ]
     current_truth = [
         {"fact_id": "f2", "rationale": f"latest {hr_t.slot} fact, not superseded by any later pair"},
@@ -771,6 +782,38 @@ def _check_aspect_disjointness(data: dict[str, Any]) -> list[str]:
     return errors
 
 
+def _check_hr_flags(data: dict[str, Any]) -> list[str]:
+    """SCHEMA.md's `high_risk` definition, enforced mechanically over the ENTIRE goldset: a pair is
+    high_risk exactly when AT LEAST ONE of its facts concerns a sensitive slot. Both directions are
+    checked via the exported maps: every pair whose either fact's content resolves (through
+    `CONTENT_META`) to a slot in `HR_SLOTS` must carry `high_risk: true`, and every pair carrying
+    `high_risk: true` must involve at least one such fact (a flag on an all-benign pair is a
+    tagging bug). Contents `_check_aspect_disjointness` already reports as unmapped are skipped
+    here rather than double-reported. Returns failure messages (empty = clean)."""
+    errors: list[str] = []
+    for case in data.get("cases", []):
+        cid = case.get("case_id", "<missing case_id>")
+        content_by_id = {f["fact_id"]: f["content"] for f in case.get("facts", [])}
+        for pair in case.get("pairs", []):
+            e_meta = CONTENT_META.get(content_by_id.get(pair.get("earlier_id")))
+            l_meta = CONTENT_META.get(content_by_id.get(pair.get("later_id")))
+            if e_meta is None or l_meta is None:
+                continue  # unmapped content is _check_aspect_disjointness's finding
+            involves_hr = e_meta[0] in HR_SLOTS or l_meta[0] in HR_SLOTS
+            flagged = pair.get("high_risk") is True
+            if involves_hr and not flagged:
+                errors.append(
+                    f"case {cid}: pair ({pair.get('earlier_id')}, {pair.get('later_id')}) involves a "
+                    f"high-risk slot but does not carry high_risk: true"
+                )
+            elif flagged and not involves_hr:
+                errors.append(
+                    f"case {cid}: pair ({pair.get('earlier_id')}, {pair.get('later_id')}) carries "
+                    f"high_risk: true but involves no high-risk slot"
+                )
+    return errors
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
@@ -809,6 +852,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  - {e}", file=stderr)
         return 2
 
+    hr_flag_errors = _check_hr_flags(data)
+    if hr_flag_errors:
+        print("HIGH-RISK FLAG FAILURES:", file=stderr)
+        for e in hr_flag_errors:
+            print(f"  - {e}", file=stderr)
+        return 2
+
     rendered = json.dumps(data, indent=2, sort_keys=True) + "\n"
 
     if args.check:
@@ -820,7 +870,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"CHECK FAILED: regeneration differs from {args.out} — determinism broken", file=stderr)
             return 2
         print(
-            f"CHECK OK: {args.out} is schema-valid, content-bars-clean, aspect-disjointness-clean, "
+            f"CHECK OK: {args.out} is schema-valid, content-bars-clean, aspect-disjointness-clean, hr-flag-clean, "
             f"and byte-identical to a fresh regen ({len(data['cases'])} cases, seed={args.seed})"
         )
         return 0

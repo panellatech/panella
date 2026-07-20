@@ -463,14 +463,26 @@ def decide(rep: ExtractionReport) -> dict:
     else:
         verdict = "NO-GO-SUPERSEDE"
         rationale = "supersede/high-risk precision below bar — rethink before any supersede"
-    # HONEST-SCOPE caveats: things this PASS does NOT certify (forcing functions for later rollouts).
+    # HONEST-SCOPE caveats: things this PASS does NOT certify (forcing functions for later
+    # rollouts). `high_risk_supersede_proven=false` has TWO distinct causes with different owners:
+    # a goldset with zero hr update pairs (fix the GOLDSET) vs. an extractor that failed to merge
+    # every hr update pair the goldset does contain on its gold key with zero hr collisions (fix
+    # the EXTRACTOR) — the caveat names whichever actually happened.
     caveats = []
     if not rep.high_risk_supersede_proven:
-        caveats.append(
-            "high-risk SUPERSEDE precision UNPROVEN (no high-risk update pair in the goldset); "
-            "a future high-risk-supersede rollout is gated on extending the goldset until "
-            "high_risk_supersede_proven is true"
-        )
+        if rep.high_risk_update_pairs == 0:
+            caveats.append(
+                "high-risk SUPERSEDE precision UNPROVEN (no high-risk update pair in the goldset); "
+                "a future high-risk-supersede rollout is gated on extending the goldset until "
+                "high_risk_supersede_proven is true"
+            )
+        else:
+            caveats.append(
+                "high-risk SUPERSEDE precision UNPROVEN (the goldset contains high-risk update "
+                "pairs, but this run did not merge every one on its gold key with zero high-risk "
+                "collisions — an extractor coverage failure, not a fixture gap); a future "
+                "high-risk-supersede rollout stays gated until high_risk_supersede_proven is true"
+            )
     return {
         "verdict": verdict,
         "rationale": rationale,

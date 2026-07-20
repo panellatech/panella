@@ -8,13 +8,33 @@ import json
 from eval.goldsets.key_correctness_eval import (
     DEFAULT_FIXTURE,
     DEFAULT_GOLDSET,
+    ExtractionReport,
     GoldItem,
+    decide,
     load_fixture_text,
     load_items,
     run_eval,
     score,
 )
 from eval.goldsets.preference_extraction import PreferenceCandidate
+
+
+def test_unproven_hr_supersede_caveat_names_the_actual_cause() -> None:
+    """`high_risk_supersede_proven=false` has two distinct causes with different owners; the
+    caveat must name the one that actually happened. Zero hr update pairs -> the fixture-gap
+    wording; pairs present but not all merged -> the extractor-coverage wording (GH-bot r1: the
+    old string unconditionally blamed the fixture even when v1's hr update pairs exist)."""
+    no_pairs = decide(ExtractionReport(high_risk_update_pairs=0, high_risk_supersede_proven=False))
+    assert len(no_pairs["caveats"]) == 1
+    assert "no high-risk update pair in the goldset" in no_pairs["caveats"][0]
+
+    missed_pairs = decide(ExtractionReport(high_risk_update_pairs=6, high_risk_supersede_proven=False))
+    assert len(missed_pairs["caveats"]) == 1
+    assert "extractor coverage failure" in missed_pairs["caveats"][0]
+    assert "no high-risk update pair" not in missed_pairs["caveats"][0]
+
+    proven = decide(ExtractionReport(high_risk_update_pairs=6, high_risk_supersede_proven=True))
+    assert proven["caveats"] == []
 
 
 def test_default_fixtures_load_without_error() -> None:

@@ -1039,11 +1039,13 @@
         },
         {
           "earlier_id": "f1",
+          "high_risk": true,
           "label": "unrelated",
           "later_id": "f3"
         },
         {
           "earlier_id": "f2",
+          "high_risk": true,
           "label": "unrelated",
           "later_id": "f4"
         },
@@ -1101,11 +1103,13 @@
         },
         {
           "earlier_id": "f1",
+          "high_risk": true,
           "label": "unrelated",
           "later_id": "f3"
         },
         {
           "earlier_id": "f2",
+          "high_risk": true,
           "label": "unrelated",
           "later_id": "f4"
         },
@@ -1163,11 +1167,13 @@
         },
         {
           "earlier_id": "f1",
+          "high_risk": true,
           "label": "unrelated",
           "later_id": "f3"
         },
         {
           "earlier_id": "f2",
+          "high_risk": true,
           "label": "unrelated",
           "later_id": "f4"
         },
@@ -1225,11 +1231,13 @@
         },
         {
           "earlier_id": "f1",
+          "high_risk": true,
           "label": "unrelated",
           "later_id": "f3"
         },
         {
           "earlier_id": "f2",
+          "high_risk": true,
           "label": "unrelated",
           "later_id": "f4"
         },
@@ -1287,11 +1295,13 @@
         },
         {
           "earlier_id": "f1",
+          "high_risk": true,
           "label": "unrelated",
           "later_id": "f3"
         },
         {
           "earlier_id": "f2",
+          "high_risk": true,
           "label": "unrelated",
           "later_id": "f4"
         },
@@ -1349,11 +1359,13 @@
         },
         {
           "earlier_id": "f1",
+          "high_risk": true,
           "label": "unrelated",
           "later_id": "f3"
         },
         {
           "earlier_id": "f2",
+          "high_risk": true,
           "label": "unrelated",
           "later_id": "f4"
         },
