@@ -81,7 +81,11 @@ class ResolverEngine:
             return "manifest_component_mismatch:manifest"
         bindings = (
             ("manifest_hash", self.config.manifest_hash is not None),
-            ("evidence_hash", self.config.evidence_hash is not None),
+            (
+                "evidence_hash",
+                self.config.evidence_hash is not None
+                and self.config.evidence_hash == manifest.fitted_on_evidence_hash,
+            ),
             ("registry_hash", manifest.registry_hash == self.registry.content_hash),
             ("normalizer_rules_hash", manifest.normalizer_rules_hash == normalizer_rules_hash),
             ("resolver_code_version", manifest.resolver_code_version == RESOLVER_CODE_VERSION),
@@ -224,6 +228,8 @@ class ResolverEngine:
         attempts = suggestion.attempts
         if not attempts:
             return "invalid_output", "empty_attempts"
+        if any(attempt.outcome not in {"ok", "transport_error", "timeout", "invalid_output"} for attempt in attempts):
+            return "invalid_output", "unknown_outcome"
         if any(
             attempt.raw_excerpt is not None
             and (
@@ -260,6 +266,8 @@ class ResolverEngine:
         target = self.registry.by_id.get(f"{request.kind}:{normalized}")
         method = "exact"
         if target is None:
+            # Cross-kind aliases are deliberate: extractor kind coercion is noisy, while registry kind is canonical.
+            # High-risk slots allow only exact original-surface aliases; risk-evidence escalation remains the backstop.
             target = self.registry.alias_raw.get(request.raw_domain)
             method = "alias"
         if target is None:

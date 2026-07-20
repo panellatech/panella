@@ -107,15 +107,24 @@ def test_short_circuit_hr_alias_propagates_risk_with_llm_disabled() -> None:
     assert decision.risk_evidence.matched_hr_slot_ids == ("fact:medical_allergy",)
 
 
-def test_manifest_component_mismatch_disables_llm_and_preserves_high_risk() -> None:
-    manifest = dataclasses.replace(valid_manifest(), model_id="different-model")
+@pytest.mark.parametrize(
+    ("manifest", "evidence_hash", "mismatch"),
+    (
+        (dataclasses.replace(valid_manifest(), model_id="different-model"), "evidence", "model_id"),
+        (valid_manifest(), "different-evidence", "evidence_hash"),
+        (valid_manifest(), None, "evidence_hash"),
+    ),
+)
+def test_manifest_component_mismatch_disables_llm_and_preserves_high_risk(
+    manifest: CalibrationManifest, evidence_hash: str | None, mismatch: str
+) -> None:
     provider = FakeProvider(FallbackSuggestion("ABSTAIN", 0.0, (TransportAttempt("ok", 1),)))
-    engine = ResolverEngine(ResolverConfig(True, 20, manifest, "manifest", "evidence"), provider=provider)
+    engine = ResolverEngine(ResolverConfig(True, 20, manifest, "manifest", evidence_hash), provider=provider)
 
     decision = engine.resolve(request(raw_domain="employer", value="allergic reaction"), ResolverContext(()), RunBudget(1))
 
     assert decision.fallback_outcome == "not_attempted_disabled"
-    assert decision.disabled_reason == "manifest_component_mismatch:model_id"
+    assert decision.disabled_reason == f"manifest_component_mismatch:{mismatch}"
     assert decision.guard_fired is True
     assert decision.high_risk is True
     assert decision.blocking_receipt is None and decision.llm_receipt is None
@@ -389,6 +398,24 @@ def test_provider_contract_violations(suggestion: FallbackSuggestion, violation:
     assert decision.fallback_outcome == outcome
     assert decision.llm_receipt is not None
     assert decision.llm_receipt.provider_contract_violation == violation
+
+
+def test_unknown_provider_outcome_cannot_bind() -> None:
+    engine, _ = llm_engine(
+        FallbackSuggestion(
+            "preference:code_editor",
+            1.0,
+            (TransportAttempt("rate_limited", 1),),  # type: ignore[arg-type]
+        )
+    )
+
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+
+    assert decision.action == "ABSTAIN_ADD"
+    assert decision.slot_id is None
+    assert decision.fallback_outcome == "invalid_output"
+    assert decision.llm_receipt is not None
+    assert decision.llm_receipt.provider_contract_violation == "unknown_outcome"
 
 
 @pytest.mark.parametrize(
