@@ -143,6 +143,33 @@ def test_v1_fixture_has_hr_update_lifecycles_and_third_party_traps() -> None:
     assert all(not it.high_risk for it in third_party_items)
 
 
+def test_every_lifecycle_supersedes_chain_references_prior_sids() -> None:
+    """EVERY multi-item lifecycle (not just the high-risk ones) must carry a consistent
+    `supersedes` chain of SIDs: the chain's first item has supersedes=None and every later item's
+    supersedes equals the immediately-preceding item's sid. Guards against the v0-inherited defect
+    where five labels carried the prior fact's VALUE (e.g. an employer name) instead of its sid —
+    a data-contract lie that a scorer consuming `supersedes` would silently mis-join on."""
+    items = load_items(DEFAULT_GOLDSET, DEFAULT_FIXTURE)
+    all_ids = {it.item_id for it in items}
+
+    by_lifecycle: dict[str, list[GoldItem]] = {}
+    for it in items:
+        if it.lifecycle:
+            by_lifecycle.setdefault(it.lifecycle, []).append(it)
+
+    checked = 0
+    for lc, lc_items in sorted(by_lifecycle.items()):
+        if len(lc_items) < 2:
+            continue
+        checked += 1
+        ordered = sorted(lc_items, key=lambda i: i.effective_at or "")
+        assert ordered[0].supersedes is None, (lc, ordered[0].item_id, ordered[0].supersedes)
+        for older, newer in zip(ordered, ordered[1:], strict=False):
+            assert newer.supersedes == older.item_id, (lc, older.item_id, newer.item_id, newer.supersedes)
+            assert newer.supersedes in all_ids
+    assert checked >= 9  # 5 v0-inherited + >=4 hr + benign additions — the sweep must not be vacuous
+
+
 def test_cross_slot_collision_forces_no_go() -> None:
     """A DIRECT score() unit test (bypassing the fake-LLM plumbing): two DIFFERENT gold slots
     grounded under the SAME emitted canonical_key is a harmful collision -> NO-GO regardless of

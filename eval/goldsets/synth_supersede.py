@@ -633,6 +633,8 @@ def _validate_schema(data: dict[str, Any]) -> list[str]:
         errors.append(f"goldset must be {GOLDSET_NAME!r}, got {data.get('goldset')!r}")
     if "version" not in data or not isinstance(data["version"], str):
         errors.append("version must be a string")
+    if "seed" in data and not isinstance(data["seed"], int):
+        errors.append("seed must be an integer when present")
     cases = data.get("cases")
     if not isinstance(cases, list) or not cases:
         errors.append("cases must be a non-empty array")

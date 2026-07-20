@@ -126,25 +126,24 @@ def test_clean_line_produces_no_hits() -> None:
     assert reasons == []
 
 
-def test_doc_bare_number_allowlist_permits_only_the_listed_literal() -> None:
-    """The c0-3b-drift evidence bundle's cosine acceptance THRESHOLD (a methodology constant, not a
-    measured result) is exempted per-file AND per-literal: the listed literal passes in the listed
-    file, but any other bare number in that same file still trips the rule."""
+def test_doc_bare_number_allowlist_pins_exact_frozen_lines() -> None:
+    """The c0-3b-drift evidence bundle's cosine acceptance THRESHOLD lines (methodology constants,
+    not measured results) are exempted as (path, exact stripped line) pairs. Only the frozen line
+    content passes; ANY other line reusing the same number in the same file — including one phrased
+    as a measured result — still trips the rule (the review's bypass probe)."""
     threshold = "0." + "9999"  # runtime-built, see module docstring
-    allowed_path = "docs/evidence/c0-3b-drift/evidence.md"
-    line_ok = f"drift accepted at threshold {threshold} for every corpus row\n"
-    assert scan_line(allowed_path, line_ok) == []
-    other_number = "0." + "538"
-    line_bad = f"and the run scored {other_number} overall\n"
-    assert any("bare 0.xxx in a doc file" in r for r in scan_line(allowed_path, line_bad))
-    # A line carrying BOTH the allowed literal and a stray number must still be flagged.
-    line_mixed = f"threshold {threshold} yielded {other_number}\n"
-    assert any("bare 0.xxx in a doc file" in r for r in scan_line(allowed_path, line_mixed))
+    allowed_path = "docs/evidence/c0-3b-drift/corpus.txt"
+    frozen_line = f"A cosine similarity above {threshold} indicates two vectors are almost perfectly aligned.\n"
+    assert scan_line(allowed_path, frozen_line) == []
+    result_probe = f"the eval result was {threshold}\n"
+    assert any("bare 0.xxx in a doc file" in r for r in scan_line(allowed_path, result_probe))
+    edited_frozen = frozen_line.replace("aligned", "the same")
+    assert any("bare 0.xxx in a doc file" in r for r in scan_line(allowed_path, edited_frozen))
 
 
 def test_doc_bare_number_allowlist_is_path_scoped() -> None:
-    """The same literal in a NON-allowlisted doc file is still caught — the exemption follows the
-    (path, literal) pair, never the literal alone."""
+    """A pinned line's content appearing in a NON-allowlisted doc file is still caught — the
+    exemption follows the (path, line) pair, never the content alone."""
     threshold = "0." + "9999"
-    line = f"similarity stayed above {threshold} throughout\n"
+    line = f"A cosine similarity above {threshold} indicates two vectors are almost perfectly aligned.\n"
     assert any("bare 0.xxx in a doc file" in r for r in scan_line("docs/GOVERNANCE.md", line))

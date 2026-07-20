@@ -75,17 +75,28 @@ _DOC_GLOBS = ("README.md", "SCHEMA.md")
 _DOC_DIR_PREFIXES = ("docs/",)
 _BARE_NUMBER_RE = re.compile(r"\b0\.\d{2,4}\b")
 
-# Per-file, per-literal exemptions from ONLY the doc bare-number rule. The c0-3b-drift evidence
+# Per-file, EXACT-LINE exemptions from ONLY the doc bare-number rule. The c0-3b-drift evidence
 # bundle documents the METHODOLOGY it was run with — 0.9999 is the cosine-similarity acceptance
 # THRESHOLD passed to the drift check, not a measured eval result (the module docstring's
 # threshold-vs-result distinction, which the docs/ prefix scope cannot express on its own).
-# Deliberately literal-scoped, not file-scoped: any OTHER bare number added to these same files
-# still trips the rule, and every metric-name / table-cell pattern still runs here unchanged.
+# Pinned to the exact frozen line content, not to the literal: a FUTURE line in these same files
+# that happens to reuse the number (e.g. reporting a measured result of that value) is NOT
+# exempt, and editing a pinned line re-trips the rule. Every metric-name / table-cell pattern
+# still runs against these files unchanged.
 _DOC_BARE_NUMBER_ALLOWLIST: dict[str, frozenset[str]] = {
-    "docs/evidence/c0-3b-drift/compare.py": frozenset({"0.9999"}),
-    "docs/evidence/c0-3b-drift/corpus.txt": frozenset({"0.9999"}),
-    "docs/evidence/c0-3b-drift/evidence.md": frozenset({"0.9999"}),
-    "docs/evidence/c0-3b-drift/run_drift.sh": frozenset({"0.9999"}),
+    "docs/evidence/c0-3b-drift/compare.py": frozenset({
+        "- drift: min cosine(old_i, new_i) over the corpus >= min_cosine (default 0.9999)",
+        "min_cosine = float(sys.argv[5]) if len(sys.argv) > 5 else 0.9999",
+    }),
+    "docs/evidence/c0-3b-drift/corpus.txt": frozenset({
+        "A cosine similarity above 0.9999 indicates two vectors are almost perfectly aligned.",
+    }),
+    "docs/evidence/c0-3b-drift/evidence.md": frozenset({
+        "(threshold ≥ 0.9999). The CUDA and CPU builds produce **identical** embeddings to 8 decimals.",
+    }),
+    "docs/evidence/c0-3b-drift/run_drift.sh": frozenset({
+        '/io/compare.py /io/old.json /io/new.json /io/new2.json "$N_CORPUS" 0.9999',
+    }),
 }
 
 
@@ -131,10 +142,12 @@ def scan_line(path: str, line: str) -> list[str]:
         for pattern in _METRIC_PATTERNS_QUOTED:
             if pattern.search(line):
                 reasons.append(f"matched {pattern.pattern!r}")
-    if _is_doc_file(path):
-        allowed = _DOC_BARE_NUMBER_ALLOWLIST.get(path, frozenset())
-        if any(m not in allowed for m in _BARE_NUMBER_RE.findall(line)):
-            reasons.append("bare 0.xxx in a doc file")
+    if (
+        _is_doc_file(path)
+        and _BARE_NUMBER_RE.search(line)
+        and line.strip() not in _DOC_BARE_NUMBER_ALLOWLIST.get(path, frozenset())
+    ):
+        reasons.append("bare 0.xxx in a doc file")
     if (
         _is_markdown_file(path)
         and _TABLE_CELL_METRIC_RE.search(line)

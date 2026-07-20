@@ -1,562 +1,637 @@
 {
-  "goldset": "panella-key-correctness-v1",
-  "not_longmemeval_comparable": true,
-  "note": "Hand-labeled ground truth for key_correctness_eval.py (the SHADOW extraction eval / GO-NO-GO decision packet). 'labels' annotate the per-session FACT in continuity_set_v1.json (text loaded by source_sid from that fixture — NOT duplicated here). 'extra_items' are self-contained turns (text inline): negatives (no durable fact -> should_extract:false, to catch false positives), high-risk slots (identity/medical/constraint) that the extractor must key correctly and never collide, third-party traps (a fact about a NAMED OTHER person, not the user), adjacency probes (a near-miss neighbor slot the extractor must not bind to instead), and hypothetical/conditional statements (no durable fact asserted). canonical_key = '{kind}:{domain}' where kind is preference|fact|constraint and domain is a stable snake_case slot; two facts sharing a canonical_key are the same slot (an UPDATE/supersede pair when value differs). v1 adds several high-risk UPDATE pairs (see 'lifecycle' on the med-/ec-/name-/phys-/diet- labels below) so high_risk_supersede_proven is exercisable — see key_correctness_eval.py's HONEST SCOPE docstring paragraph. For v1-added labels, 'supersedes' holds the EARLIER SESSION's sid (null for the first fact in a chain) rather than the earlier value string the v0 labels below still use verbatim — a purely descriptive field key_correctness_eval.py's scorer does not consume, so both conventions coexist safely. Every entity/value below is a FICTIONAL synthetic placeholder — no real user data.",
-  "source_fixture": "continuity_set_v1.json",
-  "labels": [
-    {
-      "source_sid": "emp-s1",
-      "lifecycle": "employer-update",
-      "kind": "fact",
-      "canonical_key": "fact:employer",
-      "value": "Northwind Traders",
-      "effective_at": "2024/01/10 (Wed) 09:00",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "emp-s2",
-      "lifecycle": "employer-update",
-      "kind": "fact",
-      "canonical_key": "fact:employer",
-      "value": "Contoso Labs",
-      "effective_at": "2024/06/22 (Sat) 14:00",
-      "supersedes": "Northwind Traders",
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "tool-s1",
-      "lifecycle": "editor-tool-update",
-      "kind": "fact",
-      "canonical_key": "fact:code_editor",
-      "value": "Nimbus Editor",
-      "effective_at": "2024/03/12 (Tue) 10:15",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "tool-s2",
-      "lifecycle": "editor-tool-update",
-      "kind": "fact",
-      "canonical_key": "fact:code_editor",
-      "value": "Vertex IDE",
-      "effective_at": "2024/09/01 (Sun) 16:45",
-      "supersedes": "Nimbus Editor",
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "lang-s1",
-      "lifecycle": "language-preference",
-      "kind": "preference",
-      "canonical_key": "preference:programming_language",
-      "value": "Solstice-lang",
-      "effective_at": "2024/01/25 (Thu) 13:20",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "lang-s2",
-      "lifecycle": "language-preference",
-      "kind": "preference",
-      "canonical_key": "preference:programming_language",
-      "value": "Umbra-lang",
-      "effective_at": "2024/07/09 (Tue) 09:40",
-      "supersedes": "Solstice-lang",
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "coffee-s1",
-      "lifecycle": "coffee-preference",
-      "kind": "preference",
-      "canonical_key": "preference:coffee_style",
-      "value": "black coffee, no sugar",
-      "effective_at": "2024/02/18 (Sun) 08:05",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "coffee-s2",
-      "lifecycle": "coffee-preference",
-      "kind": "preference",
-      "canonical_key": "preference:coffee_style",
-      "value": "oat-milk lattes",
-      "effective_at": "2024/10/03 (Thu) 07:50",
-      "supersedes": "black coffee, no sugar",
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "city-s1",
-      "lifecycle": "home-city-update",
-      "kind": "fact",
-      "canonical_key": "fact:home_city",
-      "value": "Rivertown",
-      "effective_at": "2023/11/02 (Thu) 12:00",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "city-s2",
-      "lifecycle": "home-city-update",
-      "kind": "fact",
-      "canonical_key": "fact:home_city",
-      "value": "Lakeside",
-      "effective_at": "2024/03/15 (Fri) 18:30",
-      "supersedes": "Rivertown",
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "med-s1",
-      "lifecycle": "medication-update",
-      "kind": "fact",
-      "canonical_key": "fact:medication",
-      "value": "Veltrazine",
-      "effective_at": "2025/01/14 (Tue) 08:30",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["medication_allergy", "supplement", "past_medication"]
-    },
-    {
-      "source_sid": "med-s2",
-      "lifecycle": "medication-update",
-      "kind": "fact",
-      "canonical_key": "fact:medication",
-      "value": "Norvexol",
-      "effective_at": "2025/05/02 (Fri) 17:10",
-      "supersedes": "med-s1",
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["medication_allergy", "supplement", "past_medication"]
-    },
-    {
-      "source_sid": "ec-s1",
-      "lifecycle": "emergency-contact-update",
-      "kind": "fact",
-      "canonical_key": "fact:emergency_contact",
-      "value": "Priya Osgood",
-      "effective_at": "2025/02/03 (Mon) 09:15",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["family_member", "primary_physician", "legal_name"]
-    },
-    {
-      "source_sid": "ec-s2",
-      "lifecycle": "emergency-contact-update",
-      "kind": "fact",
-      "canonical_key": "fact:emergency_contact",
-      "value": "Devon Achebe",
-      "effective_at": "2025/07/18 (Fri) 13:45",
-      "supersedes": "ec-s1",
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["family_member", "primary_physician", "legal_name"]
-    },
-    {
-      "source_sid": "name-s1",
-      "lifecycle": "legal-name-update",
-      "kind": "fact",
-      "canonical_key": "fact:legal_name",
-      "value": "Marlowe Kestrel",
-      "effective_at": "2025/01/20 (Mon) 11:00",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["nickname", "username", "display_name"]
-    },
-    {
-      "source_sid": "name-s2",
-      "lifecycle": "legal-name-update",
-      "kind": "fact",
-      "canonical_key": "fact:legal_name",
-      "value": "Marlowe Ashgrove",
-      "effective_at": "2025/06/11 (Wed) 16:20",
-      "supersedes": "name-s1",
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["nickname", "username", "display_name"]
-    },
-    {
-      "source_sid": "phys-s1",
-      "lifecycle": "primary-physician-update",
-      "kind": "fact",
-      "canonical_key": "fact:primary_physician",
-      "value": "Dr. Naomi Falkirk",
-      "effective_at": "2024/11/05 (Tue) 10:05",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["specialist", "therapist", "pharmacist", "emergency_contact"]
-    },
-    {
-      "source_sid": "phys-s2",
-      "lifecycle": "primary-physician-update",
-      "kind": "fact",
-      "canonical_key": "fact:primary_physician",
-      "value": "Dr. Osei Bramwell",
-      "effective_at": "2025/03/22 (Sat) 14:40",
-      "supersedes": "phys-s1",
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["specialist", "therapist", "pharmacist", "emergency_contact"]
-    },
-    {
-      "source_sid": "phys-s3",
-      "lifecycle": "primary-physician-update",
-      "kind": "fact",
-      "canonical_key": "fact:primary_physician",
-      "value": "Dr. Imara Voss",
-      "effective_at": "2025/08/09 (Sat) 09:50",
-      "supersedes": "phys-s2",
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["specialist", "therapist", "pharmacist", "emergency_contact"]
-    },
-    {
-      "source_sid": "diet-s1",
-      "lifecycle": "dietary-restriction-update",
-      "kind": "fact",
-      "canonical_key": "fact:dietary_restriction",
-      "value": "low-sodium diet",
-      "effective_at": "2025/02/27 (Thu) 12:30",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["food_preference", "diet", "cuisine_style"]
-    },
-    {
-      "source_sid": "diet-s2",
-      "lifecycle": "dietary-restriction-update",
-      "kind": "fact",
-      "canonical_key": "fact:dietary_restriction",
-      "value": "gluten-free diet",
-      "effective_at": "2025/09/14 (Sun) 18:00",
-      "supersedes": "diet-s1",
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["food_preference", "diet", "cuisine_style"]
-    },
-    {
-      "source_sid": "car-s1",
-      "lifecycle": "vehicle-update",
-      "kind": "fact",
-      "canonical_key": "fact:car_model",
-      "value": "Comet Roadster",
-      "effective_at": "2025/01/08 (Wed) 07:45",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "car-s2",
-      "lifecycle": "vehicle-update",
-      "kind": "fact",
-      "canonical_key": "fact:car_model",
-      "value": "Comet Voyager",
-      "effective_at": "2025/04/19 (Sat) 15:20",
-      "supersedes": "car-s1",
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "laptop-s1",
-      "lifecycle": "laptop-update",
-      "kind": "fact",
-      "canonical_key": "fact:laptop_model",
-      "value": "Fenwick Slate 13",
-      "effective_at": "2025/02/11 (Tue) 09:00",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "laptop-s2",
-      "lifecycle": "laptop-update",
-      "kind": "fact",
-      "canonical_key": "fact:laptop_model",
-      "value": "Fenwick Slate 15",
-      "effective_at": "2025/05/30 (Fri) 16:35",
-      "supersedes": "laptop-s1",
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "stream-s1",
-      "lifecycle": "streaming-update",
-      "kind": "fact",
-      "canonical_key": "fact:streaming_service",
-      "value": "Lumen Play",
-      "effective_at": "2025/01/25 (Sat) 20:15",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "stream-s2",
-      "lifecycle": "streaming-update",
-      "kind": "fact",
-      "canonical_key": "fact:streaming_service",
-      "value": "Orbit Screen",
-      "effective_at": "2025/04/06 (Sun) 19:40",
-      "supersedes": "stream-s1",
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "notes-s1",
-      "lifecycle": "notetaking-update",
-      "kind": "fact",
-      "canonical_key": "fact:notetaking_app",
-      "value": "Quill Notes",
-      "effective_at": "2025/03/03 (Mon) 08:50",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "notes-s2",
-      "lifecycle": "notetaking-update",
-      "kind": "fact",
-      "canonical_key": "fact:notetaking_app",
-      "value": "Lattice Notes",
-      "effective_at": "2025/06/22 (Sun) 11:25",
-      "supersedes": "notes-s1",
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "cuisine-s1",
-      "lifecycle": "cuisine-update",
-      "kind": "preference",
-      "canonical_key": "preference:cuisine_style",
-      "value": "Mediterranean-inspired meals",
-      "effective_at": "2025/02/14 (Fri) 18:30",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "cuisine-s2",
-      "lifecycle": "cuisine-update",
-      "kind": "preference",
-      "canonical_key": "preference:cuisine_style",
-      "value": "Southeast-Asian-inspired meals",
-      "effective_at": "2025/07/01 (Tue) 19:05",
-      "supersedes": "cuisine-s1",
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "cloud-s1",
-      "lifecycle": "cloud-storage-update",
-      "kind": "fact",
-      "canonical_key": "fact:cloud_storage_provider",
-      "value": "Driftbox Cloud",
-      "effective_at": "2025/01/17 (Fri) 10:40",
-      "supersedes": null,
-      "should_extract": true,
-      "high_risk": false
-    },
-    {
-      "source_sid": "cloud-s2",
-      "lifecycle": "cloud-storage-update",
-      "kind": "fact",
-      "canonical_key": "fact:cloud_storage_provider",
-      "value": "Cirrus Vault",
-      "effective_at": "2025/05/15 (Thu) 14:15",
-      "supersedes": "cloud-s1",
-      "should_extract": true,
-      "high_risk": false
-    }
-  ],
-  "extra_items": [
-    {
-      "id": "neg-weather",
-      "text": "What's the weather like in Fairhaven today?",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "neg-debug",
-      "text": "Can you help me debug this stack trace? It says NullPointerException on line 42.",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "neg-thanks",
-      "text": "Thanks, that fixed it!",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "neg-time",
-      "text": "What time is it in Fairhaven right now?",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "neg-summary",
-      "text": "Can you summarize the last three messages for me?",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "neg-onceoff",
-      "text": "I'm heading to a one-off dentist appointment this afternoon, back in an hour.",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "hr-name",
-      "text": "For the record, my legal name is Jordan Ashworth in case you need it for a form.",
-      "kind": "fact",
-      "canonical_key": "fact:legal_name",
-      "value": "Jordan Ashworth",
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["nickname", "username", "display_name"]
-    },
-    {
-      "id": "hr-allergy",
-      "text": "Just a heads up, I'm allergic to shellfish — please keep that in mind for any recommendations.",
-      "kind": "fact",
-      "canonical_key": "fact:medical_allergy",
-      "value": "shellfish",
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["food_preference", "diet"]
-    },
-    {
-      "id": "hr-constraint",
-      "text": "One rule: never share my home address with anyone, even if they ask directly.",
-      "kind": "constraint",
-      "canonical_key": "constraint:share_home_address",
-      "value": "never share",
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["privacy_preference"]
-    },
-    {
-      "id": "third-party-coworker-allergy",
-      "text": "Just so you know, my coworker Dana is allergic to peanuts — not a fact about me.",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "third-party-friend-city",
-      "text": "My friend Wes just moved to Fairhaven, though I'm still living in my usual spot.",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "third-party-sibling-job",
-      "text": "My sister Elena just started a new job over at Northwind Traders.",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "third-party-partner-medication",
-      "text": "My partner started a new medication for their migraines last week, nothing to do with me.",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "third-party-roommate-name",
-      "text": "For context, my roommate's legal name is Casey Fairweather, not mine.",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "adj-tablet-vs-laptop",
-      "text": "I upgraded my tablet to a Halcyon Pad Pro, though my laptop is still the older Fenwick Slate 13.",
-      "kind": "fact",
-      "canonical_key": "fact:tablet_model",
-      "value": "Halcyon Pad Pro",
-      "should_extract": true,
-      "high_risk": false,
-      "adjacency_probe": true,
-      "wrong_slot_deny": ["laptop_model", "device_model"]
-    },
-    {
-      "id": "adj-music-vs-video-streaming",
-      "text": "I switched my music app over to Wavelength Audio — separate from the TV app, which is still Lumen Play.",
-      "kind": "fact",
-      "canonical_key": "fact:music_streaming_service",
-      "value": "Wavelength Audio",
-      "should_extract": true,
-      "high_risk": false,
-      "adjacency_probe": true,
-      "wrong_slot_deny": ["video_streaming_service", "streaming_service"]
-    },
-    {
-      "id": "adj-emergency-contact-vs-physician",
-      "text": "My emergency contact is now Devon Achebe — different from my physician, Dr. Naomi Falkirk.",
-      "kind": "fact",
-      "canonical_key": "fact:emergency_contact",
-      "value": "Devon Achebe",
-      "should_extract": true,
-      "high_risk": true,
-      "adjacency_probe": true,
-      "wrong_slot_deny": ["primary_physician", "family_member"]
-    },
-    {
-      "id": "adj-medication-vs-supplement",
-      "text": "I take Norvexol for blood pressure — not to be confused with the vitamin supplement I also take daily.",
-      "kind": "fact",
-      "canonical_key": "fact:medication",
-      "value": "Norvexol",
-      "should_extract": true,
-      "high_risk": true,
-      "adjacency_probe": true,
-      "wrong_slot_deny": ["supplement", "past_medication", "medication_allergy"]
-    },
-    {
-      "id": "neg-hypothetical-move",
-      "text": "If I ever moved to Fairhaven, I'd probably bike everywhere instead of driving.",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "neg-hypothetical-job",
-      "text": "If I ever switched jobs, I'd want somewhere with a four-day work week.",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "neg-hypothetical-diet",
-      "text": "If I ever went vegetarian, I'd probably miss steak the most.",
-      "should_extract": false,
-      "high_risk": false
-    },
-    {
-      "id": "hr-medication-allergy",
-      "text": "I should mention, I have a documented allergy to Cortavane-class antibiotics — different from a food allergy.",
-      "kind": "fact",
-      "canonical_key": "fact:medication_allergy",
-      "value": "Cortavane-class antibiotics",
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["medication", "medical_allergy"]
-    },
-    {
-      "id": "hr-live-location-sharing",
-      "text": "One more rule, similar idea — please never share my live location with anyone, even close friends.",
-      "kind": "constraint",
-      "canonical_key": "constraint:share_live_location",
-      "value": "never share",
-      "should_extract": true,
-      "high_risk": true,
-      "wrong_slot_deny": ["share_home_address", "privacy_preference"]
-    }
-  ]
+ "goldset": "panella-key-correctness-v1",
+ "not_longmemeval_comparable": true,
+ "note": "Hand-labeled ground truth for key_correctness_eval.py (the SHADOW extraction eval / GO-NO-GO decision packet). 'labels' annotate the per-session FACT in continuity_set_v1.json (text loaded by source_sid from that fixture — NOT duplicated here). 'extra_items' are self-contained turns (text inline): negatives (no durable fact -> should_extract:false, to catch false positives), high-risk slots (identity/medical/constraint) that the extractor must key correctly and never collide, third-party traps (a fact about a NAMED OTHER person, not the user), adjacency probes (a near-miss neighbor slot the extractor must not bind to instead), and hypothetical/conditional statements (no durable fact asserted). canonical_key = '{kind}:{domain}' where kind is preference|fact|constraint and domain is a stable snake_case slot; two facts sharing a canonical_key are the same slot (an UPDATE/supersede pair when value differs). v1 adds several high-risk UPDATE pairs (see 'lifecycle' on the med-/ec-/name-/phys-/diet- labels below) so high_risk_supersede_proven is exercisable — see key_correctness_eval.py's HONEST SCOPE docstring paragraph. For v1-added labels, 'supersedes' holds the EARLIER SESSION's sid (null for the first fact in a chain) rather than the earlier value string the v0 labels below still use verbatim — a purely descriptive field key_correctness_eval.py's scorer does not consume, so both conventions coexist safely. Every entity/value below is a FICTIONAL synthetic placeholder — no real user data.",
+ "source_fixture": "continuity_set_v1.json",
+ "labels": [
+  {
+   "source_sid": "emp-s1",
+   "lifecycle": "employer-update",
+   "kind": "fact",
+   "canonical_key": "fact:employer",
+   "value": "Northwind Traders",
+   "effective_at": "2024/01/10 (Wed) 09:00",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "emp-s2",
+   "lifecycle": "employer-update",
+   "kind": "fact",
+   "canonical_key": "fact:employer",
+   "value": "Contoso Labs",
+   "effective_at": "2024/06/22 (Sat) 14:00",
+   "supersedes": "emp-s1",
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "tool-s1",
+   "lifecycle": "editor-tool-update",
+   "kind": "fact",
+   "canonical_key": "fact:code_editor",
+   "value": "Nimbus Editor",
+   "effective_at": "2024/03/12 (Tue) 10:15",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "tool-s2",
+   "lifecycle": "editor-tool-update",
+   "kind": "fact",
+   "canonical_key": "fact:code_editor",
+   "value": "Vertex IDE",
+   "effective_at": "2024/09/01 (Sun) 16:45",
+   "supersedes": "tool-s1",
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "lang-s1",
+   "lifecycle": "language-preference",
+   "kind": "preference",
+   "canonical_key": "preference:programming_language",
+   "value": "Solstice-lang",
+   "effective_at": "2024/01/25 (Thu) 13:20",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "lang-s2",
+   "lifecycle": "language-preference",
+   "kind": "preference",
+   "canonical_key": "preference:programming_language",
+   "value": "Umbra-lang",
+   "effective_at": "2024/07/09 (Tue) 09:40",
+   "supersedes": "lang-s1",
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "coffee-s1",
+   "lifecycle": "coffee-preference",
+   "kind": "preference",
+   "canonical_key": "preference:coffee_style",
+   "value": "black coffee, no sugar",
+   "effective_at": "2024/02/18 (Sun) 08:05",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "coffee-s2",
+   "lifecycle": "coffee-preference",
+   "kind": "preference",
+   "canonical_key": "preference:coffee_style",
+   "value": "oat-milk lattes",
+   "effective_at": "2024/10/03 (Thu) 07:50",
+   "supersedes": "coffee-s1",
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "city-s1",
+   "lifecycle": "home-city-update",
+   "kind": "fact",
+   "canonical_key": "fact:home_city",
+   "value": "Rivertown",
+   "effective_at": "2023/11/02 (Thu) 12:00",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "city-s2",
+   "lifecycle": "home-city-update",
+   "kind": "fact",
+   "canonical_key": "fact:home_city",
+   "value": "Lakeside",
+   "effective_at": "2024/03/15 (Fri) 18:30",
+   "supersedes": "city-s1",
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "med-s1",
+   "lifecycle": "medication-update",
+   "kind": "fact",
+   "canonical_key": "fact:medication",
+   "value": "Veltrazine",
+   "effective_at": "2025/01/14 (Tue) 08:30",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "medication_allergy",
+    "supplement",
+    "past_medication"
+   ]
+  },
+  {
+   "source_sid": "med-s2",
+   "lifecycle": "medication-update",
+   "kind": "fact",
+   "canonical_key": "fact:medication",
+   "value": "Norvexol",
+   "effective_at": "2025/05/02 (Fri) 17:10",
+   "supersedes": "med-s1",
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "medication_allergy",
+    "supplement",
+    "past_medication"
+   ]
+  },
+  {
+   "source_sid": "ec-s1",
+   "lifecycle": "emergency-contact-update",
+   "kind": "fact",
+   "canonical_key": "fact:emergency_contact",
+   "value": "Priya Osgood",
+   "effective_at": "2025/02/03 (Mon) 09:15",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "family_member",
+    "primary_physician",
+    "legal_name"
+   ]
+  },
+  {
+   "source_sid": "ec-s2",
+   "lifecycle": "emergency-contact-update",
+   "kind": "fact",
+   "canonical_key": "fact:emergency_contact",
+   "value": "Devon Achebe",
+   "effective_at": "2025/07/18 (Fri) 13:45",
+   "supersedes": "ec-s1",
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "family_member",
+    "primary_physician",
+    "legal_name"
+   ]
+  },
+  {
+   "source_sid": "name-s1",
+   "lifecycle": "legal-name-update",
+   "kind": "fact",
+   "canonical_key": "fact:legal_name",
+   "value": "Marlowe Kestrel",
+   "effective_at": "2025/01/20 (Mon) 11:00",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "nickname",
+    "username",
+    "display_name"
+   ]
+  },
+  {
+   "source_sid": "name-s2",
+   "lifecycle": "legal-name-update",
+   "kind": "fact",
+   "canonical_key": "fact:legal_name",
+   "value": "Marlowe Ashgrove",
+   "effective_at": "2025/06/11 (Wed) 16:20",
+   "supersedes": "name-s1",
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "nickname",
+    "username",
+    "display_name"
+   ]
+  },
+  {
+   "source_sid": "phys-s1",
+   "lifecycle": "primary-physician-update",
+   "kind": "fact",
+   "canonical_key": "fact:primary_physician",
+   "value": "Dr. Naomi Falkirk",
+   "effective_at": "2024/11/05 (Tue) 10:05",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "specialist",
+    "therapist",
+    "pharmacist",
+    "emergency_contact"
+   ]
+  },
+  {
+   "source_sid": "phys-s2",
+   "lifecycle": "primary-physician-update",
+   "kind": "fact",
+   "canonical_key": "fact:primary_physician",
+   "value": "Dr. Osei Bramwell",
+   "effective_at": "2025/03/22 (Sat) 14:40",
+   "supersedes": "phys-s1",
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "specialist",
+    "therapist",
+    "pharmacist",
+    "emergency_contact"
+   ]
+  },
+  {
+   "source_sid": "phys-s3",
+   "lifecycle": "primary-physician-update",
+   "kind": "fact",
+   "canonical_key": "fact:primary_physician",
+   "value": "Dr. Imara Voss",
+   "effective_at": "2025/08/09 (Sat) 09:50",
+   "supersedes": "phys-s2",
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "specialist",
+    "therapist",
+    "pharmacist",
+    "emergency_contact"
+   ]
+  },
+  {
+   "source_sid": "diet-s1",
+   "lifecycle": "dietary-restriction-update",
+   "kind": "fact",
+   "canonical_key": "fact:dietary_restriction",
+   "value": "low-sodium diet",
+   "effective_at": "2025/02/27 (Thu) 12:30",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "food_preference",
+    "diet",
+    "cuisine_style"
+   ]
+  },
+  {
+   "source_sid": "diet-s2",
+   "lifecycle": "dietary-restriction-update",
+   "kind": "fact",
+   "canonical_key": "fact:dietary_restriction",
+   "value": "gluten-free diet",
+   "effective_at": "2025/09/14 (Sun) 18:00",
+   "supersedes": "diet-s1",
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "food_preference",
+    "diet",
+    "cuisine_style"
+   ]
+  },
+  {
+   "source_sid": "car-s1",
+   "lifecycle": "vehicle-update",
+   "kind": "fact",
+   "canonical_key": "fact:car_model",
+   "value": "Comet Roadster",
+   "effective_at": "2025/01/08 (Wed) 07:45",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "car-s2",
+   "lifecycle": "vehicle-update",
+   "kind": "fact",
+   "canonical_key": "fact:car_model",
+   "value": "Comet Voyager",
+   "effective_at": "2025/04/19 (Sat) 15:20",
+   "supersedes": "car-s1",
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "laptop-s1",
+   "lifecycle": "laptop-update",
+   "kind": "fact",
+   "canonical_key": "fact:laptop_model",
+   "value": "Fenwick Slate 13",
+   "effective_at": "2025/02/11 (Tue) 09:00",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "laptop-s2",
+   "lifecycle": "laptop-update",
+   "kind": "fact",
+   "canonical_key": "fact:laptop_model",
+   "value": "Fenwick Slate 15",
+   "effective_at": "2025/05/30 (Fri) 16:35",
+   "supersedes": "laptop-s1",
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "stream-s1",
+   "lifecycle": "streaming-update",
+   "kind": "fact",
+   "canonical_key": "fact:streaming_service",
+   "value": "Lumen Play",
+   "effective_at": "2025/01/25 (Sat) 20:15",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "stream-s2",
+   "lifecycle": "streaming-update",
+   "kind": "fact",
+   "canonical_key": "fact:streaming_service",
+   "value": "Orbit Screen",
+   "effective_at": "2025/04/06 (Sun) 19:40",
+   "supersedes": "stream-s1",
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "notes-s1",
+   "lifecycle": "notetaking-update",
+   "kind": "fact",
+   "canonical_key": "fact:notetaking_app",
+   "value": "Quill Notes",
+   "effective_at": "2025/03/03 (Mon) 08:50",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "notes-s2",
+   "lifecycle": "notetaking-update",
+   "kind": "fact",
+   "canonical_key": "fact:notetaking_app",
+   "value": "Lattice Notes",
+   "effective_at": "2025/06/22 (Sun) 11:25",
+   "supersedes": "notes-s1",
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "cuisine-s1",
+   "lifecycle": "cuisine-update",
+   "kind": "preference",
+   "canonical_key": "preference:cuisine_style",
+   "value": "Mediterranean-inspired meals",
+   "effective_at": "2025/02/14 (Fri) 18:30",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "cuisine-s2",
+   "lifecycle": "cuisine-update",
+   "kind": "preference",
+   "canonical_key": "preference:cuisine_style",
+   "value": "Southeast-Asian-inspired meals",
+   "effective_at": "2025/07/01 (Tue) 19:05",
+   "supersedes": "cuisine-s1",
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "cloud-s1",
+   "lifecycle": "cloud-storage-update",
+   "kind": "fact",
+   "canonical_key": "fact:cloud_storage_provider",
+   "value": "Driftbox Cloud",
+   "effective_at": "2025/01/17 (Fri) 10:40",
+   "supersedes": null,
+   "should_extract": true,
+   "high_risk": false
+  },
+  {
+   "source_sid": "cloud-s2",
+   "lifecycle": "cloud-storage-update",
+   "kind": "fact",
+   "canonical_key": "fact:cloud_storage_provider",
+   "value": "Cirrus Vault",
+   "effective_at": "2025/05/15 (Thu) 14:15",
+   "supersedes": "cloud-s1",
+   "should_extract": true,
+   "high_risk": false
+  }
+ ],
+ "extra_items": [
+  {
+   "id": "neg-weather",
+   "text": "What's the weather like in Fairhaven today?",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "neg-debug",
+   "text": "Can you help me debug this stack trace? It says NullPointerException on line 42.",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "neg-thanks",
+   "text": "Thanks, that fixed it!",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "neg-time",
+   "text": "What time is it in Fairhaven right now?",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "neg-summary",
+   "text": "Can you summarize the last three messages for me?",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "neg-onceoff",
+   "text": "I'm heading to a one-off dentist appointment this afternoon, back in an hour.",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "hr-name",
+   "text": "For the record, my legal name is Jordan Ashworth in case you need it for a form.",
+   "kind": "fact",
+   "canonical_key": "fact:legal_name",
+   "value": "Jordan Ashworth",
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "nickname",
+    "username",
+    "display_name"
+   ]
+  },
+  {
+   "id": "hr-allergy",
+   "text": "Just a heads up, I'm allergic to shellfish — please keep that in mind for any recommendations.",
+   "kind": "fact",
+   "canonical_key": "fact:medical_allergy",
+   "value": "shellfish",
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "food_preference",
+    "diet"
+   ]
+  },
+  {
+   "id": "hr-constraint",
+   "text": "One rule: never share my home address with anyone, even if they ask directly.",
+   "kind": "constraint",
+   "canonical_key": "constraint:share_home_address",
+   "value": "never share",
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "privacy_preference"
+   ]
+  },
+  {
+   "id": "third-party-coworker-allergy",
+   "text": "Just so you know, my coworker Dana is allergic to peanuts — not a fact about me.",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "third-party-friend-city",
+   "text": "My friend Wes just moved to Fairhaven, though I'm still living in my usual spot.",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "third-party-sibling-job",
+   "text": "My sister Elena just started a new job over at Northwind Traders.",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "third-party-partner-medication",
+   "text": "My partner started a new medication for their migraines last week, nothing to do with me.",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "third-party-roommate-name",
+   "text": "For context, my roommate's legal name is Casey Fairweather, not mine.",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "adj-tablet-vs-laptop",
+   "text": "I upgraded my tablet to a Halcyon Pad Pro, though my laptop is still the older Fenwick Slate 13.",
+   "kind": "fact",
+   "canonical_key": "fact:tablet_model",
+   "value": "Halcyon Pad Pro",
+   "should_extract": true,
+   "high_risk": false,
+   "adjacency_probe": true,
+   "wrong_slot_deny": [
+    "laptop_model",
+    "device_model"
+   ]
+  },
+  {
+   "id": "adj-music-vs-video-streaming",
+   "text": "I switched my music app over to Wavelength Audio — separate from the TV app, which is still Lumen Play.",
+   "kind": "fact",
+   "canonical_key": "fact:music_streaming_service",
+   "value": "Wavelength Audio",
+   "should_extract": true,
+   "high_risk": false,
+   "adjacency_probe": true,
+   "wrong_slot_deny": [
+    "video_streaming_service",
+    "streaming_service"
+   ]
+  },
+  {
+   "id": "adj-emergency-contact-vs-physician",
+   "text": "My emergency contact is now Devon Achebe — different from my physician, Dr. Naomi Falkirk.",
+   "kind": "fact",
+   "canonical_key": "fact:emergency_contact",
+   "value": "Devon Achebe",
+   "should_extract": true,
+   "high_risk": true,
+   "adjacency_probe": true,
+   "wrong_slot_deny": [
+    "primary_physician",
+    "family_member"
+   ]
+  },
+  {
+   "id": "adj-medication-vs-supplement",
+   "text": "I take Norvexol for blood pressure — not to be confused with the vitamin supplement I also take daily.",
+   "kind": "fact",
+   "canonical_key": "fact:medication",
+   "value": "Norvexol",
+   "should_extract": true,
+   "high_risk": true,
+   "adjacency_probe": true,
+   "wrong_slot_deny": [
+    "supplement",
+    "past_medication",
+    "medication_allergy"
+   ]
+  },
+  {
+   "id": "neg-hypothetical-move",
+   "text": "If I ever moved to Fairhaven, I'd probably bike everywhere instead of driving.",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "neg-hypothetical-job",
+   "text": "If I ever switched jobs, I'd want somewhere with a four-day work week.",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "neg-hypothetical-diet",
+   "text": "If I ever went vegetarian, I'd probably miss steak the most.",
+   "should_extract": false,
+   "high_risk": false
+  },
+  {
+   "id": "hr-medication-allergy",
+   "text": "I should mention, I have a documented allergy to Cortavane-class antibiotics — different from a food allergy.",
+   "kind": "fact",
+   "canonical_key": "fact:medication_allergy",
+   "value": "Cortavane-class antibiotics",
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "medication",
+    "medical_allergy"
+   ]
+  },
+  {
+   "id": "hr-live-location-sharing",
+   "text": "One more rule, similar idea — please never share my live location with anyone, even close friends.",
+   "kind": "constraint",
+   "canonical_key": "constraint:share_live_location",
+   "value": "never share",
+   "should_extract": true,
+   "high_risk": true,
+   "wrong_slot_deny": [
+    "share_home_address",
+    "privacy_preference"
+   ]
+  }
+ ]
 }
