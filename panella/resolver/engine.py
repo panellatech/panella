@@ -14,6 +14,7 @@ from .risk import compute_risk_evidence
 from .types import (
     BlockingReceipt,
     CalibrationSlice,
+    canonical_manifest_hash,
     DataTruncation,
     FallbackProvider,
     FallbackSuggestion,
@@ -80,7 +81,7 @@ class ResolverEngine:
         if manifest is None:
             return "manifest_component_mismatch:manifest"
         bindings = (
-            ("manifest_hash", self.config.manifest_hash is not None),
+            ("manifest_hash", self.config.manifest_hash == canonical_manifest_hash(manifest)),
             (
                 "evidence_hash",
                 self.config.evidence_hash is not None

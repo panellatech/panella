@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields, is_dataclass
 from typing import Literal, Mapping, Protocol
 
 _UID_RE = re.compile(r"^[a-z0-9][a-z0-9/_\-.]{0,127}$")
@@ -80,6 +82,26 @@ class CalibrationManifest:
     fitted_on_evidence_hash: str
     fitted_on_git_commit: str
     slices: Mapping[Literal["benign", "hr"], CalibrationSlice]
+
+
+def canonical_manifest_hash(manifest: CalibrationManifest) -> str:
+    """Return the canonical SHA-256 binding for a calibration manifest."""
+
+    def normalize(value: object) -> object:
+        if isinstance(value, float):
+            return round(value, 6)
+        if is_dataclass(value):
+            return {item.name: normalize(getattr(value, item.name)) for item in fields(value)}
+        if isinstance(value, Mapping):
+            return {key: normalize(item) for key, item in value.items()}
+        if isinstance(value, tuple):
+            return [normalize(item) for item in value]
+        if isinstance(value, list):
+            return [normalize(item) for item in value]
+        return value
+
+    canonical_json = json.dumps(normalize(manifest), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
 
 
 @dataclass(frozen=True)

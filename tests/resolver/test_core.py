@@ -12,6 +12,7 @@ import yaml
 from panella.resolver import (
     CalibrationManifest,
     CalibrationSlice,
+    canonical_manifest_hash,
     ExistingSlot,
     FallbackSuggestion,
     ResolveRequest,
@@ -60,7 +61,8 @@ def valid_manifest() -> CalibrationManifest:
 
 def llm_engine(suggestion: FallbackSuggestion) -> tuple[ResolverEngine, FakeProvider]:
     provider = FakeProvider(suggestion)
-    engine = ResolverEngine(ResolverConfig(True, 20, valid_manifest(), "manifest", "evidence"), provider=provider)
+    manifest = valid_manifest()
+    engine = ResolverEngine(ResolverConfig(True, 20, manifest, canonical_manifest_hash(manifest), "evidence"), provider=provider)
     return engine, provider
 
 
@@ -147,7 +149,9 @@ def test_manifest_component_mismatch_disables_llm_and_preserves_high_risk(
     manifest: CalibrationManifest, evidence_hash: str | None, mismatch: str
 ) -> None:
     provider = FakeProvider(FallbackSuggestion("ABSTAIN", 0.0, (TransportAttempt("ok", 1),)))
-    engine = ResolverEngine(ResolverConfig(True, 20, manifest, "manifest", evidence_hash), provider=provider)
+    engine = ResolverEngine(
+        ResolverConfig(True, 20, manifest, canonical_manifest_hash(manifest), evidence_hash), provider=provider
+    )
 
     decision = engine.resolve(request(raw_domain="employer", value="allergic reaction"), ResolverContext(()), RunBudget(1))
 
@@ -155,6 +159,42 @@ def test_manifest_component_mismatch_disables_llm_and_preserves_high_risk(
     assert decision.disabled_reason == f"manifest_component_mismatch:{mismatch}"
     assert decision.guard_fired is True
     assert decision.high_risk is True
+    assert decision.blocking_receipt is None and decision.llm_receipt is None
+    assert provider.calls == 0
+
+
+def test_tampered_manifest_mapping_with_stale_hash_soft_disables_llm() -> None:
+    manifest = valid_manifest()
+    stale_hash = canonical_manifest_hash(manifest)
+    tampered_calibration = dataclasses.replace(
+        manifest.slices["benign"],
+        mapping=((0.0, 0.5, 0.1), (0.5, 1.0, 1.0)),
+        tau=0.1,
+    )
+    tampered_manifest = dataclasses.replace(
+        manifest,
+        slices={"benign": tampered_calibration, "hr": tampered_calibration},
+    )
+    provider = FakeProvider(FallbackSuggestion("preference:code_editor", 1.0, (TransportAttempt("ok", 1),)))
+    engine = ResolverEngine(ResolverConfig(True, 20, tampered_manifest, stale_hash, "evidence"), provider=provider)
+
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+
+    assert decision.fallback_outcome == "not_attempted_disabled"
+    assert decision.disabled_reason == "manifest_component_mismatch:manifest_hash"
+    assert decision.blocking_receipt is None and decision.llm_receipt is None
+    assert provider.calls == 0
+
+
+def test_missing_manifest_hash_soft_disables_llm() -> None:
+    manifest = valid_manifest()
+    provider = FakeProvider(FallbackSuggestion("preference:code_editor", 1.0, (TransportAttempt("ok", 1),)))
+    engine = ResolverEngine(ResolverConfig(True, 20, manifest, None, "evidence"), provider=provider)
+
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+
+    assert decision.fallback_outcome == "not_attempted_disabled"
+    assert decision.disabled_reason == "manifest_component_mismatch:manifest_hash"
     assert decision.blocking_receipt is None and decision.llm_receipt is None
     assert provider.calls == 0
 
@@ -205,7 +245,9 @@ def test_slice_disabled_row_has_only_blocking_receipt() -> None:
     manifest = valid_manifest()
     disabled_hr = dataclasses.replace(manifest, slices={"benign": manifest.slices["benign"], "hr": CalibrationSlice(1, (), (), 0.0)})
     provider = FakeProvider(FallbackSuggestion("ABSTAIN", 0.0, (TransportAttempt("ok", 1),)))
-    engine = ResolverEngine(ResolverConfig(True, 20, disabled_hr, "manifest", "evidence"), provider=provider)
+    engine = ResolverEngine(
+        ResolverConfig(True, 20, disabled_hr, canonical_manifest_hash(disabled_hr), "evidence"), provider=provider
+    )
     decision = engine.resolve(request(raw_domain="diet", value="allergic"), ResolverContext(()), RunBudget(1))
     assert decision.fallback_outcome == "not_attempted_disabled"
     assert decision.disabled_reason == "hr_slice_required_but_disabled"
@@ -217,7 +259,9 @@ def test_upgraded_slice_disabled_row_preserves_guard_and_receipt() -> None:
     manifest = valid_manifest()
     disabled_hr = dataclasses.replace(manifest, slices={"benign": manifest.slices["benign"], "hr": CalibrationSlice(1, (), (), 0.0)})
     provider = FakeProvider(FallbackSuggestion("ABSTAIN", 0.0, (TransportAttempt("ok", 1),)))
-    engine = ResolverEngine(ResolverConfig(True, 20, disabled_hr, "manifest", "evidence"), provider=provider)
+    engine = ResolverEngine(
+        ResolverConfig(True, 20, disabled_hr, canonical_manifest_hash(disabled_hr), "evidence"), provider=provider
+    )
     decision = engine.resolve(request(uid="guard-slice", raw_domain="employer", value="allergic"), ResolverContext(()), RunBudget(1))
     assert decision.guard_fired is True
     assert decision.fallback_outcome == "not_attempted_disabled"

@@ -5,6 +5,7 @@ from .types import (
     BlockingReceipt,
     CalibrationManifest,
     CalibrationSlice,
+    canonical_manifest_hash,
     DataTruncation,
     ExistingSlot,
     FallbackOutcome,
@@ -23,7 +24,7 @@ from .types import (
 )
 
 __all__ = [
-    "BlockingReceipt", "CalibrationManifest", "CalibrationSlice", "DataTruncation", "ExistingSlot",
+    "BlockingReceipt", "CalibrationManifest", "CalibrationSlice", "canonical_manifest_hash", "DataTruncation", "ExistingSlot",
     "FallbackOutcome", "FallbackProvider", "FallbackSuggestion", "LlmReceipt", "ResolveDecision",
     "ResolveRequest", "ResolverConfig", "ResolverContext", "ResolverEngine", "RiskEvidence", "RunBudget",
     "SlotView", "TransportAttempt", "VersionStamp",
