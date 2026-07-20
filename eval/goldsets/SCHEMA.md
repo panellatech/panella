@@ -20,6 +20,15 @@ A **pair** is `(earlier_id, later_id)` — two facts from the same case, `earlie
   into the same tracked "fact" would be a false collision (the dangerous failure mode
   `score_supersede.py`'s confusion matrix exists to catch).
 
+**`coexist` vs `unrelated` — the discriminator.** Both labels keep both facts in `current_truth`,
+so the boundary is about RELATEDNESS, not survival. `coexist` is deliberately narrow: it marks a
+pair the case presents as candidate related-aspects — facts a naive updater might wrongly treat as
+a slot update of one another (the anti-false-supersede probe). Any pair of merely independent
+attributes of the user — different slots, no shared aspect cluster — is `unrelated`, even though
+both facts are simultaneously true of the same person (the anti-false-merge trap; "same user" is
+never by itself a shared subject, otherwise every pair in a personal-memory goldset would share
+one). When genuinely torn between `coexist` and `unrelated`, the label is `unrelated`.
+
 ## `high_risk` (optional, v1+)
 
 A pair may carry an optional `"high_risk": true` flag (default/absent = false) when at least one
