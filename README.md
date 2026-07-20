@@ -5,7 +5,7 @@
 **Governed, self-hosted memory for AI agents.**
 
 Your agents write to a memory your company actually controls: a governed write is proposed, approved
-by a named person, and made durable only against a chain-verified approval receipt — never a silent
+by an authorized approver, and made durable only against a chain-verified approval receipt — never a silent
 background rewrite. A standard **MCP server**: Claude Code, Claude Desktop, Cursor, or any MCP client
 connects with one line. Default-deny, fully auditable, runs on your own box. Apache-2.0.
 
@@ -15,10 +15,10 @@ panella up --yes --home ~/panella-box   # one command: box + tokens + governance
                                         # then it prints your `claude mcp add …` connect line
 ```
 
-![End to end in one terminal: panella up brings the box up and prints the connect line, a Claude Code agent proposes a memory and reports it queued, panella approvals list shows the pending row, a named person approves it, and the agent then recalls the approved fact.](https://raw.githubusercontent.com/panellatech/panella/main/docs/assets/panella-demo.gif)
+![End to end in one terminal: panella up brings the box up and prints the connect line, a Claude Code agent proposes a memory and reports it queued, panella approvals list shows the pending row, an authorized approver approves it, and the agent then recalls the approved fact.](https://raw.githubusercontent.com/panellatech/panella/main/docs/assets/panella-demo.gif)
 
 Your agent proposes a memory → it queues → you approve it (CLI, console, or API) → your agent recalls
-it next turn. No governed write becomes durable truth without a named approver and a committed,
+it next turn. No governed write becomes durable truth without an authorized approver and a committed,
 chain-verified approval receipt: approve through the CLI, console, or API and the decision is
 recorded *before* it takes effect — and whatever path stamped a row, the finalizer refuses to make
 it durable without a receipt it can verify.

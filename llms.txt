@@ -1,7 +1,7 @@
 # Panella
 
 > Governed, self-hosted memory for AI agents. A standard MCP server where every write is proposed,
-> approved by a named person, and made durable only against a chain-verified approval receipt.
+> approved by an authorized approver, and made durable only against a chain-verified approval receipt.
 > Default-deny, fully auditable, Apache-2.0, runs on your own box.
 
 ## For agents
