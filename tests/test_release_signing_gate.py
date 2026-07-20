@@ -143,3 +143,87 @@ def test_publish_ref_guard_rejects_invalid_refs_behaviorally() -> None:
     assert _run_publish_ref_guard("testpypi", tag_ref) != 0
     # any unknown target is rejected outright.
     assert _run_publish_ref_guard("bogus", tag_ref) != 0
+
+
+# --- issue #58: scanned bytes are the signed bytes (build-once-and-promote) -----------------
+
+SCAN_STEP_NAMES = (
+    "Trivy scan store amd64 digest",
+    "Trivy scan store arm64 digest",
+    "Trivy scan app amd64 digest",
+    "Trivy scan app arm64 digest",
+)
+BUILD_BY_DIGEST_STEP_NAMES = (
+    "Build and push store by digest (staging, untagged)",
+    "Build and push app by digest (staging, untagged)",
+)
+PROMOTE_STEP_NAMES = (
+    "Promote store scanned digest to release tags",
+    "Promote app scanned digest to release tags",
+)
+
+
+def _images_step_index(name: str) -> int:
+    workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+    steps = workflow["jobs"]["publish"]["steps"]
+    idx = [i for i, step in enumerate(steps) if step.get("name") == name]
+    assert len(idx) == 1, f"expected exactly one step named {name!r}, found {len(idx)}"
+    return idx[0]
+
+
+def test_trivy_scans_target_pushed_digests_not_local_proxies() -> None:
+    # Every scan targets an exact pushed digest resolved from the staging index — never a
+    # locally-built proxy — and keeps the blocking posture (exit-code 1, justified-ignores file).
+    for name in SCAN_STEP_NAMES:
+        steps = _steps_named(name)
+        assert len(steps) == 1, name
+        step = steps[0]
+        assert step.get("if") == "vars.PANELLA_RELEASE_SKIP_TRIVY != 'true'", name
+        with_block = step.get("with", {})
+        assert isinstance(with_block, dict)
+        assert with_block.get("exit-code") == "1", name
+        assert with_block.get("trivyignores") == ".trivyignore.yaml", name
+        assert with_block.get("severity") == "HIGH,CRITICAL", name
+        assert "@${{ steps.digests.outputs." in str(with_block.get("image-ref")), name
+
+
+def test_no_local_scan_proxy_remains() -> None:
+    # The pre-#58 pipeline Trivy-scanned a locally-built amd64 "scan proxy" (`load: true`) while
+    # signing a separately-built artifact. That pattern must not come back.
+    raw = WORKFLOW.read_text(encoding="utf-8")
+    assert "panella-store-scan" not in raw
+    assert "panella-app-scan" not in raw
+    assert "load: true" not in raw
+
+
+def test_build_scan_promote_sign_ordering_binds_scanned_bytes() -> None:
+    # Order: build/push by digest -> scan those digests -> promote the same index to release
+    # tags -> sign the promoted digest. Plus the fail-closed digest-equality assert inside the
+    # promote steps, and signing/compose consuming the promoted outputs — together these make
+    # "the bytes Trivy scanned are the bytes cosign signs" a structural invariant.
+    build_store = _images_step_index(BUILD_BY_DIGEST_STEP_NAMES[0])
+    build_app = _images_step_index(BUILD_BY_DIGEST_STEP_NAMES[1])
+    promote_store = _images_step_index(PROMOTE_STEP_NAMES[0])
+    promote_app = _images_step_index(PROMOTE_STEP_NAMES[1])
+    sign = _images_step_index("Sign pushed image digests")
+    compose = _images_step_index("Generate digest-pinned compose file")
+
+    for scan_name in SCAN_STEP_NAMES[:2]:
+        assert build_store < _images_step_index(scan_name) < promote_store, scan_name
+    for scan_name in SCAN_STEP_NAMES[2:]:
+        assert build_app < _images_step_index(scan_name) < promote_app, scan_name
+    assert promote_store < sign
+    assert promote_app < sign
+    assert promote_store < compose
+    assert promote_app < compose
+
+    for name in PROMOTE_STEP_NAMES:
+        run = str(_steps_named(name)[0].get("run", ""))
+        assert "must equal the scanned staging digest" in run, name
+
+    sign_env = str(_steps_named("Sign pushed image digests")[0].get("env", {}))
+    assert "steps.promote_store.outputs.digest" in sign_env
+    assert "steps.promote_app.outputs.digest" in sign_env
+    compose_env = str(_steps_named("Generate digest-pinned compose file")[0].get("env", {}))
+    assert "steps.promote_store.outputs.digest" in compose_env
+    assert "steps.promote_app.outputs.digest" in compose_env

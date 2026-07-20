@@ -3,6 +3,13 @@
 # Keyless signing and Rekor transparency run only on tag releases (refs/tags/v*).
 # Pre-flip workflow_dispatch builds never write to Rekor; exposure begins with the first real tag
 # release.
+#
+# Build-once-and-promote (issue #58): each image is built exactly once and pushed BY DIGEST
+# (untagged staging), Trivy scans every per-platform digest of that exact pushed index, and only
+# then are the release tags created from the same index — with a digest-equality assert — so the
+# bytes Trivy scanned, the bytes the release tags point at, and the bytes cosign signs are
+# cryptographically the same artifact. A failed scan leaves only untagged, unsigned staging
+# manifests behind (no release tag ever points at unscanned bytes).
 name: release-images
 
 on:
@@ -104,10 +111,11 @@ jobs:
       - name: Free runner disk for the store image
         # Headroom, no longer load-bearing after C0-3b. Before slimming, mcp-memory-service pulled the
         # CUDA torch wheel on BOTH amd64 and aarch64 (~3GB compressed) and a stock ubuntu runner ran
-        # out of disk at the scan-proxy `load:` (proven: run 28818511823). The store now pins
-        # torch==2.13.0+cpu (store-constraints.txt) so the image is ~1.7GB/arch with no CUDA closure;
-        # this runner cleanup is kept only as cheap headroom for the multi-arch buildx + QEMU + scan
-        # proxies. Inline rm (not a third-party action) keeps the supply-chain bar SHA-pinned-or-nothing.
+        # out of disk mid-build (proven: run 28818511823). The store now pins torch==2.13.0+cpu
+        # (store-constraints.txt) so the image is ~1.7GB/arch with no CUDA closure; this runner
+        # cleanup is kept only as cheap headroom for the multi-arch buildx + QEMU builds and the
+        # digest scans. Inline rm (not a third-party action) keeps the supply-chain bar
+        # SHA-pinned-or-nothing.
         shell: bash
         run: |
           set -euo pipefail
@@ -129,14 +137,53 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build store amd64 scan proxy
+      # Build exactly once per image. push-by-digest publishes the multi-arch index UNTAGGED —
+      # a content-addressed staging artifact no release tag points at until every scan passes.
+      - name: Build and push store by digest (staging, untagged)
+        id: build_store
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
           target: store
-          platforms: linux/amd64
-          load: true
-          tags: panella-store-scan:${{ steps.tags.outputs.sha_short }}
+          platforms: linux/amd64,linux/arm64
+          outputs: type=image,name=ghcr.io/panellatech/panella-store,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Build and push app by digest (staging, untagged)
+        id: build_app
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          target: app
+          platforms: linux/amd64,linux/arm64
+          outputs: type=image,name=ghcr.io/panellatech/panella-app,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Resolve per-platform digests from the pushed indexes
+        id: digests
+        shell: bash
+        env:
+          STORE_INDEX: ${{ steps.build_store.outputs.digest }}
+          APP_INDEX: ${{ steps.build_app.outputs.digest }}
+        run: |
+          set -euo pipefail
+          resolve() {
+            local image="$1" index="$2" prefix="$3"
+            local raw
+            raw="$(docker buildx imagetools inspect --raw "${image}@${index}")"
+            # Platform manifests only — buildx also attaches provenance/SBOM attestation manifests
+            # with platform "unknown/unknown"; those are not scannable container images.
+            local amd64 arm64 count
+            amd64="$(jq -r '[.manifests[] | select(.platform.architecture == "amd64")][0].digest' <<<"${raw}")"
+            arm64="$(jq -r '[.manifests[] | select(.platform.architecture == "arm64")][0].digest' <<<"${raw}")"
+            count="$(jq -r '[.manifests[] | select(.platform.architecture != "unknown")] | length' <<<"${raw}")"
+            if [[ "${count}" != "2" || "${amd64}" == "null" || "${arm64}" == "null" ]]; then
+              echo "::error title=Unexpected index shape::${image}@${index} platform manifests=${count} amd64=${amd64} arm64=${arm64}" >&2
+              exit 1
+            fi
+            echo "${prefix}_amd64=${amd64}" >> "$GITHUB_OUTPUT"
+            echo "${prefix}_arm64=${arm64}" >> "$GITHUB_OUTPUT"
+          }
+          resolve "${STORE_IMAGE}" "${STORE_INDEX}" store
+          resolve "${APP_IMAGE}" "${APP_INDEX}" app
 
       - name: Store Trivy breakglass annotation
         if: vars.PANELLA_RELEASE_SKIP_TRIVY == 'true'
@@ -146,13 +193,13 @@ jobs:
           echo "### TRIVY SCAN SKIPPED for store image" >> "$GITHUB_STEP_SUMMARY"
           echo "Repository variable PANELLA_RELEASE_SKIP_TRIVY=true was active. Unset it immediately after this run." >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Trivy scan store amd64 proxy
+      # Every scan below targets an exact pushed digest — the same bytes the release tags will be
+      # created from. This covers BOTH architectures (the old amd64 scan-proxy could not).
+      - name: Trivy scan store amd64 digest
         if: vars.PANELLA_RELEASE_SKIP_TRIVY != 'true'
-        # The amd64 local image is the scan proxy for both arches: the Dockerfile/dependency graph is
-        # lockstep, and multi-arch manifests cannot be loaded into the local Docker daemon.
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: panella-store-scan:${{ steps.tags.outputs.sha_short }}
+          image-ref: ghcr.io/panellatech/panella-store@${{ steps.digests.outputs.store_amd64 }}
           vuln-type: os,library
           scanners: vuln
           severity: HIGH,CRITICAL
@@ -163,21 +210,24 @@ jobs:
           # the .yaml ignore form (only plain .trivyignore).
           trivyignores: .trivyignore.yaml
           format: table
-          # Before C0-3b the store image was ~5.5GB (CUDA torch) and trivy's 5m default deadline
-          # expired mid-layer-decompress ("context deadline exceeded") — a false ZERO-finding block.
-          # The image is now CPU-slim (~1.7GB) and scans well under 5m, but the 20m deadline is kept
-          # as headroom, symmetric with the app scan, so a future size regression cannot silently
-          # reintroduce the context-deadline false block.
+          # Generous deadline: before C0-3b a ~5.5GB image blew trivy's 5m default mid-decompress
+          # ("context deadline exceeded") — a false ZERO-finding block. Kept on every scan so a
+          # future size regression cannot silently reintroduce it.
           timeout: "20m"
 
-      - name: Build app amd64 scan proxy
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+      - name: Trivy scan store arm64 digest
+        if: vars.PANELLA_RELEASE_SKIP_TRIVY != 'true'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          context: .
-          target: app
-          platforms: linux/amd64
-          load: true
-          tags: panella-app-scan:${{ steps.tags.outputs.sha_short }}
+          image-ref: ghcr.io/panellatech/panella-store@${{ steps.digests.outputs.store_arm64 }}
+          vuln-type: os,library
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: "true"
+          trivyignores: .trivyignore.yaml
+          format: table
+          timeout: "20m"
 
       - name: App Trivy breakglass annotation
         if: vars.PANELLA_RELEASE_SKIP_TRIVY == 'true'
@@ -187,45 +237,84 @@ jobs:
           echo "### TRIVY SCAN SKIPPED for app image" >> "$GITHUB_STEP_SUMMARY"
           echo "Repository variable PANELLA_RELEASE_SKIP_TRIVY=true was active. Unset it immediately after this run." >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Trivy scan app amd64 proxy
+      - name: Trivy scan app amd64 digest
         if: vars.PANELLA_RELEASE_SKIP_TRIVY != 'true'
-        # The amd64 local image is the scan proxy for both arches: the Dockerfile/dependency graph is
-        # lockstep, and multi-arch manifests cannot be loaded into the local Docker daemon.
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: panella-app-scan:${{ steps.tags.outputs.sha_short }}
+          image-ref: ghcr.io/panellatech/panella-app@${{ steps.digests.outputs.app_amd64 }}
           vuln-type: os,library
           scanners: vuln
           severity: HIGH,CRITICAL
           exit-code: "1"
           ignore-unfixed: "true"
-          # Same justified ignore file as the store scan (the app image shares the cryptography
+          # Same justified ignore file as the store scans (the app image shares the cryptography
           # constraint); explicit path because trivy does not auto-detect the .yaml form.
           trivyignores: .trivyignore.yaml
           format: table
-          # Same long-deadline as the store scan — keep both symmetric so a future image-size shift
-          # in either target does not silently reintroduce the context-deadline false block.
           timeout: "20m"
 
-      - name: Push store multi-arch image
-        id: push_store
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+      - name: Trivy scan app arm64 digest
+        if: vars.PANELLA_RELEASE_SKIP_TRIVY != 'true'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          context: .
-          target: store
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.tags.outputs.store_tags }}
+          image-ref: ghcr.io/panellatech/panella-app@${{ steps.digests.outputs.app_arm64 }}
+          vuln-type: os,library
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: "true"
+          trivyignores: .trivyignore.yaml
+          format: table
+          timeout: "20m"
 
-      - name: Push app multi-arch image
-        id: push_app
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
-        with:
-          context: .
-          target: app
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.tags.outputs.app_tags }}
+      # Promotion = tagging the ALREADY-SCANNED index. imagetools create from a single source is a
+      # registry-side manifest copy; the digest-equality assert makes "scanned bytes == released
+      # bytes" fail-closed rather than assumed.
+      - name: Promote store scanned digest to release tags
+        id: promote_store
+        shell: bash
+        env:
+          STORE_INDEX: ${{ steps.build_store.outputs.digest }}
+          STORE_TAGS: ${{ steps.tags.outputs.store_tags }}
+        run: |
+          set -euo pipefail
+          args=()
+          first_tag=""
+          while IFS= read -r tag; do
+            [[ -z "${tag}" ]] && continue
+            [[ -z "${first_tag}" ]] && first_tag="${tag}"
+            args+=(-t "${tag}")
+          done <<<"${STORE_TAGS}"
+          docker buildx imagetools create "${args[@]}" "${STORE_IMAGE}@${STORE_INDEX}"
+          final="$(docker buildx imagetools inspect "${first_tag}" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          if [[ "${final}" != "${STORE_INDEX}" ]]; then
+            echo "::error title=Digest drift::promoted store digest ${final} must equal the scanned staging digest ${STORE_INDEX}" >&2
+            exit 1
+          fi
+          echo "digest=${final}" >> "$GITHUB_OUTPUT"
+
+      - name: Promote app scanned digest to release tags
+        id: promote_app
+        shell: bash
+        env:
+          APP_INDEX: ${{ steps.build_app.outputs.digest }}
+          APP_TAGS: ${{ steps.tags.outputs.app_tags }}
+        run: |
+          set -euo pipefail
+          args=()
+          first_tag=""
+          while IFS= read -r tag; do
+            [[ -z "${tag}" ]] && continue
+            [[ -z "${first_tag}" ]] && first_tag="${tag}"
+            args+=(-t "${tag}")
+          done <<<"${APP_TAGS}"
+          docker buildx imagetools create "${args[@]}" "${APP_IMAGE}@${APP_INDEX}"
+          final="$(docker buildx imagetools inspect "${first_tag}" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          if [[ "${final}" != "${APP_INDEX}" ]]; then
+            echo "::error title=Digest drift::promoted app digest ${final} must equal the scanned staging digest ${APP_INDEX}" >&2
+            exit 1
+          fi
+          echo "digest=${final}" >> "$GITHUB_OUTPUT"
 
       - name: Install cosign
         if: startsWith(github.ref, 'refs/tags/')
@@ -235,8 +324,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         env:
-          STORE_REF: ${{ env.STORE_IMAGE }}@${{ steps.push_store.outputs.digest }}
-          APP_REF: ${{ env.APP_IMAGE }}@${{ steps.push_app.outputs.digest }}
+          STORE_REF: ${{ env.STORE_IMAGE }}@${{ steps.promote_store.outputs.digest }}
+          APP_REF: ${{ env.APP_IMAGE }}@${{ steps.promote_app.outputs.digest }}
         run: |
           set -euo pipefail
           cosign sign --yes "${STORE_REF}"
@@ -246,8 +335,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         env:
-          STORE_REF: ${{ env.STORE_IMAGE }}@${{ steps.push_store.outputs.digest }}
-          APP_REF: ${{ env.APP_IMAGE }}@${{ steps.push_app.outputs.digest }}
+          STORE_REF: ${{ env.STORE_IMAGE }}@${{ steps.promote_store.outputs.digest }}
+          APP_REF: ${{ env.APP_IMAGE }}@${{ steps.promote_app.outputs.digest }}
           CERT_IDENTITY: https://github.com/panellatech/panella/.github/workflows/release-images.yml@${{ github.ref }}
         run: |
           set -euo pipefail
@@ -263,8 +352,8 @@ jobs:
       - name: Generate digest-pinned compose file
         shell: bash
         env:
-          STORE_REF: ${{ env.STORE_IMAGE }}@${{ steps.push_store.outputs.digest }}
-          APP_REF: ${{ env.APP_IMAGE }}@${{ steps.push_app.outputs.digest }}
+          STORE_REF: ${{ env.STORE_IMAGE }}@${{ steps.promote_store.outputs.digest }}
+          APP_REF: ${{ env.APP_IMAGE }}@${{ steps.promote_app.outputs.digest }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
