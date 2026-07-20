@@ -73,7 +73,7 @@ def run(
         rows.append(
             {
                 "probe_uid": probe["probe_uid"],
-                "slice": probe["slice"],
+                "slice": decision.blocking_receipt.slice,
                 "choice_set": list(receipt.blocking.choice_set),
                 "choice_set_hash": receipt.blocking.choice_set_hash,
                 "raw_choice": receipt.raw_choice,

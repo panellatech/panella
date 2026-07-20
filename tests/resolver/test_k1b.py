@@ -2,18 +2,23 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from eval.goldsets.resolver_calibration import DEFAULT_PROBES, _load, fake_provider, run
-from eval.goldsets.resolver_eval import reduce_item
-from eval.goldsets.resolver_gate import canonical_hash, consume_ticket, run_ticket
+from eval.goldsets.resolver_eval import extraction_face, reduce_item
+from eval.goldsets.resolver_gate import canonical_hash, consume_ticket, gate_metrics, run_ticket
 from eval.goldsets.key_correctness_eval import GoldItem
 from eval.goldsets.preference_extraction import PreferenceCandidate
-from panella.resolver.calibrate import fit_slice, verify
+from panella.resolver.blocking import assemble_blocking
+from panella.resolver.calibrate import dump_manifest, fit_slice, load_manifest, verify
 from panella.resolver.fallback import FallbackProvider, render_prompt
-from panella.resolver.types import SlotView
+from panella.resolver.registry import load_registry
+from panella.resolver.risk import compute_risk_evidence
+from panella.resolver.types import ResolveRequest, SlotView
 
 
 def test_fallback_closed_choice_and_injection_boundary() -> None:
@@ -77,6 +82,66 @@ def test_calibration_fake_run_verifies_and_tamper_fails(tmp_path: Path) -> None:
         verify(evidence, manifest)
 
 
+def test_committed_calibration_probes_declare_the_live_blocking_slice() -> None:
+    registry = load_registry()
+    counts = {"benign": 0, "hr": 0}
+    for probe in _load(DEFAULT_PROBES):
+        request = ResolveRequest(
+            probe["probe_uid"], probe["kind"], probe["raw_domain"], probe["value"], probe["evidence_text"]
+        )
+        routed = assemble_blocking(request, registry, compute_risk_evidence(request, registry))
+        assert probe["slice"] == routed.receipt.slice
+        counts[routed.receipt.slice] += 1
+    assert counts["benign"] >= 60 and counts["hr"] >= 36
+
+
+@pytest.mark.parametrize("tamper", ["sample", "mapping", "tau", "swapped_evidence", "component_hash", "duplicate_uid", "coverage_gap"])
+def test_calibration_verifier_rejects_each_tamper_class(tmp_path: Path, tamper: str) -> None:
+    probes = _load(DEFAULT_PROBES)
+    evidence, manifest_path = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json")
+    probe_path = tmp_path / "probes.json"
+    probe_path.write_text(json.dumps({"version": "v1", "probes": probes}), encoding="utf-8")
+    if tamper in {"sample", "swapped_evidence"}:
+        rows = evidence.read_text(encoding="utf-8").splitlines()
+        row = json.loads(rows[0])
+        row["raw_confidence"] = 0.0 if tamper == "sample" else 0.5
+        rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
+        evidence.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    elif tamper in {"mapping", "tau", "component_hash"}:
+        manifest, _ = load_manifest(manifest_path)
+        if tamper == "mapping":
+            benign = replace(manifest.slices["benign"], mapping=((0.0, 1.0, 0.5),), tau=0.5)
+            manifest = replace(manifest, slices={**manifest.slices, "benign": benign})
+        elif tamper == "tau":
+            benign = replace(manifest.slices["benign"], tau=0.5)
+            manifest = replace(manifest, slices={**manifest.slices, "benign": benign})
+        else:
+            manifest = replace(manifest, registry_hash="0" * 64)
+        dump_manifest(manifest_path, manifest)
+    elif tamper == "duplicate_uid":
+        altered = json.loads(probe_path.read_text(encoding="utf-8"))
+        altered["probes"][1]["probe_uid"] = altered["probes"][0]["probe_uid"]
+        probe_path.write_text(json.dumps(altered), encoding="utf-8")
+    else:
+        altered = json.loads(probe_path.read_text(encoding="utf-8"))
+        altered["probes"].pop()
+        probe_path.write_text(json.dumps(altered), encoding="utf-8")
+    with pytest.raises(ValueError):
+        verify(evidence, manifest_path, probe_path=probe_path)
+
+
+def test_calibration_verifier_rejects_evidence_slice_drift(tmp_path: Path) -> None:
+    probes = _load(DEFAULT_PROBES)
+    evidence, manifest = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json")
+    rows = evidence.read_text(encoding="utf-8").splitlines()
+    row = json.loads(rows[0])
+    row["slice"] = "hr" if row["slice"] == "benign" else "benign"
+    rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
+    evidence.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError):
+        verify(evidence, manifest)
+
+
 @pytest.mark.parametrize(
     ("slot", "actions", "expected"),
     [
@@ -92,12 +157,109 @@ def test_reducer_categories(slot: str, actions: list[str], expected: str) -> Non
     assert reduce_item(item, candidates, decisions)[0] == expected
 
 
-def test_ticket_e2e_and_burn_on_access(tmp_path: Path) -> None:
+def _passing_pair(split: str) -> dict[str, object]:
+    supersede, coexist, unrelated = (80, 10, 10) if split == "public" else (25, 9, 46)
+    total = supersede + coexist + unrelated
+    return {
+        "confusion": {
+            "supersede": {"supersede": supersede, "coexist": 0, "unrelated": 0, "missing": 0},
+            "coexist": {"supersede": 0, "coexist": coexist, "unrelated": 0, "missing": 0},
+            "unrelated": {"supersede": 0, "coexist": 0, "unrelated": unrelated, "missing": 0},
+        },
+        "coverage": 1.0, "n_missing": 0, "n_extra_predictions": 0, "n_duplicate_predictions": 0, "n_covered": total, "n_gold_pairs": total,
+        "hr_false_merge_count": 0, "hr_supersede_correct": 16 if split == "public" else 10,
+        "hr_supersede_total": 16 if split == "public" else 10,
+    }
+
+
+def _passing_extraction(split: str) -> dict[str, object]:
+    hr, benign, items = (18, 24, 42) if split == "public" else (10, 6, 24)
+    stability = 16 if split == "public" else 6
+    return {
+        "n_items": items, "key_stability_correct": stability, "key_stability_total": 17 if split == "public" else 6,
+        "category_counts_by_slice": {"hr": {"correct": hr}, "benign": {"correct": benign}},
+        "candidate_wrong_bind_count": 0, "harmful_collisions": 0, "high_risk_collisions": 0,
+        "supersede_precision": 1.0, "hr_supersede_precision": 1.0, "hr_merged_pairs_zero": False,
+        "high_risk_supersede_proven": True, "schema_validity": 1.0, "counts": {"hr_merged_pairs": 1},
+        "abstention_rates": {"overall": 0.0, "benign": 0.0, "hr": 0.0},
+        "abstention_item_counts": {name: {"abstained": 0, "eligible": 1} for name in ("overall", "benign", "hr")},
+    }
+
+
+def _passing_gate_inputs() -> tuple[dict[str, object], dict[str, object], dict[str, object], dict[str, object]]:
+    return (
+        {"public": _passing_pair("public"), "holdout": _passing_pair("holdout")},
+        {"public": _passing_extraction("public"), "holdout": _passing_extraction("holdout")},
+        {"public": {"pairs": 100, "items": 42}, "holdout": {"pairs": 80, "items": 24}, "hr_llm_disabled": False},
+        {"observed": {"coverage": 1.0}, "targets": {"coverage": 1.0}},
+    )
+
+
+def test_zero_recall_report_cannot_pass_gate() -> None:
+    pairs, extraction, frozen, validity = _passing_gate_inputs()
+    pairs["public"]["confusion"]["supersede"] = {"supersede": 0, "coexist": 0, "unrelated": 80, "missing": 0}
+    result = gate_metrics(pairs, extraction, frozen=frozen, run_validity=validity)
+    assert result["pass"] is False and result["gates"]["G5"] is False
+
+
+@pytest.mark.parametrize("gate", [f"G{i}" for i in range(1, 15)])
+def test_every_gate_is_individually_flippable(gate: str) -> None:
+    pairs, extraction, frozen, validity = _passing_gate_inputs()
+    pair, ext = pairs["public"], extraction["public"]
+    if gate == "G1": pair["confusion"]["unrelated"] = {"supersede": 1, "coexist": 0, "unrelated": 9, "missing": 0}
+    elif gate == "G2": pair["confusion"]["unrelated"] = {"supersede": 0, "coexist": 1, "unrelated": 9, "missing": 0}
+    elif gate == "G3": pair["confusion"]["coexist"] = {"supersede": 1, "coexist": 9, "unrelated": 0, "missing": 0}
+    elif gate == "G4": pair["hr_false_merge_count"] = 1
+    elif gate == "G5": pair["confusion"]["supersede"] = {"supersede": 77, "coexist": 0, "unrelated": 3, "missing": 0}
+    elif gate == "G6": pair["hr_supersede_correct"] = 15
+    elif gate == "G7": pair.update({"coverage": 0.99, "n_missing": 1, "n_covered": 99})
+    elif gate == "G8": ext["key_stability_correct"] = 15
+    elif gate == "G9": ext["category_counts_by_slice"]["hr"] = {"correct": 16, "no_grounded": 2}
+    elif gate == "G10": ext["harmful_collisions"] = 1
+    elif gate == "G11": ext["supersede_precision"] = 0.94
+    elif gate == "G12": ext["high_risk_supersede_proven"] = False
+    elif gate == "G13": ext["schema_validity"] = 0.999
+    else: ext["category_counts_by_slice"]["benign"] = {"correct": 21, "no_grounded": 3}
+    result = gate_metrics(pairs, extraction, frozen=frozen, run_validity=validity)
+    assert result["pass"] is False
+    assert [name for name, value in result["gates"].items() if not value] == [gate]
+
+
+def test_extraction_face_reports_item_level_abstention_rates() -> None:
+    items = [
+        GoldItem("benign", "", True, False, "fact", "fact:employer", "Northwind"),
+        GoldItem("hr", "", True, True, "fact", "fact:employer", "Northwind"),
+    ]
+    extracted = {key: [PreferenceCandidate(key, "fact", "unknown", "Northwind", 1.0, "")] for key in ("benign", "hr")}
+
+    class Engine:
+        def resolve(self, request: object, context: object, budget: object) -> object:
+            return SimpleNamespace(action="ABSTAIN_ADD", method="test", fallback_outcome="abstain", unresolved_domain="unknown", slot_id=None)
+
+    report = extraction_face(items, extracted, Engine())
+    assert report["abstention_rates"] == {"overall": 1.0, "benign": 1.0, "hr": 1.0}
+    assert report["abstention_item_counts"]["overall"] == {"eligible": 2, "abstained": 2}
+
+
+def test_abstention_bar_is_item_level_and_fail_closed() -> None:
+    pairs, extraction, frozen, validity = _passing_gate_inputs()
+    extraction["public"]["abstention_rates"]["benign"] = 1 / 5
+    extraction["public"]["abstention_item_counts"]["benign"] = {"abstained": 1, "eligible": 5}
+    result = gate_metrics(pairs, extraction, frozen=frozen, run_validity=validity)
+    assert result["gates"] == {name: True for name in result["gates"]}
+    assert result["bars"]["abstention"] is False and result["pass"] is False
+
+
+def test_ticket_head_clean_order_and_per_file_tamper_burns(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     sums, provenance = tmp_path / "SHA256SUMS", tmp_path / "PROVENANCE"
-    sums.write_text("toy", encoding="utf-8")
+    holdout = tmp_path / "holdout.json"
+    holdout.write_text("sealed", encoding="utf-8")
+    sums.write_text(f"{hashlib.sha256(holdout.read_bytes()).hexdigest()}  {holdout.name}\n", encoding="utf-8")
     provenance.write_text("toy provenance", encoding="utf-8")
     config = {"llm_enabled": False}
-    ticket = {"nonce": "n1", "public_commit": "external", "holdout_sums_sha256": hashlib.sha256(sums.read_bytes()).hexdigest(), "holdout_provenance_sha256": hashlib.sha256(provenance.read_bytes()).hexdigest(), "config_hash": canonical_hash({"config": config, "goldset_path": "toy", "runner_version": "v1"}), "manifest_hash": None, "evidence_hash": None, "created": "now"}
+    head = "a" * 64
+    monkeypatch.setattr("eval.goldsets.resolver_gate._worktree_binding", lambda: {"actual_commit": head, "dirty": False})
+    ticket = {"nonce": "n1", "public_commit": head, "holdout_sums_sha256": hashlib.sha256(sums.read_bytes()).hexdigest(), "holdout_provenance_sha256": hashlib.sha256(provenance.read_bytes()).hexdigest(), "config_hash": canonical_hash({"config": config, "goldset_path": "toy", "runner_version": "v1"}), "manifest_hash": None, "evidence_hash": None, "created": "now"}
     ticket_path, ledger = tmp_path / "ticket.json", tmp_path / "ledger.jsonl"
     ticket_path.write_text(json.dumps(ticket, sort_keys=True, separators=(",", ":")), encoding="utf-8")
     ledger.write_text(json.dumps({"nonce": "n1", "ticket_sha256": hashlib.sha256(ticket_path.read_bytes()).hexdigest()}) + "\n", encoding="utf-8")
@@ -106,3 +268,21 @@ def test_ticket_e2e_and_burn_on_access(tmp_path: Path) -> None:
     assert consumed_ticket["nonce"] == "n1" and consumed.exists() and not ticket_path.exists()
     with pytest.raises(FileNotFoundError):
         consume_ticket(ticket_path, live_config_hash=ticket["config_hash"], ledger_path=ledger)
+
+    # A second ticket reaches the post-consumption per-file verification, then fails burned.
+    ticket["nonce"] = "n2"
+    ticket_path.write_text(json.dumps(ticket, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+    ledger.write_text(json.dumps({"nonce": "n2", "ticket_sha256": hashlib.sha256(ticket_path.read_bytes()).hexdigest()}) + "\n", encoding="utf-8")
+    holdout.write_text("tampered", encoding="utf-8")
+    with pytest.raises(ValueError, match="sealed holdout file mismatch"):
+        run_ticket(ticket_path, config=config, goldset_path="toy", runner_version="v1", holdout_sums=sums, provenance=provenance, holdout_counts={"pairs": {"total": 80, "supersede": 25, "hr_supersede": 10, "coexist": 9, "unrelated": 46}, "items": {"total": 24, "hr_positives": 10, "benign_positives": 6, "update_pairs": 6}}, manifest_path=None, evidence_path=None, evaluator=lambda: {"n_llm_calls": 0}, ledger_path=ledger)
+    assert (tmp_path / "consumed-n2.json").exists()
+
+    # HEAD/clean validation happens before the atomic rename, so an invalid binding is not burned.
+    ticket["nonce"] = "n3"
+    ticket_path.write_text(json.dumps(ticket, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+    ledger.write_text(json.dumps({"nonce": "n3", "ticket_sha256": hashlib.sha256(ticket_path.read_bytes()).hexdigest()}) + "\n", encoding="utf-8")
+    monkeypatch.setattr("eval.goldsets.resolver_gate._worktree_binding", lambda: {"actual_commit": head, "dirty": True})
+    with pytest.raises(ValueError, match="clean-worktree"):
+        consume_ticket(ticket_path, live_config_hash=ticket["config_hash"], ledger_path=ledger)
+    assert ticket_path.exists() and not (tmp_path / "consumed-n3.json").exists()

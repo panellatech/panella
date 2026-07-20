@@ -65,6 +65,10 @@ def extraction_face(items: list[GoldItem], extracted: dict[str, list[PreferenceC
     adapted: dict[str, list[PreferenceCandidate]] = {}
     wrong_bind_count = 0
     abstention = Counter()
+    abstention_items: dict[str, Counter[str]] = {
+        "overall": Counter(), "benign": Counter(), "hr": Counter(),
+    }
+    category_counts_by_slice: dict[str, Counter[str]] = {"benign": Counter(), "hr": Counter()}
     for item in items:
         candidates = extracted.get(item.item_id, [])
         result: list[PreferenceCandidate] = []
@@ -87,12 +91,34 @@ def extraction_face(items: list[GoldItem], extracted: dict[str, list[PreferenceC
         categories[item.item_id] = category
         wrong_bind_count += wrong
         adapted[item.item_id] = result
+        if item.should_extract:
+            slice_name = "hr" if item.high_risk else "benign"
+            category_counts_by_slice[slice_name][category] += 1
+            match = high_risk_value_match if item.high_risk else value_match
+            grounded_decisions = [
+                decision for candidate, decision in zip(candidates, item_decisions, strict=True)
+                if item.gold_value and match(item.gold_value, candidate.value)
+            ]
+            if grounded_decisions:
+                for name in ("overall", slice_name):
+                    abstention_items[name]["eligible"] += 1
+                    abstention_items[name]["abstained"] += int(
+                        all(decision.action == "ABSTAIN_ADD" for decision in grounded_decisions)
+                    )
     counts = Counter(categories.values())
+    abstention_rates = {
+        name: (values["abstained"] / values["eligible"] if values["eligible"] else 0.0)
+        for name, values in abstention_items.items()
+    }
     return {
         "adapted": adapted,
         "categories": categories,
         "category_counts": dict(counts),
         "candidate_wrong_bind_count": wrong_bind_count,
+        "category_counts_by_slice": {name: dict(values) for name, values in category_counts_by_slice.items()},
         "abstention_by_slice_method_outcome": {"|".join(key): value for key, value in abstention.items()},
+        "abstention_rates": abstention_rates,
+        "abstention_item_counts": {name: dict(values) for name, values in abstention_items.items()},
+        "n_items": len(items),
         "n_llm_calls": budget.calls_made,
     }

@@ -20,6 +20,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from panella.resolver.normalize import resolver_normalize
+from panella.resolver.blocking import assemble_blocking
 from panella.resolver.registry import load_registry
 from panella.resolver.risk import compute_risk_evidence
 from panella.resolver.types import ResolveRequest
@@ -35,25 +36,33 @@ def _raw_surface(domain: str, index: int) -> str:
 
 def generate() -> dict[str, Any]:
     registry = load_registry()
-    benign = [slot for slot in registry.slots if not slot.high_risk]
-    high_risk = [slot for slot in registry.slots if slot.high_risk]
     probes: list[dict[str, str]] = []
-    for slice_name, slots, count in (("benign", benign, 60), ("hr", high_risk, 36)):
-        for index in range(count):
-            slot = slots[index % len(slots)]
-            uid = f"cal-{slice_name}-{index + 1:03d}"
-            lexeme = slot.hr_lexicon[0] if slot.high_risk else "ordinary synthetic preference"
-            probes.append(
-                {
-                    "probe_uid": uid,
-                    "kind": slot.kind,
-                    "raw_domain": _raw_surface(slot.domain, index),
-                    "value": f"fictional {slot.domain} calibration value {uid}",
-                    "evidence_text": f"fictional calibration evidence {lexeme} {uid}",
-                    "expected_slot_id": slot.slot_id,
-                    "slice": slice_name,
-                }
-            )
+    routed: dict[str, int] = {"benign": 0, "hr": 0}
+    # Candidate surfaces are deliberately oversampled.  The retained pools are selected by the
+    # *live blocking receipt*, not by the expected slot's risk bit: choice-set top-up can route a
+    # superficially benign probe to hr.
+    index = 0
+    while routed["benign"] < 60 or routed["hr"] < 36:
+        if index >= 10_000:
+            raise RuntimeError("unable to fill the routed calibration probe floors")
+        slot = registry.slots[index % len(registry.slots)]
+        uid = f"cal-{index + 1:04d}"
+        lexeme = slot.hr_lexicon[0] if slot.high_risk else "ordinary synthetic preference"
+        probe = {
+            "probe_uid": uid,
+            "kind": slot.kind,
+            "raw_domain": _raw_surface(slot.domain, index),
+            "value": f"fictional {slot.domain} calibration value {uid}",
+            "evidence_text": f"fictional calibration evidence {lexeme} {uid}",
+            "expected_slot_id": slot.slot_id,
+        }
+        request = ResolveRequest(uid, slot.kind, probe["raw_domain"], probe["value"], probe["evidence_text"])
+        blocked = assemble_blocking(request, registry, compute_risk_evidence(request, registry))
+        slice_name = blocked.receipt.slice
+        if not blocked.forced_overflow and slot.slot_id in blocked.receipt.choice_set and routed[slice_name] < {"benign": 60, "hr": 36}[slice_name]:
+            probes.append(probe | {"slice": slice_name})
+            routed[slice_name] += 1
+        index += 1
     document = {"version": "v1", "probes": probes}
     _sweep(document)
     return document
@@ -74,10 +83,12 @@ def _sweep(document: dict[str, Any]) -> None:
         if target is None:
             raise ValueError(f"probe {request.request_uid} has unknown expected slot")
         evidence = compute_risk_evidence(request, registry)
-        expected_slice = "hr" if target.high_risk else "benign"
-        if probe["slice"] != expected_slice or (target.high_risk and target.slot_id not in evidence.matched_hr_slot_ids):
-            raise ValueError(f"probe {request.request_uid} has inconsistent high-risk evidence")
-        counts[probe["slice"]] += 1
+        blocked = assemble_blocking(request, registry, evidence)
+        if blocked.forced_overflow or probe["slice"] != blocked.receipt.slice:
+            raise ValueError(f"probe {request.request_uid} has inconsistent routed slice")
+        if target.high_risk and target.slot_id not in evidence.matched_hr_slot_ids:
+            raise ValueError(f"probe {request.request_uid} lacks target high-risk evidence")
+        counts[blocked.receipt.slice] += 1
     if counts["benign"] < 60 or counts["hr"] < 36:
         raise ValueError("probe universe is below the frozen calibration floor")
 

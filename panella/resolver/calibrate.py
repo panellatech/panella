@@ -249,7 +249,13 @@ def verify(
         request = ResolveRequest(probe["probe_uid"], probe["kind"], probe["raw_domain"], probe["value"], probe["evidence_text"])
         risk = compute_risk_evidence(request, registry)
         blocked = assemble_blocking(request, registry, risk)
-        if blocked.forced_overflow or row["slice"] != probe["slice"] or tuple(row["choice_set"]) != blocked.receipt.choice_set or row["choice_set_hash"] != blocked.receipt.choice_set_hash:
+        if (
+            blocked.forced_overflow
+            or row["slice"] != blocked.receipt.slice
+            or row["slice"] != probe.get("slice")
+            or tuple(row["choice_set"]) != blocked.receipt.choice_set
+            or row["choice_set_hash"] != blocked.receipt.choice_set_hash
+        ):
             raise ValueError("choice-set replay mismatch")
         if row["raw_choice"] not in set(blocked.receipt.choice_set) | {"ABSTAIN"}:
             raise ValueError("raw choice outside closed choice set")

@@ -76,8 +76,11 @@ class ConfusionMatrixReport:
     missing_pairs: list[dict[str, str]] = field(default_factory=list)
     n_extra_predictions: int = 0
     extra_predictions: list[dict[str, str]] = field(default_factory=list)
+    n_duplicate_predictions: int = 0
     # HR slice (v1+, see module docstring) — stay None when the goldset has no high_risk pairs.
     hr_supersede_recall: float | None = None
+    hr_supersede_correct: int | None = None
+    hr_supersede_total: int | None = None
     hr_false_merge_count: int | None = None
     hr_coverage: float | None = None
 
@@ -94,7 +97,10 @@ class ConfusionMatrixReport:
             "missing_pairs": self.missing_pairs,
             "n_extra_predictions": self.n_extra_predictions,
             "extra_predictions": self.extra_predictions,
+            "n_duplicate_predictions": self.n_duplicate_predictions,
             "hr_supersede_recall": None if self.hr_supersede_recall is None else round(self.hr_supersede_recall, 4),
+            "hr_supersede_correct": self.hr_supersede_correct,
+            "hr_supersede_total": self.hr_supersede_total,
             "hr_false_merge_count": self.hr_false_merge_count,
             "hr_coverage": None if self.hr_coverage is None else round(self.hr_coverage, 4),
         }
@@ -127,7 +133,7 @@ def _gold_high_risk_flags(goldset: dict[str, Any]) -> dict[tuple[str, str, str],
     return out
 
 
-def _normalize_predictions(predictions: Any) -> dict[tuple[str, str, str], str]:
+def _normalize_predictions(predictions: Any) -> tuple[dict[tuple[str, str, str], str], int]:
     """Accept either a flat list of prediction dicts or a {case_id: [predictions]} mapping.
     Returns {(case_id, earlier_id, later_id): predicted_label}."""
     out: dict[tuple[str, str, str], str] = {}
@@ -143,14 +149,14 @@ def _normalize_predictions(predictions: Any) -> dict[tuple[str, str, str], str]:
     for p in items:
         key = (p["case_id"], p["earlier_id"], p["later_id"])
         out[key] = p["predicted_label"]
-    return out
+    return out, len(items) - len(out)
 
 
 def score(goldset: dict[str, Any], predictions: Any) -> ConfusionMatrixReport:
     """Score `predictions` against `goldset`. Pure function — see module docstring for shapes."""
     gold = _gold_pairs(goldset)
     hr_flags = _gold_high_risk_flags(goldset)
-    pred = _normalize_predictions(predictions)
+    pred, duplicate_predictions = _normalize_predictions(predictions)
 
     report = ConfusionMatrixReport()
     report.n_gold_pairs = len(gold)
@@ -185,6 +191,7 @@ def score(goldset: dict[str, Any], predictions: Any) -> ConfusionMatrixReport:
         {"case_id": k[0], "earlier_id": k[1], "later_id": k[2]} for k in sorted(missing_keys)
     ]
     report.n_extra_predictions = len(extra_keys)
+    report.n_duplicate_predictions = duplicate_predictions
     report.extra_predictions = [
         {"case_id": k[0], "earlier_id": k[1], "later_id": k[2]} for k in sorted(extra_keys)
     ]
@@ -219,10 +226,14 @@ def score(goldset: dict[str, Any], predictions: Any) -> ConfusionMatrixReport:
         if hr_supersede_keys:
             hr_supersede_hits = sum(1 for k in hr_supersede_keys if pred.get(k) == "supersede")
             report.hr_supersede_recall = hr_supersede_hits / len(hr_supersede_keys)
+            report.hr_supersede_correct = hr_supersede_hits
+            report.hr_supersede_total = len(hr_supersede_keys)
         else:
             # No gold hr supersede pairs to miss — vacuous pass, same convention `recall`/`coverage`
             # already use elsewhere in this file for an empty denominator.
             report.hr_supersede_recall = 1.0
+            report.hr_supersede_correct = 0
+            report.hr_supersede_total = 0
 
         hr_unrelated_keys = {k for k in hr_keys if gold[k] == "unrelated"}
         report.hr_false_merge_count = sum(1 for k in hr_unrelated_keys if pred.get(k) in ("supersede", "coexist"))
