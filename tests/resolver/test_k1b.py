@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+import subprocess
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -10,7 +12,7 @@ import pytest
 
 from eval.goldsets.resolver_calibration import DEFAULT_PROBES, _load, fake_provider, run
 from eval.goldsets.resolver_eval import extraction_face, reduce_item
-from eval.goldsets.resolver_gate import canonical_hash, consume_ticket, gate_metrics, run_ticket
+from eval.goldsets.resolver_gate import _worktree_binding, canonical_hash, consume_ticket, gate_metrics, run_ticket
 from eval.goldsets.key_correctness_eval import GoldItem
 from eval.goldsets.preference_extraction import PreferenceCandidate
 from panella.resolver.blocking import assemble_blocking
@@ -248,6 +250,56 @@ def test_abstention_bar_is_item_level_and_fail_closed() -> None:
     result = gate_metrics(pairs, extraction, frozen=frozen, run_validity=validity)
     assert result["gates"] == {name: True for name in result["gates"]}
     assert result["bars"]["abstention"] is False and result["pass"] is False
+
+
+@pytest.mark.parametrize(
+    ("precision", "zero_flag", "merged_pairs", "expected"),
+    [
+        (0.99, True, 0, False),
+        (1.0, True, 0, False),
+        (None, True, 0, True),
+        (1.0, False, 1, True),
+        (1.0, True, 1, True),
+    ],
+)
+def test_g11_requires_exact_hr_precision_and_consistent_zero_merge_state(
+    precision: float | None, zero_flag: bool, merged_pairs: int, expected: bool
+) -> None:
+    pairs, extraction, frozen, validity = _passing_gate_inputs()
+    extraction["public"].update(
+        {
+            "hr_supersede_precision": precision,
+            "hr_merged_pairs_zero": zero_flag,
+            "counts": {"hr_merged_pairs": merged_pairs},
+        }
+    )
+    result = gate_metrics(pairs, extraction, frozen=frozen, run_validity=validity)
+    assert result["gates"]["G11"] is expected
+
+
+@pytest.mark.parametrize(("actual_key", "frozen_key"), [("n_gold_pairs", "pairs"), ("n_items", "items")])
+def test_symmetric_none_frozen_counts_fail_closed(actual_key: str, frozen_key: str) -> None:
+    pairs, extraction, frozen, validity = _passing_gate_inputs()
+    if actual_key == "n_gold_pairs":
+        pairs["public"][actual_key] = None
+    else:
+        extraction["public"][actual_key] = None
+    frozen["public"][frozen_key] = None
+    result = gate_metrics(pairs, extraction, frozen=frozen, run_validity=validity)
+    assert result["valid"] is False and result["pass"] is False
+
+
+def test_worktree_binding_reads_live_sha1_head_and_dirty_flag() -> None:
+    root = Path(__file__).resolve().parents[2]
+    actual_head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=root, check=True, text=True, capture_output=True
+    ).stdout.strip()
+    status = subprocess.run(
+        ["git", "status", "--porcelain"], cwd=root, check=True, text=True, capture_output=True
+    )
+    actual_dirty = bool(status.stdout.strip())
+    assert re.fullmatch(r"[0-9a-f]{40}", actual_head)
+    assert _worktree_binding() == {"actual_commit": actual_head, "dirty": actual_dirty}
 
 
 def test_ticket_head_clean_order_and_per_file_tamper_burns(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

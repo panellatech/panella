@@ -21,6 +21,7 @@ LEDGER_PATH = ROOT / "eval/out/k1_gate_ledger.jsonl"
 OUT_DIR = ROOT / "eval/out"
 _NONCE = re.compile(r"^[A-Za-z0-9_-]+$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_GIT_OID = re.compile(r"^[0-9a-f]{40}$|^[0-9a-f]{64}$")
 _HOLDOUT_MINIMA = {
     "pairs": {"total": 80, "supersede": 25, "hr_supersede": 10, "coexist": 9, "unrelated": 46},
     "items": {"total": 24, "hr_positives": 10, "benign_positives": 6, "update_pairs": 6},
@@ -53,7 +54,7 @@ def _worktree_binding() -> dict[str, Any]:
     """Read the only two git facts a ticket is allowed to bind."""
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, check=True, text=True, capture_output=True).stdout.strip()
     dirty = bool(subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, check=True, text=True, capture_output=True).stdout.strip())
-    if not _SHA256.fullmatch(head):
+    if not _GIT_OID.fullmatch(head):
         raise ValueError("cannot determine a full git HEAD")
     return {"actual_commit": head, "dirty": dirty}
 
@@ -142,6 +143,11 @@ def _integer(value: Any) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
+def _matches_frozen_count(observed: Any, frozen: Any) -> bool:
+    observed_count, frozen_count = _integer(observed), _integer(frozen)
+    return observed_count is not None and frozen_count is not None and observed_count == frozen_count
+
+
 def _pair_count(report: dict[str, Any] | None, gold: str, predicted: str) -> int | None:
     if report is None:
         return None
@@ -205,9 +211,13 @@ def _gate_metrics_for_split(pair: dict[str, Any] | None, extraction: dict[str, A
     hr_categories = extraction.get("category_counts_by_slice", {}).get("hr", {}) if extraction else {}
     benign_categories = extraction.get("category_counts_by_slice", {}).get("benign", {}) if extraction else {}
     sup_precision = _number(extraction.get("supersede_precision")) if extraction else None
-    hr_precision = _number(extraction.get("hr_supersede_precision")) if extraction else None
+    hr_precision_value = extraction.get("hr_supersede_precision") if extraction else None
+    hr_precision = _number(hr_precision_value)
+    hr_precision_is_none = extraction is not None and "hr_supersede_precision" in extraction and hr_precision_value is None
     hr_zero = extraction.get("hr_merged_pairs_zero") if extraction else None
     hr_merged = _integer(extraction.get("counts", {}).get("hr_merged_pairs")) if extraction and isinstance(extraction.get("counts"), dict) else None
+    hr_precision_consistent = hr_merged is not None and (hr_merged == 0) == hr_precision_is_none
+    hr_precision_ok = (hr_precision is not None and hr_precision == 1.0) or (hr_precision_is_none and hr_zero is True and hr_merged == 0)
     return {
         "G1": _pair_count(pair, "unrelated", "supersede") == 0,
         "G2": _pair_count(pair, "unrelated", "coexist") == 0,
@@ -222,7 +232,7 @@ def _gate_metrics_for_split(pair: dict[str, Any] | None, extraction: dict[str, A
         "G8": stability_correct is not None and stability_reported_total == stability_total and stability_correct >= stability_min,
         "G9": _category_correct(extraction, "hr", hr_items) and _integer(hr_categories.get("correct")) is not None and _integer(hr_categories.get("correct")) >= hr_min,
         "G10": extraction is not None and _integer(extraction.get("harmful_collisions")) == 0 and _integer(extraction.get("high_risk_collisions")) == 0,
-        "G11": sup_precision is not None and sup_precision >= 0.95 and ((hr_precision == 1.0) or (hr_zero is True and hr_merged == 0)),
+        "G11": sup_precision is not None and sup_precision >= 0.95 and hr_precision_consistent and hr_precision_ok,
         "G12": extraction is not None and extraction.get("high_risk_supersede_proven") is True,
         "G13": extraction is not None and extraction.get("schema_validity") == 1.0,
         "G14": _category_correct(extraction, "benign", benign_items) and _integer(benign_categories.get("correct")) is not None and _integer(benign_categories.get("correct")) >= benign_min,
@@ -264,8 +274,8 @@ def gate_metrics(pair_report: dict[str, Any], extraction_report: dict[str, Any],
         isinstance(frozen.get(split), dict)
         and pair is not None
         and extraction is not None
-        and _integer(pair.get("n_gold_pairs")) == _integer(frozen[split].get("pairs"))
-        and _integer(extraction.get("n_items")) == _integer(frozen[split].get("items"))
+        and _matches_frozen_count(pair.get("n_gold_pairs"), frozen[split].get("pairs"))
+        and _matches_frozen_count(extraction.get("n_items"), frozen[split].get("items"))
         for split, pair, extraction in (("public", public_pair, public_extraction), ("holdout", holdout_pair, holdout_extraction))
     )
     bars = {"candidate_wrong_binds": wrong_binds, "abstention": abstention}
