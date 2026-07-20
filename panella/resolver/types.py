@@ -4,12 +4,23 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from dataclasses import dataclass, field, fields, is_dataclass
+from types import MappingProxyType
 from typing import Literal, Mapping, Protocol
 
 _UID_RE = re.compile(r"^[a-z0-9][a-z0-9/_\-.]{0,127}$")
 _KINDS = frozenset({"preference", "fact", "constraint"})
+
+
+def _require_quantized_float(value: object, field_name: str) -> float:
+    """Reject floats the six-decimal fitting contract cannot represent exactly."""
+
+    # The fitting algorithm emits 6dp values by construction, so legitimate manifests are always quantized.
+    if not isinstance(value, float) or not math.isfinite(value) or round(value, 6) != value:
+        raise ValueError(f"{field_name} must be a finite float quantized to six decimal places")
+    return value
 
 
 @dataclass(frozen=True)
@@ -69,6 +80,30 @@ class CalibrationSlice:
     mapping: tuple[tuple[float, float, float], ...]
     tau: float
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.n_samples, int) or isinstance(self.n_samples, bool):
+            raise ValueError("n_samples must be an integer")
+        if not isinstance(self.per_bin, (list, tuple)):
+            raise ValueError("per_bin must be a tuple or list")
+        if not isinstance(self.mapping, (list, tuple)):
+            raise ValueError("mapping must be a tuple or list")
+
+        per_bin = tuple(self.per_bin)
+        if not all(isinstance(value, int) and not isinstance(value, bool) for value in per_bin):
+            raise ValueError("per_bin must contain integers")
+        mapping: list[tuple[float, float, float]] = []
+        for index, row in enumerate(self.mapping):
+            if not isinstance(row, (list, tuple)) or len(row) != 3:
+                raise ValueError("each calibration mapping row must contain exactly three floats")
+            low = _require_quantized_float(row[0], f"mapping[{index}].low")
+            high = _require_quantized_float(row[1], f"mapping[{index}].high")
+            calibrated = _require_quantized_float(row[2], f"mapping[{index}].calibrated")
+            mapping.append((low, high, calibrated))
+        _require_quantized_float(self.tau, "tau")
+
+        object.__setattr__(self, "per_bin", per_bin)
+        object.__setattr__(self, "mapping", tuple(mapping))
+
 
 @dataclass(frozen=True)
 class CalibrationManifest:
@@ -83,13 +118,30 @@ class CalibrationManifest:
     fitted_on_git_commit: str
     slices: Mapping[Literal["benign", "hr"], CalibrationSlice]
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.slices, Mapping):
+            raise ValueError("slices must be a mapping of calibration slices")
+
+        frozen_slices: dict[str, CalibrationSlice] = {}
+        for name, calibration in self.slices.items():
+            if not isinstance(calibration, CalibrationSlice):
+                raise ValueError("slices must contain CalibrationSlice values")
+            frozen_slices[name] = CalibrationSlice(
+                calibration.n_samples,
+                calibration.per_bin,
+                calibration.mapping,
+                calibration.tau,
+            )
+        object.__setattr__(self, "slices", MappingProxyType(frozen_slices))
+
 
 def canonical_manifest_hash(manifest: CalibrationManifest) -> str:
     """Return the canonical SHA-256 binding for a calibration manifest."""
 
     def normalize(value: object) -> object:
         if isinstance(value, float):
-            return round(value, 6)
+            # json.dumps emits finite float tokens via repr(); validation already guaranteed their 6dp form.
+            return value
         if is_dataclass(value):
             return {item.name: normalize(getattr(value, item.name)) for item in fields(value)}
         if isinstance(value, Mapping):
@@ -100,7 +152,7 @@ def canonical_manifest_hash(manifest: CalibrationManifest) -> str:
             return [normalize(item) for item in value]
         return value
 
-    canonical_json = json.dumps(normalize(manifest), sort_keys=True, separators=(",", ":"))
+    canonical_json = json.dumps(normalize(manifest), sort_keys=True, separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
 
 

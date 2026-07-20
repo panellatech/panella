@@ -186,6 +186,66 @@ def test_tampered_manifest_mapping_with_stale_hash_soft_disables_llm() -> None:
     assert provider.calls == 0
 
 
+@pytest.mark.parametrize(
+    ("mapping", "tau"),
+    (
+        (((0.0000001, 0.5, 0.0), (0.5, 1.0, 1.0)), 1.0),
+        (((0.0, 0.5000001, 0.0), (0.5, 1.0, 1.0)), 1.0),
+        (((0.0, 0.5, 0.0000001), (0.5, 1.0, 1.0)), 1.0),
+        (((0.0, 0.5, 0.0), (0.5, 1.0, 1.0)), 1.0000001),
+    ),
+)
+def test_calibration_rejects_unquantized_float_fields(
+    mapping: tuple[tuple[float, float, float], ...], tau: float
+) -> None:
+    with pytest.raises(ValueError, match="quantized"):
+        CalibrationSlice(50, (25, 25), mapping, tau)
+
+
+def test_unquantized_calibration_cannot_form_a_hash_colliding_manifest() -> None:
+    quantized = CalibrationSlice(50, (25, 25), ((0.0, 0.5, 0.0), (0.5, 1.0, 1.0)), 1.0)
+    manifest = CalibrationManifest(
+        "cal-1", "test-model", "test-prompt", PINNED_REGISTRY_HASH, normalizer_rules_hash, "1.0.0",
+        ("public-hash",), "evidence", "commit", {"benign": quantized, "hr": quantized},
+    )
+    assert canonical_manifest_hash(manifest)
+
+    with pytest.raises(ValueError, match="quantized"):
+        CalibrationSlice(50, (25, 25), ((0.0, 0.5, 0.0000001), (0.5, 1.0, 1.0)), 1.0)
+
+
+def test_manifest_snapshots_external_slices_before_engine_construction() -> None:
+    source_per_bin = [25, 25]
+    source_mapping = [[0.0, 0.5, 0.0], [0.5, 1.0, 1.0]]
+    source_slice = CalibrationSlice(50, source_per_bin, source_mapping, 1.0)
+    source_slices = {"benign": source_slice, "hr": source_slice}
+    manifest = CalibrationManifest(
+        "cal-1", "test-model", "test-prompt", PINNED_REGISTRY_HASH, normalizer_rules_hash, "1.0.0",
+        ("public-hash",), "evidence", "commit", source_slices,
+    )
+    manifest_hash = canonical_manifest_hash(manifest)
+    provider = FakeProvider(FallbackSuggestion("preference:code_editor", 1.0, (TransportAttempt("ok", 1),)))
+    engine = ResolverEngine(ResolverConfig(True, 20, manifest, manifest_hash, "evidence"), provider=provider)
+
+    source_per_bin[0] = 0
+    source_mapping[1][2] = 0.0
+    object.__setattr__(source_slice, "mapping", ((0.0, 1.0, 0.0),))
+    object.__setattr__(source_slice, "tau", 0.0)
+    source_slices["benign"] = source_slice
+    source_slices["hr"] = source_slice
+
+    with pytest.raises(TypeError):
+        manifest.slices["benign"] = source_slice
+    assert isinstance(manifest.slices["benign"].per_bin, tuple)
+    assert isinstance(manifest.slices["benign"].mapping, tuple)
+    assert manifest.slices["benign"].mapping == ((0.0, 0.5, 0.0), (0.5, 1.0, 1.0))
+    assert canonical_manifest_hash(manifest) == manifest_hash
+
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+    assert decision.fallback_outcome == "selected"
+    assert provider.calls == 1
+
+
 def test_missing_manifest_hash_soft_disables_llm() -> None:
     manifest = valid_manifest()
     provider = FakeProvider(FallbackSuggestion("preference:code_editor", 1.0, (TransportAttempt("ok", 1),)))
