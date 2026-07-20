@@ -1,0 +1,414 @@
+{
+  "gate": "key-correctness-eval-v0",
+  "not_longmemeval_comparable": true,
+  "note": "Synthetic per-session fixture for key_correctness_eval.py. Every entity/value below (company, city, tool, food, name) is a FICTIONAL placeholder — no real user data. 'lifecycles' group sessions that describe the SAME slot updating over time (an ADD then a SUPERSEDE); extraction_goldset_v1.json's 'labels' annotate each session by its 'sid'. v1 adds high-risk update lifecycles (medication/emergency-contact/legal-name/primary-physician/dietary-restriction — sids prefixed accordingly, e.g. 'med-s1') alongside more benign lifecycles, on top of the v0 set kept verbatim below.",
+  "lifecycles": [
+    {
+      "id": "employer-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "emp-s1",
+          "date": "2024/01/10 (Wed) 09:00",
+          "turns": [
+            { "role": "user", "content": "I just started at Northwind Traders as a backend engineer." }
+          ]
+        },
+        {
+          "sid": "emp-s2",
+          "date": "2024/06/22 (Sat) 14:00",
+          "turns": [
+            { "role": "user", "content": "Big update — I left Northwind and joined Contoso Labs last week." }
+          ]
+        }
+      ],
+      "query": "Where does the user currently work?",
+      "current_answer": "Contoso Labs",
+      "stale_answer": "Northwind Traders",
+      "current_sid": "emp-s2",
+      "stale_sid": "emp-s1"
+    },
+    {
+      "id": "editor-tool-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "tool-s1",
+          "date": "2024/03/12 (Tue) 10:15",
+          "turns": [
+            { "role": "user", "content": "I've been using Nimbus Editor for all my coding lately." }
+          ]
+        },
+        {
+          "sid": "tool-s2",
+          "date": "2024/09/01 (Sun) 16:45",
+          "turns": [
+            { "role": "user", "content": "Switched over to Vertex IDE a couple months back, loving it so far." }
+          ]
+        }
+      ],
+      "query": "What code editor does the user currently use?",
+      "current_answer": "Vertex IDE",
+      "stale_answer": "Nimbus Editor",
+      "current_sid": "tool-s2",
+      "stale_sid": "tool-s1"
+    },
+    {
+      "id": "language-preference",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "lang-s1",
+          "date": "2024/01/25 (Thu) 13:20",
+          "turns": [
+            { "role": "user", "content": "My favorite programming language is Solstice-lang, hands down." }
+          ]
+        },
+        {
+          "sid": "lang-s2",
+          "date": "2024/07/09 (Tue) 09:40",
+          "turns": [
+            { "role": "user", "content": "Honestly Umbra-lang has become my favorite language this year." }
+          ]
+        }
+      ],
+      "query": "What is the user's favorite programming language?",
+      "current_answer": "Umbra-lang",
+      "stale_answer": "Solstice-lang",
+      "current_sid": "lang-s2",
+      "stale_sid": "lang-s1"
+    },
+    {
+      "id": "coffee-preference",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "coffee-s1",
+          "date": "2024/02/18 (Sun) 08:05",
+          "turns": [
+            { "role": "user", "content": "I always drink my coffee black, no sugar, no cream." }
+          ]
+        },
+        {
+          "sid": "coffee-s2",
+          "date": "2024/10/03 (Thu) 07:50",
+          "turns": [
+            { "role": "user", "content": "These days I mostly drink oat-milk lattes instead of black coffee." }
+          ]
+        }
+      ],
+      "query": "How does the user currently take their coffee?",
+      "current_answer": "oat-milk lattes",
+      "stale_answer": "black coffee, no sugar",
+      "current_sid": "coffee-s2",
+      "stale_sid": "coffee-s1"
+    },
+    {
+      "id": "home-city-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "city-s1",
+          "date": "2023/11/02 (Thu) 12:00",
+          "turns": [
+            { "role": "user", "content": "I live in Rivertown, have for a few years now." }
+          ]
+        },
+        {
+          "sid": "city-s2",
+          "date": "2024/03/15 (Fri) 18:30",
+          "turns": [
+            { "role": "user", "content": "Just moved to Lakeside last month, still unpacking boxes." }
+          ]
+        }
+      ],
+      "query": "Where does the user currently live?",
+      "current_answer": "Lakeside",
+      "stale_answer": "Rivertown",
+      "current_sid": "city-s2",
+      "stale_sid": "city-s1"
+    },
+    {
+      "id": "medication-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "med-s1",
+          "date": "2025/01/14 (Tue) 08:30",
+          "turns": [
+            { "role": "user", "content": "Quick health note — I've been taking Veltrazine every morning for my blood pressure." }
+          ]
+        },
+        {
+          "sid": "med-s2",
+          "date": "2025/05/02 (Fri) 17:10",
+          "turns": [
+            { "role": "user", "content": "Update on that: my doctor switched me from Veltrazine to Norvexol last month, so that's what I'm on now." }
+          ]
+        }
+      ],
+      "query": "What medication does the user currently take for blood pressure?",
+      "current_answer": "Norvexol",
+      "stale_answer": "Veltrazine",
+      "current_sid": "med-s2",
+      "stale_sid": "med-s1"
+    },
+    {
+      "id": "emergency-contact-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "ec-s1",
+          "date": "2025/02/03 (Mon) 09:15",
+          "turns": [
+            { "role": "user", "content": "For your records, my emergency contact is Priya Osgood." }
+          ]
+        },
+        {
+          "sid": "ec-s2",
+          "date": "2025/07/18 (Fri) 13:45",
+          "turns": [
+            { "role": "user", "content": "Small update — please change my emergency contact to Devon Achebe instead of Priya." }
+          ]
+        }
+      ],
+      "query": "Who is the user's current emergency contact?",
+      "current_answer": "Devon Achebe",
+      "stale_answer": "Priya Osgood",
+      "current_sid": "ec-s2",
+      "stale_sid": "ec-s1"
+    },
+    {
+      "id": "legal-name-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "name-s1",
+          "date": "2025/01/20 (Mon) 11:00",
+          "turns": [
+            { "role": "user", "content": "For any paperwork, my legal name is Marlowe Kestrel." }
+          ]
+        },
+        {
+          "sid": "name-s2",
+          "date": "2025/06/11 (Wed) 16:20",
+          "turns": [
+            { "role": "user", "content": "Life update — I legally changed my name to Marlowe Ashgrove this spring, so use that going forward." }
+          ]
+        }
+      ],
+      "query": "What is the user's current legal name?",
+      "current_answer": "Marlowe Ashgrove",
+      "stale_answer": "Marlowe Kestrel",
+      "current_sid": "name-s2",
+      "stale_sid": "name-s1"
+    },
+    {
+      "id": "primary-physician-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "phys-s1",
+          "date": "2024/11/05 (Tue) 10:05",
+          "turns": [
+            { "role": "user", "content": "Just so it's on file, my primary physician is Dr. Naomi Falkirk." }
+          ]
+        },
+        {
+          "sid": "phys-s2",
+          "date": "2025/03/22 (Sat) 14:40",
+          "turns": [
+            { "role": "user", "content": "Heads up, I switched over to Dr. Osei Bramwell as my primary physician." }
+          ]
+        },
+        {
+          "sid": "phys-s3",
+          "date": "2025/08/09 (Sat) 09:50",
+          "turns": [
+            { "role": "user", "content": "One more change — I'm now seeing Dr. Imara Voss as my primary physician after another practice switch." }
+          ]
+        }
+      ],
+      "query": "Who is the user's current primary physician?",
+      "current_answer": "Dr. Imara Voss",
+      "stale_answer": "Dr. Naomi Falkirk",
+      "current_sid": "phys-s3",
+      "stale_sid": "phys-s1"
+    },
+    {
+      "id": "dietary-restriction-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "diet-s1",
+          "date": "2025/02/27 (Thu) 12:30",
+          "turns": [
+            { "role": "user", "content": "Just a heads up, I've been following a strict low-sodium diet on my care team's orders." }
+          ]
+        },
+        {
+          "sid": "diet-s2",
+          "date": "2025/09/14 (Sun) 18:00",
+          "turns": [
+            { "role": "user", "content": "Update on that — I moved to a gluten-free diet after a recent diagnosis, the low-sodium thing isn't current anymore." }
+          ]
+        }
+      ],
+      "query": "What dietary restriction does the user currently follow?",
+      "current_answer": "gluten-free diet",
+      "stale_answer": "low-sodium diet",
+      "current_sid": "diet-s2",
+      "stale_sid": "diet-s1"
+    },
+    {
+      "id": "vehicle-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "car-s1",
+          "date": "2025/01/08 (Wed) 07:45",
+          "turns": [
+            { "role": "user", "content": "Random aside, I've been driving a Comet Roadster for the last couple years." }
+          ]
+        },
+        {
+          "sid": "car-s2",
+          "date": "2025/04/19 (Sat) 15:20",
+          "turns": [
+            { "role": "user", "content": "Just traded up to a Comet Voyager last weekend, loving the extra space." }
+          ]
+        }
+      ],
+      "query": "What vehicle does the user currently drive?",
+      "current_answer": "Comet Voyager",
+      "stale_answer": "Comet Roadster",
+      "current_sid": "car-s2",
+      "stale_sid": "car-s1"
+    },
+    {
+      "id": "laptop-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "laptop-s1",
+          "date": "2025/02/11 (Tue) 09:00",
+          "turns": [
+            { "role": "user", "content": "For context, I code on a Fenwick Slate 13 laptop day to day." }
+          ]
+        },
+        {
+          "sid": "laptop-s2",
+          "date": "2025/05/30 (Fri) 16:35",
+          "turns": [
+            { "role": "user", "content": "Upgraded to a Fenwick Slate 15 last week — much better for my workload." }
+          ]
+        }
+      ],
+      "query": "What laptop does the user currently use?",
+      "current_answer": "Fenwick Slate 15",
+      "stale_answer": "Fenwick Slate 13",
+      "current_sid": "laptop-s2",
+      "stale_sid": "laptop-s1"
+    },
+    {
+      "id": "streaming-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "stream-s1",
+          "date": "2025/01/25 (Sat) 20:15",
+          "turns": [
+            { "role": "user", "content": "These days I mostly watch shows on Lumen Play in the evenings." }
+          ]
+        },
+        {
+          "sid": "stream-s2",
+          "date": "2025/04/06 (Sun) 19:40",
+          "turns": [
+            { "role": "user", "content": "Switched over to Orbit Screen a couple months back, better selection for what I watch." }
+          ]
+        }
+      ],
+      "query": "What streaming service does the user currently use?",
+      "current_answer": "Orbit Screen",
+      "stale_answer": "Lumen Play",
+      "current_sid": "stream-s2",
+      "stale_sid": "stream-s1"
+    },
+    {
+      "id": "notetaking-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "notes-s1",
+          "date": "2025/03/03 (Mon) 08:50",
+          "turns": [
+            { "role": "user", "content": "Just so you know, I take all my notes in Quill Notes." }
+          ]
+        },
+        {
+          "sid": "notes-s2",
+          "date": "2025/06/22 (Sun) 11:25",
+          "turns": [
+            { "role": "user", "content": "Moved everything over to Lattice Notes recently, much cleaner interface." }
+          ]
+        }
+      ],
+      "query": "What note-taking app does the user currently use?",
+      "current_answer": "Lattice Notes",
+      "stale_answer": "Quill Notes",
+      "current_sid": "notes-s2",
+      "stale_sid": "notes-s1"
+    },
+    {
+      "id": "cuisine-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "cuisine-s1",
+          "date": "2025/02/14 (Fri) 18:30",
+          "turns": [
+            { "role": "user", "content": "At home I mostly cook Mediterranean-inspired meals these days." }
+          ]
+        },
+        {
+          "sid": "cuisine-s2",
+          "date": "2025/07/01 (Tue) 19:05",
+          "turns": [
+            { "role": "user", "content": "Been leaning into Southeast-Asian-inspired meals lately instead, much more variety." }
+          ]
+        }
+      ],
+      "query": "What cuisine style does the user currently cook most?",
+      "current_answer": "Southeast-Asian-inspired meals",
+      "stale_answer": "Mediterranean-inspired meals",
+      "current_sid": "cuisine-s2",
+      "stale_sid": "cuisine-s1"
+    },
+    {
+      "id": "cloud-storage-update",
+      "kind": "knowledge-update",
+      "sessions": [
+        {
+          "sid": "cloud-s1",
+          "date": "2025/01/17 (Fri) 10:40",
+          "turns": [
+            { "role": "user", "content": "For backups, I use Driftbox Cloud to store all my files." }
+          ]
+        },
+        {
+          "sid": "cloud-s2",
+          "date": "2025/05/15 (Thu) 14:15",
+          "turns": [
+            { "role": "user", "content": "Switched to Cirrus Vault for backups a few weeks ago, better sync speed." }
+          ]
+        }
+      ],
+      "query": "What cloud storage provider does the user currently use?",
+      "current_answer": "Cirrus Vault",
+      "stale_answer": "Driftbox Cloud",
+      "current_sid": "cloud-s2",
+      "stale_sid": "cloud-s1"
+    }
+  ]
+}

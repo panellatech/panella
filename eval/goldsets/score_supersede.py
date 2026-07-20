@@ -5,6 +5,17 @@ Pure function: (goldset, predictions) -> per-label precision/recall + confusion 
 false-merge count + coverage. No I/O beyond the two inputs it is handed, no network, no store
 access — callers own loading the goldset JSON and producing predictions in the documented shape.
 
+HR SLICE (v1+): when the goldset carries at least one pair with `"high_risk": true` (see
+SCHEMA.md), the report ALSO carries three hr-scoped fields — `hr_supersede_recall` (of the gold hr
+`supersede` pairs, how many were predicted `supersede`; a missing prediction counts as a miss, same
+convention as the main `recall`), `hr_false_merge_count` (predicted `supersede` or `coexist` where
+gold is `unrelated` AND `high_risk` — the highest-consequence false merge this goldset exists to
+catch), and `hr_coverage` (of the gold hr pairs, how many got ANY prediction at all, mirroring the
+main `coverage` metric but scoped to hr pairs). When the goldset carries NO high_risk pairs at all,
+all three fields stay `None` (serializes to JSON `null`) so a caller ignorant of the v1 extension
+sees the same report shape it always has, just with three extra null keys — old callers are
+unaffected.
+
 Prediction shape (a list of dicts, or a dict keyed by case_id — both accepted, see
 `_normalize_predictions`):
     {
@@ -65,6 +76,10 @@ class ConfusionMatrixReport:
     missing_pairs: list[dict[str, str]] = field(default_factory=list)
     n_extra_predictions: int = 0
     extra_predictions: list[dict[str, str]] = field(default_factory=list)
+    # HR slice (v1+, see module docstring) — stay None when the goldset has no high_risk pairs.
+    hr_supersede_recall: float | None = None
+    hr_false_merge_count: int | None = None
+    hr_coverage: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -79,6 +94,9 @@ class ConfusionMatrixReport:
             "missing_pairs": self.missing_pairs,
             "n_extra_predictions": self.n_extra_predictions,
             "extra_predictions": self.extra_predictions,
+            "hr_supersede_recall": None if self.hr_supersede_recall is None else round(self.hr_supersede_recall, 4),
+            "hr_false_merge_count": self.hr_false_merge_count,
+            "hr_coverage": None if self.hr_coverage is None else round(self.hr_coverage, 4),
         }
 
 
@@ -90,6 +108,19 @@ def _gold_pairs(goldset: dict[str, Any]) -> dict[tuple[str, str, str], str]:
         for pair in case.get("pairs", []):
             key = (case_id, pair["earlier_id"], pair["later_id"])
             out[key] = pair["label"]
+    return out
+
+
+def _gold_high_risk_flags(goldset: dict[str, Any]) -> dict[tuple[str, str, str], bool]:
+    """Flatten the goldset into {(case_id, earlier_id, later_id): high_risk}. A pair lacking the
+    optional `high_risk` field is treated as False, matching the schema's optional-field
+    semantics (see supersede.schema.json's `$defs/pair.high_risk`)."""
+    out: dict[tuple[str, str, str], bool] = {}
+    for case in goldset.get("cases", []):
+        case_id = case["case_id"]
+        for pair in case.get("pairs", []):
+            key = (case_id, pair["earlier_id"], pair["later_id"])
+            out[key] = bool(pair.get("high_risk", False))
     return out
 
 
@@ -115,6 +146,7 @@ def _normalize_predictions(predictions: Any) -> dict[tuple[str, str, str], str]:
 def score(goldset: dict[str, Any], predictions: Any) -> ConfusionMatrixReport:
     """Score `predictions` against `goldset`. Pure function — see module docstring for shapes."""
     gold = _gold_pairs(goldset)
+    hr_flags = _gold_high_risk_flags(goldset)
     pred = _normalize_predictions(predictions)
 
     report = ConfusionMatrixReport()
@@ -172,6 +204,25 @@ def score(goldset: dict[str, Any], predictions: Any) -> ConfusionMatrixReport:
         # the old vacuous 1.0 — a missing gold pair is scored as a miss, not excluded.
         gold_total = sum(report.confusion[label].values())
         report.recall[label] = (true_positive / gold_total) if gold_total else 1.0
+
+    # HR slice (see module docstring) — computed ONLY when the goldset carries at least one
+    # high_risk pair; otherwise the three hr_* fields stay at their None defaults.
+    hr_keys = {k for k, is_hr in hr_flags.items() if is_hr}
+    if hr_keys:
+        hr_covered = hr_keys & set(pred)
+        report.hr_coverage = len(hr_covered) / len(hr_keys)
+
+        hr_supersede_keys = {k for k in hr_keys if gold[k] == "supersede"}
+        if hr_supersede_keys:
+            hr_supersede_hits = sum(1 for k in hr_supersede_keys if pred.get(k) == "supersede")
+            report.hr_supersede_recall = hr_supersede_hits / len(hr_supersede_keys)
+        else:
+            # No gold hr supersede pairs to miss — vacuous pass, same convention `recall`/`coverage`
+            # already use elsewhere in this file for an empty denominator.
+            report.hr_supersede_recall = 1.0
+
+        hr_unrelated_keys = {k for k in hr_keys if gold[k] == "unrelated"}
+        report.hr_false_merge_count = sum(1 for k in hr_unrelated_keys if pred.get(k) in ("supersede", "coexist"))
 
     return report
 

@@ -6,7 +6,7 @@ extractor it originally called — same scoring contract, portable transport).
 
 Runs the reference extractor (`eval.goldsets.preference_extraction.extract_preferences`) over the
 synthetic fixture's per-session facts + a labeled negative/high-risk set, then scores it against the
-hand-labeled goldset (`fixtures/extraction_goldset_v0.json`) to answer ONE question: *can the
+hand-labeled goldset (`fixtures/extraction_goldset_v1.json`) to answer ONE question: *can the
 extractor produce stable, non-colliding canonical keys at high enough precision to build a
 key-addressable fact store?*
 
@@ -21,11 +21,16 @@ GO/NO-GO bars:
 Decision: PASS -> proceed | precision-pass/stability-weak -> ADD-only-no-supersede | any critical
 collision -> NO-GO-supersede.
 
-HONEST SCOPE: this goldset has only high-risk SINGLETONS by default, so high-risk SUPERSEDE
-precision is NOT exercised by the shipped fixture — a PASS reports
-``high_risk_supersede_proven=false`` + a caveat. This is a HARD GATE for a future high-risk-supersede
-rollout (extend the goldset with high-risk update pairs until proven), not a bar this eval itself
-must clear.
+HONEST SCOPE: the v1 fixture extends the v0 high-risk SINGLETONS with several high-risk UPDATE
+pairs (medication / emergency-contact / legal-name / primary-physician / dietary-restriction
+lifecycles — see ``fixtures/continuity_set_v1.json`` and the matching ``lifecycle``-tagged labels in
+``fixtures/extraction_goldset_v1.json``), so high-risk SUPERSEDE precision IS exercisable now: a
+clean extractor run CAN report ``high_risk_supersede_proven=true``. This flag stays COMPUTED from
+the actual run's results (every high-risk update pair merged on its gold key across the WHOLE
+chain, zero high-risk collisions) — it is never asserted merely because the fixture now CONTAINS
+high-risk update pairs; a weak or partial extractor still reports ``false`` here even on this
+richer fixture. Treat a ``true`` reading as "proven for THIS run's extractor against the current
+fixture", not a permanent property of the goldset.
 """
 
 from __future__ import annotations
@@ -42,8 +47,8 @@ from eval._paths import assert_eval_out
 from eval.goldsets.preference_extraction import ChatFn, PreferenceCandidate, extract_preferences, normalize_domain
 
 _FIXTURES = Path(__file__).resolve().parent / "fixtures"
-DEFAULT_GOLDSET = _FIXTURES / "extraction_goldset_v0.json"
-DEFAULT_FIXTURE = _FIXTURES / "continuity_set_v0.json"
+DEFAULT_GOLDSET = _FIXTURES / "extraction_goldset_v1.json"
+DEFAULT_FIXTURE = _FIXTURES / "continuity_set_v1.json"
 
 # Gate thresholds (the PASS bars).
 KEY_STABILITY_MIN = 0.90

@@ -20,8 +20,10 @@ from eval.goldsets.preference_extraction import PreferenceCandidate
 def test_default_fixtures_load_without_error() -> None:
     items = load_items(DEFAULT_GOLDSET, DEFAULT_FIXTURE)
     assert len(items) > 0
-    # 10 lifecycle labels + 9 extra_items (6 negatives + 3 high-risk) per the shipped v0 fixture.
-    assert len(items) == 19
+    # v1: 33 lifecycle labels (10 v0 + 23 new: 11 hr-lifecycle sessions across 5 hr lifecycles +
+    # 12 benign-lifecycle sessions across 6 benign lifecycles) + 23 extra_items (9 v0 + 14 new: 5
+    # third-party traps + 4 adjacency probes + 3 hypothetical negatives + 2 hr singletons).
+    assert len(items) == 56
 
 
 def test_fixture_text_loads_by_sid() -> None:
@@ -78,9 +80,13 @@ def test_perfect_extractor_passes_go_no_go() -> None:
     assert result["report"]["negative_colliding_keys"] == 0
     assert result["report"]["key_stability"] >= 0.90
     assert result["report"]["supersede_precision"] >= 0.95
-    # HONEST SCOPE: the shipped v0 fixture has only high-risk SINGLETONS (no update pair), so this
-    # must stay False even on a perfect extractor — proving the gate is not accidentally satisfied.
-    assert result["high_risk_supersede_proven"] is False
+    # HONEST SCOPE (v1): the fixture now carries several high-risk UPDATE pairs (medication /
+    # emergency-contact / legal-name / primary-physician / dietary-restriction lifecycles), so a
+    # PERFECT extractor (every hr session's own gold key+value emitted, nothing wrong) merges
+    # every hr chain on its gold key with zero high-risk collisions — this MUST be True here,
+    # proving the gate is actually exercisable now (not just structurally present-but-untested).
+    assert result["high_risk_supersede_proven"] is True
+    assert result["report"]["high_risk_update_pairs"] >= 5
 
 
 def test_extractor_that_hallucinates_on_negatives_fails_no_go() -> None:
@@ -96,6 +102,45 @@ def test_extractor_that_hallucinates_on_negatives_fails_no_go() -> None:
     assert result["verdict"] == "NO-GO-SUPERSEDE"
     assert result["report"]["negative_false_positive_rate"] > 0
     _ = items  # loaded to confirm fixtures parse; scoring itself is exercised via run_eval above
+
+
+def test_v1_fixture_has_hr_update_lifecycles_and_third_party_traps() -> None:
+    """Structural check on the v1 fixture pair (independent of any extractor run): at least 4
+    lifecycles whose labels have >=2 high_risk items sharing a gold canonical_key across the chain
+    — the exact definition key_correctness_eval.py's `high_risk_supersede_proven` flag relies on
+    (see its HONEST SCOPE docstring paragraph) — each with a CONSISTENT supersedes chain (the
+    first item in effective_at order has supersedes=None; every later item's supersedes equals the
+    immediately-preceding item's sid, all within the SAME lifecycle). Also asserts third-party-trap
+    items (a fact about a NAMED OTHER person, not the user) exist and are should_extract=false."""
+    items = load_items(DEFAULT_GOLDSET, DEFAULT_FIXTURE)
+
+    by_lifecycle: dict[str, list[GoldItem]] = {}
+    for it in items:
+        if it.lifecycle:
+            by_lifecycle.setdefault(it.lifecycle, []).append(it)
+
+    hr_update_lifecycles = []
+    for lc, lc_items in by_lifecycle.items():
+        hr_items = [it for it in lc_items if it.high_risk]
+        if len(hr_items) < 2:
+            continue
+        keys = {it.gold_key for it in hr_items}
+        if len(keys) != 1 or None in keys:
+            continue  # not a single SHARED canonical_key across the chain
+        hr_update_lifecycles.append(lc)
+
+    assert len(hr_update_lifecycles) >= 4, hr_update_lifecycles
+
+    for lc in hr_update_lifecycles:
+        ordered = sorted(by_lifecycle[lc], key=lambda i: i.effective_at or "")
+        assert ordered[0].supersedes is None, (lc, ordered[0])
+        for older, newer in zip(ordered, ordered[1:], strict=False):
+            assert newer.supersedes == older.item_id, (lc, older.item_id, newer.item_id, newer.supersedes)
+
+    third_party_items = [it for it in items if it.item_id.startswith("third-party-")]
+    assert len(third_party_items) >= 4, third_party_items
+    assert all(not it.should_extract for it in third_party_items)
+    assert all(not it.high_risk for it in third_party_items)
 
 
 def test_cross_slot_collision_forces_no_go() -> None:

@@ -20,6 +20,17 @@ A **pair** is `(earlier_id, later_id)` — two facts from the same case, `earlie
   into the same tracked "fact" would be a false collision (the dangerous failure mode
   `score_supersede.py`'s confusion matrix exists to catch).
 
+## `high_risk` (optional, v1+)
+
+A pair may carry an optional `"high_risk": true` flag (default/absent = false) when at least one
+fact in the pair concerns a high-risk/sensitive slot — medication, legal name, emergency contact,
+home-address-sharing, primary physician, dietary restriction. It is orthogonal to `label`: an
+`high_risk` pair can be `supersede` (a genuine same-slot update over a sensitive attribute, e.g. a
+medication change) or `unrelated` (a sensitive fact paired with a later benign fact that must NOT be
+merged into it). `score_supersede.py` reports a dedicated hr-slice (`hr_supersede_recall`,
+`hr_false_merge_count`, `hr_coverage`) over exactly these pairs, because a false merge here is a
+higher-consequence failure than an ordinary one.
+
 ## Worked examples
 
 ### `supersede` — positive
@@ -89,8 +100,39 @@ coexisting facts (the way two unrelated preferences do); they are actually the S
 Facts: `phone-a` = "phone model is a Solstice X12"; `editor-a` = "prefers the Nimbus code editor".
 No shared slot or subject.
 
+### `high_risk` — `supersede` positive
+
+```json
+{
+  "earlier_id": "f-earlier",
+  "later_id": "f-later",
+  "label": "supersede",
+  "high_risk": true
+}
+```
+Facts: `f-earlier` = "takes Veltrazine daily for hypertension"; `f-later` = "switched to Norvexol
+last month" (both fictional drug names). Same slot (current medication), later fact wins, AND the
+slot is sensitive — flagged `high_risk` so `score_supersede.py`'s hr-slice tracks it separately.
+
+### `high_risk` — `unrelated` positive (the deadliest trap)
+
+```json
+{
+  "earlier_id": "f-a",
+  "later_id": "f-b",
+  "label": "unrelated",
+  "high_risk": true
+}
+```
+Facts: `f-a` = "is allergic to shellfish"; `f-b` = "switched to the Quill Notes note-taking app". No
+shared slot — a classifier that merges a sensitive fact into an unrelated later fact just because it
+is more recent (or "looks important") produces exactly this false merge, now on a high-risk value.
+
 ## Determinism
 
-`synth_supersede.py --check` asserts the on-disk `supersede_v0.json` is byte-identical to a fresh
-regeneration from the fixed seed, AND that it validates against `supersede.schema.json`. Cases are
-ordered by `case_id`; pairs within a case are ordered by `(earlier_id, later_id)`.
+`synth_supersede.py --check` asserts the on-disk `supersede_v1.json` is byte-identical to a fresh
+regeneration from the fixed seed, that it validates against `supersede.schema.json`, AND that it
+clears the hard content bars in `synth_supersede.py`'s `_check_bars` (total cases/pairs, per-label
+pair counts, hr-flagged pair counts, coexist-trap case count — see that module's docstring for the
+exact numbers). Cases are ordered by `case_id`; pairs within a case are ordered by
+`(earlier_id, later_id)`.

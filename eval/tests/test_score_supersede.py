@@ -144,3 +144,105 @@ def test_predictions_accepted_as_dict_keyed_by_case_id() -> None:
     report = score(_MINI_GOLDSET, predictions)
     assert report.n_covered == 3
     assert report.false_merge_count == 0
+
+
+def test_hr_fields_stay_none_when_goldset_has_no_high_risk_pairs() -> None:
+    """`_MINI_GOLDSET` carries no `high_risk` field on any pair (the pre-v1 shape) — the three hr_*
+    report fields must stay `None` (serializes to JSON `null`) so a caller ignorant of the v1
+    extension sees the exact same report shape it always has."""
+    predictions = [
+        {"case_id": "mini-1", "earlier_id": "a", "later_id": "b", "predicted_label": "supersede"},
+    ]
+    report = score(_MINI_GOLDSET, predictions)
+    assert report.hr_supersede_recall is None
+    assert report.hr_false_merge_count is None
+    assert report.hr_coverage is None
+    d = report.to_dict()
+    assert d["hr_supersede_recall"] is None
+    assert d["hr_false_merge_count"] is None
+    assert d["hr_coverage"] is None
+
+
+_HR_GOLDSET = {
+    "goldset": "panella-supersede-confusion-matrix",
+    "version": "v1",
+    "cases": [
+        {
+            "case_id": "hr-1",
+            "facts": [
+                {"fact_id": "a", "content": "takes Veltrazine daily", "date": "2024-01-01T00:00:00Z"},
+                {"fact_id": "b", "content": "switched to Norvexol", "date": "2024-06-01T00:00:00Z"},
+            ],
+            "pairs": [{"earlier_id": "a", "later_id": "b", "label": "supersede", "high_risk": True}],
+            "current_truth": [{"fact_id": "b", "rationale": "latest medication fact"}],
+        },
+        {
+            "case_id": "hr-2",
+            "facts": [
+                {"fact_id": "a", "content": "is allergic to shellfish", "date": "2024-01-01T00:00:00Z"},
+                {"fact_id": "b", "content": "switched note-taking apps", "date": "2024-02-01T00:00:00Z"},
+            ],
+            "pairs": [{"earlier_id": "a", "later_id": "b", "label": "unrelated", "high_risk": True}],
+            "current_truth": [
+                {"fact_id": "a", "rationale": "independent"},
+                {"fact_id": "b", "rationale": "independent"},
+            ],
+        },
+        {
+            "case_id": "hr-3",
+            "facts": [
+                {"fact_id": "a", "content": "benign fact a", "date": "2024-01-01T00:00:00Z"},
+                {"fact_id": "b", "content": "benign fact b", "date": "2024-02-01T00:00:00Z"},
+            ],
+            "pairs": [{"earlier_id": "a", "later_id": "b", "label": "coexist"}],
+            "current_truth": [
+                {"fact_id": "a", "rationale": "independent"},
+                {"fact_id": "b", "rationale": "independent"},
+            ],
+        },
+    ],
+}
+
+
+def test_hr_supersede_recall_and_false_merge_on_perfect_predictions() -> None:
+    """A toy hr goldset (one hr supersede pair, one hr unrelated pair, one ordinary benign coexist
+    pair) scored against PERFECT predictions: hr_supersede_recall=1.0 (the hr supersede pair was
+    predicted supersede), hr_false_merge_count=0 (the hr unrelated pair was correctly predicted
+    unrelated, not merged), hr_coverage=1.0 (both hr pairs got a prediction)."""
+    predictions = [
+        {"case_id": "hr-1", "earlier_id": "a", "later_id": "b", "predicted_label": "supersede"},
+        {"case_id": "hr-2", "earlier_id": "a", "later_id": "b", "predicted_label": "unrelated"},
+        {"case_id": "hr-3", "earlier_id": "a", "later_id": "b", "predicted_label": "coexist"},
+    ]
+    report = score(_HR_GOLDSET, predictions)
+    assert report.hr_supersede_recall == 1.0
+    assert report.hr_false_merge_count == 0
+    assert report.hr_coverage == 1.0
+
+
+def test_hr_false_merge_counted_when_hr_unrelated_predicted_supersede() -> None:
+    """The dangerous hr-specific failure: the hr unrelated pair (shellfish allergy x note-taking
+    app switch) gets WRONGLY predicted `supersede` — hr_false_merge_count must catch it even though
+    the ordinary (non-hr) false_merge_count/confusion matrix already would; the hr-scoped field
+    isolates this from the ordinary supersede pair (hr-1, correctly predicted) diluting the count."""
+    predictions = [
+        {"case_id": "hr-1", "earlier_id": "a", "later_id": "b", "predicted_label": "supersede"},
+        {"case_id": "hr-2", "earlier_id": "a", "later_id": "b", "predicted_label": "supersede"},  # WRONG, high_risk
+        {"case_id": "hr-3", "earlier_id": "a", "later_id": "b", "predicted_label": "coexist"},
+    ]
+    report = score(_HR_GOLDSET, predictions)
+    assert report.hr_supersede_recall == 1.0  # hr-1 (the only gold hr supersede pair) still correct
+    assert report.hr_false_merge_count == 1
+    assert report.false_merge_count == 1  # the ordinary confusion-matrix count agrees
+
+
+def test_hr_supersede_recall_deflated_by_missing_prediction() -> None:
+    """Missing counts as a miss for hr_supersede_recall too (same convention as the main
+    `recall`/`coverage` metrics) — the hr supersede pair (hr-1) gets NO prediction at all."""
+    predictions = [
+        {"case_id": "hr-2", "earlier_id": "a", "later_id": "b", "predicted_label": "unrelated"},
+        {"case_id": "hr-3", "earlier_id": "a", "later_id": "b", "predicted_label": "coexist"},
+    ]
+    report = score(_HR_GOLDSET, predictions)
+    assert report.hr_supersede_recall == 0.0
+    assert report.hr_coverage == 0.5  # 1 of 2 hr pairs (hr-2) got a prediction; hr-1 did not

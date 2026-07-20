@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://panella.tech/eval/goldsets/supersede.schema.json",
   "title": "Panella supersede confusion-matrix goldset",
-  "description": "A synthetic goldset for scoring a fact-supersede/confusion-matrix classifier: given pairs of facts, does the classifier correctly label each pair supersede/coexist/unrelated, and does it correctly identify the currently-true fact set? See eval/goldsets/SCHEMA.md for label definitions and worked examples. Deterministic ordering: cases sorted by case_id; pairs within a case sorted by (earlier_id, later_id).",
+  "description": "A synthetic goldset for scoring a fact-supersede/confusion-matrix classifier: given pairs of facts, does the classifier correctly label each pair supersede/coexist/unrelated, and does it correctly identify the currently-true fact set? See eval/goldsets/SCHEMA.md for label definitions and worked examples. Deterministic ordering: cases sorted by case_id; pairs within a case sorted by (earlier_id, later_id). v1 adds an optional per-pair `high_risk` flag (see `$defs/pair`) for high-risk/sensitive slots (medication, legal name, emergency contact, home-address-sharing, primary physician, dietary restriction).",
   "type": "object",
   "required": ["goldset", "version", "cases"],
   "additionalProperties": false,
@@ -13,7 +13,7 @@
     },
     "version": {
       "type": "string",
-      "description": "Goldset version stamp, e.g. 'v0'."
+      "description": "Goldset version stamp, e.g. 'v1'."
     },
     "seed": {
       "type": "integer",
@@ -92,6 +92,10 @@
           "type": "string",
           "enum": ["supersede", "coexist", "unrelated"],
           "description": "supersede = later_id replaces earlier_id as the current truth for the same slot; coexist = both remain true simultaneously (not a slot update); unrelated = the two facts share no slot/subject (a classifier merging them would be a false collision)."
+        },
+        "high_risk": {
+          "type": "boolean",
+          "description": "Optional (v1+). True when at least one fact in this pair concerns a high-risk/sensitive slot (e.g. medication, legal name, emergency contact, home-address-sharing, primary physician, dietary restriction). Absent/false for ordinary benign pairs. Used by score_supersede.py's hr-slice metrics (hr_supersede_recall, hr_false_merge_count, hr_coverage) to isolate the highest-consequence classification failures — a false merge on a high_risk unrelated pair is more dangerous than an ordinary one."
         }
       }
     },

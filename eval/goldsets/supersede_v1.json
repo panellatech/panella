@@ -1,0 +1,6395 @@
+{
+  "cases": [
+    {
+      "case_id": "sc-coexist-0000",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "avoids gluten in their diet",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys ambient electronic music",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0001",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers window seats when traveling",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "keeps a succulent on their desk",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0002",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "reads mostly historical fiction",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "plays badminton on weekends",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0003",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "dislikes spicy food",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "collects vintage postage stamps",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0004",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works a hybrid schedule",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "volunteers at a community garden monthly",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0005",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "uses a standing desk",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "subscribes to a weekly astronomy newsletter",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0006",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers tea over coffee in the evening",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "practices calligraphy as a hobby",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0007",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "keeps a bullet journal",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "follows a strict Tuesday gym routine",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0008",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "is left-handed",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys documentary films",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0009",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "has two houseplants named after constellations",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "bikes to the farmers market on Saturdays",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0010",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "keeps a small herb garden on the balcony",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys long-distance trail running",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0011",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers aisle seats on short flights",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "collects retro video game cartridges",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0012",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "journals every morning before work",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "plays chess online in the evenings",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0013",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "is a night owl who works best after 9pm",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "volunteers at a local animal shelter twice a month",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0014",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "enjoys painting watercolor landscapes",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "follows a weekly meal-prep routine on Sundays",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0015",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers podcasts over music while commuting",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "keeps an aquarium with two goldfish",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0016",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "practices yoga twice a week",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "reads science fiction novels on weekends",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0017",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers a minimalist desk setup",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys birdwatching on weekend hikes",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0018",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "collects vinyl records from the 1990s",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "attends a monthly board game night",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0019",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "is training for a half-marathon",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "prefers historical documentaries over dramas",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0020",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "grows tomatoes in a backyard garden",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "keeps a list of favorite hiking trails",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0021",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers text messages over phone calls",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys home-brewing coffee on weekends",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0022",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers window seats on long flights",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "bakes sourdough bread on weekends",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0023",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "independent fact, not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "independent fact, coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "keeps a running gratitude list each night",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys building model trains as a hobby",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexisttrap-0000-home_city_trap",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "same home_city_trap slot as f-earlier despite independent phrasing; later wins"
+        }
+      ],
+      "facts": [
+        {
+          "content": "lives in Rivertown",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "has recently settled into life in Lakeside",
+          "date": "2024-05-22T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexisttrap-0001-employer_trap",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "same employer_trap slot as f-earlier despite independent phrasing; later wins"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works at Northwind Traders",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "has recently started a new role at Contoso Labs",
+          "date": "2024-05-22T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexisttrap-0002-car_model_trap",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "same car_model_trap slot as f-earlier despite independent phrasing; later wins"
+        }
+      ],
+      "facts": [
+        {
+          "content": "drives a Comet Roadster",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "has recently gotten comfortable behind the wheel of a Comet Voyager",
+          "date": "2024-05-22T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexisttrap-0003-team_name_trap",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "same team_name_trap slot as f-earlier despite independent phrasing; later wins"
+        }
+      ],
+      "facts": [
+        {
+          "content": "plays for the Emberfall Hawks",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "has recently settled in as a player for the Driftwood Otters",
+          "date": "2024-05-22T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexisttrap-0004-streaming_trap",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "same streaming_trap slot as f-earlier despite independent phrasing; later wins"
+        }
+      ],
+      "facts": [
+        {
+          "content": "streams shows on Lumen Play",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "has recently gotten hooked on Orbit Screen for their shows",
+          "date": "2024-05-22T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexisttrap-0005-notetaking_trap",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "same notetaking_trap slot as f-earlier despite independent phrasing; later wins"
+        }
+      ],
+      "facts": [
+        {
+          "content": "takes notes in Quill Notes",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "has recently moved all their notes over to Lattice Notes",
+          "date": "2024-05-22T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexisttrap-0006-cuisine_trap",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "same cuisine_trap slot as f-earlier despite independent phrasing; later wins"
+        }
+      ],
+      "facts": [
+        {
+          "content": "cooks mostly Mediterranean-inspired meals",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "has recently been leaning into Southeast-Asian-inspired meals for dinner",
+          "date": "2024-05-22T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexisttrap-0007-office_building_trap",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "same office_building_trap slot as f-earlier despite independent phrasing; later wins"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works out of the Meridian Tower office",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "has recently gotten settled into the Cascadia Point office day-to-day",
+          "date": "2024-05-22T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrmulti-0000",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "latest legal_name fact, not superseded by any later pair"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "goes by the legal name Marlowe Kestrel",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "legally changed their name to Marlowe Ashgrove last spring",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "writes mostly Solstice-lang",
+          "date": "2024-01-23T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "volunteers at a community garden monthly",
+          "date": "2024-08-05T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrmulti-0001",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "latest emergency_contact fact, not superseded by any later pair"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "lists Priya Osgood as their emergency contact",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "updated their emergency contact to Devon Achebe last month",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "shifted to mostly Southeast-Asian-inspired meals",
+          "date": "2024-01-23T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "collects vinyl records from the 1990s",
+          "date": "2024-08-05T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrmulti-0002",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "latest home_address_sharing fact, not superseded by any later pair"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "has a standing rule to never share their home address with anyone who asks",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "updated the rule to allow sharing their home address only with verified family members",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "switched to Orbit Screen",
+          "date": "2024-01-23T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "journals every morning before work",
+          "date": "2024-08-05T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrmulti-0003",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "latest emergency_contact fact, not superseded by any later pair"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "lists Priya Osgood as their emergency contact",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "updated their emergency contact to Devon Achebe last month",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "moved to the Cascadia Point office",
+          "date": "2024-01-23T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "prefers aisle seats on short flights",
+          "date": "2024-08-05T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrmulti-0004",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "latest secondary_physician fact, not superseded by any later pair"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "sees Dr. Kavita Lindqvist for specialist care",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "was referred to Dr. Tobias Renner for specialist care after a practice change",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "writes mostly Solstice-lang",
+          "date": "2024-01-23T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "volunteers at a community garden monthly",
+          "date": "2024-08-05T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrmulti-0005",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "latest food_allergy fact, not superseded by any later pair"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "manages a mild tree-nut sensitivity flagged by their care team",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "was diagnosed with a severe tree-nut allergy after follow-up testing",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "lives in Rivertown",
+          "date": "2024-01-23T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "codes in Nimbus Editor",
+          "date": "2024-08-05T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrsupersede-0000-food_allergy",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest food_allergy fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "manages a mild tree-nut sensitivity flagged by their care team",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "was diagnosed with a severe tree-nut allergy after follow-up testing",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrsupersede-0001-medication",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest medication fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "takes Veltrazine daily for hypertension",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to Norvexol last month",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrsupersede-0002-dietary_restriction",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest dietary_restriction fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "follows a low-sodium diet ordered by their care team",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "moved to a gluten-free diet after a recent diagnosis",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrsupersede-0003-legal_name",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest legal_name fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "goes by the legal name Marlowe Kestrel",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "legally changed their name to Marlowe Ashgrove last spring",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrsupersede-0004-emergency_contact",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest emergency_contact fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "lists Priya Osgood as their emergency contact",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "updated their emergency contact to Devon Achebe last month",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrsupersede-0005-home_address_sharing",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest home_address_sharing fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "has a standing rule to never share their home address with anyone who asks",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "updated the rule to allow sharing their home address only with verified family members",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrsupersede-0006-primary_physician",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest primary_physician fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "sees Dr. Naomi Falkirk as their primary physician",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to Dr. Osei Bramwell as their primary physician",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrsupersede-0007-secondary_medication",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest secondary_medication fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "takes Halbrivan for a chronic migraine condition",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to Quenavir after their neurologist changed the plan",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrsupersede-0008-religious_dietary_restriction",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest religious_dietary_restriction fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "keeps halal dietary requirements when dining out",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "shifted to kosher dietary requirements after a household change",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrsupersede-0009-secondary_physician",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest secondary_physician fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "sees Dr. Kavita Lindqvist for specialist care",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "was referred to Dr. Tobias Renner for specialist care after a practice change",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "high_risk": true,
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0000",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "is allergic to shellfish",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "switched to the Quill Notes note-taking app",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0001",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "takes Veltrazine daily for hypertension",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "now plays for the Driftwood Otters",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0002",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "follows a low-sodium diet ordered by their care team",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "upgraded to a Comet Voyager",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0003",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "goes by the legal name Marlowe Kestrel",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "streams shows on Lumen Play",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0004",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "lists Priya Osgood as their emergency contact",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "backs up files to Driftbox Cloud",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0005",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "has a standing rule to never share their home address with anyone who asks",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "has home internet through Fenwick Broadband",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0006",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "sees Dr. Naomi Falkirk as their primary physician",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "takes a pottery class on Thursdays",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0007",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "takes Halbrivan for a chronic migraine condition",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "types on a QWERTY keyboard layout",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0008",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "keeps halal dietary requirements when dining out",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "cooks mostly Mediterranean-inspired meals",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0009",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "was diagnosed with a severe tree-nut allergy after follow-up testing",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "codes on a Fenwick Slate 13",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0010",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "switched to Norvexol last month",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "works out of the Meridian Tower office",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0011",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "moved to a gluten-free diet after a recent diagnosis",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "sketches on a Halcyon Pad Mini",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0012",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "legally changed their name to Marlowe Ashgrove last spring",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "listens to music on Auria Sound",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0013",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "updated their emergency contact to Devon Achebe last month",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "rides a Drift Cycles Meridian",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0014",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "updated the rule to allow sharing their home address only with verified family members",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "plays recreational soccer on weekends",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0015",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "switched to Dr. Osei Bramwell as their primary physician",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "follows a strength-training gym routine",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0016",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "switched to Quenavir after their neurologist changed the plan",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "drives a Comet Roadster",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0017",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "shifted to kosher dietary requirements after a household change",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "takes notes in Quill Notes",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0018",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "carries an epinephrine auto-injector for a peanut allergy",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "collects vinyl records from the 1990s",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0019",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "takes Sorevastin nightly for a thyroid condition",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "prefers a minimalist desk setup",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0020",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "is legally known as Elowen Bramhall after a recent name change",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys painting watercolor landscapes",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0021",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "relies on Jonas Whitfield as their emergency contact",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "grows tomatoes in a backyard garden",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0022",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "never shares their home address unless a visit is pre-approved by a family member",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "prefers text messages over phone calls",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-hrunrelated-0023",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true (high-risk value must not be merged on recency alone)"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "sees Dr. Imara Voss for ongoing care as their primary physician",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "keeps an aquarium with two goldfish",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "high_risk": true,
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0000",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "sketches on a Halcyon Pad Mini",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "upgraded to a Halcyon Pad Pro",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "plays chess online in the evenings",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "plays recreational soccer on weekends",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "journals every morning before work",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0001",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "lives in Rivertown",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "moved to Lakeside last month",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "collects vintage postage stamps",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "switched to oat-milk lattes",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0002",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "takes a pottery class on Thursdays",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "switched to a woodworking class on Thursdays",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "enjoys ambient electronic music",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "switched to Summit Fitness",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "avoids gluten in their diet",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0003",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "plays for the Emberfall Hawks",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "now plays for the Driftwood Otters",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "enjoys home-brewing coffee on weekends",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "lives in Rivertown",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0004",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "has home internet through Fenwick Broadband",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "switched to Northgate Fiber",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "keeps a succulent on their desk",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "moved to the Cascadia Point office",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "prefers window seats when traveling",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0005",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works out of the Meridian Tower office",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "moved to the Cascadia Point office",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "enjoys home-brewing coffee on weekends",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "codes on a Fenwick Slate 13",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0006",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "streams shows on Lumen Play",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "switched to Orbit Screen",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "bikes to the farmers market on Saturdays",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "shifted to mostly Southeast-Asian-inspired meals",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "has two houseplants named after constellations",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0007",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works at Northwind Traders",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "now works at Contoso Labs",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "volunteers at a local animal shelter twice a month",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "drives a Comet Roadster",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0008",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "sketches on a Halcyon Pad Mini",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "upgraded to a Halcyon Pad Pro",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "practices calligraphy as a hobby",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "moved to the Cascadia Point office",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "prefers tea over coffee in the evening",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0009",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "types on a QWERTY keyboard layout",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "switched to a Dvorak keyboard layout",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "enjoys ambient electronic music",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "listens to music on Auria Sound",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0010",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "takes notes in Quill Notes",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "switched to Lattice Notes",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "plays chess online in the evenings",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "switched to Lattice Notes",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "journals every morning before work",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0011",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "has home internet through Fenwick Broadband",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "switched to Northgate Fiber",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "bikes to the farmers market on Saturdays",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "moved to the Cascadia Point office",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0012",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "cooks mostly Mediterranean-inspired meals",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "shifted to mostly Southeast-Asian-inspired meals",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "reads science fiction novels on weekends",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "streams shows on Lumen Play",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "practices yoga twice a week",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0013",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "plays recreational soccer on weekends",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "switched to recreational tennis on weekends",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "bikes to the farmers market on Saturdays",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "switched to Lattice Notes",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0014",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "takes a pottery class on Thursdays",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "switched to a woodworking class on Thursdays",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "collects retro video game cartridges",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "switched to Northgate Fiber",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "prefers aisle seats on short flights",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0015",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works as a systems analyst",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "was promoted to engineering lead",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "follows a weekly meal-prep routine on Sundays",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "now plays for the Driftwood Otters",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0016",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "takes a pottery class on Thursdays",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "switched to a woodworking class on Thursdays",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "follows a strict Tuesday gym routine",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "switched to recreational tennis on weekends",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "keeps a bullet journal",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0017",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "rides a Drift Cycles Meridian",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "upgraded to a Drift Cycles Apex",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "collects vintage postage stamps",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "listens to music on Auria Sound",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0018",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "types on a QWERTY keyboard layout",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "switched to a Dvorak keyboard layout",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "volunteers at a local animal shelter twice a month",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "cooks mostly Mediterranean-inspired meals",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "is a night owl who works best after 9pm",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0019",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "drinks black coffee, no sugar",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "switched to oat-milk lattes",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "prefers historical documentaries over dramas",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "moved to the Cascadia Point office",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0020",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "types on a QWERTY keyboard layout",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "switched to a Dvorak keyboard layout",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "follows a strict Tuesday gym routine",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "commutes by bicycle",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "keeps a bullet journal",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0021",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works at Northwind Traders",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "now works at Contoso Labs",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "enjoys ambient electronic music",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "switched to a running-focused training routine",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0022",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "sketches on a Halcyon Pad Mini",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "upgraded to a Halcyon Pad Pro",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "plays chess online in the evenings",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "uses Aurora Browser",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "journals every morning before work",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0023",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "rides a Drift Cycles Meridian",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "upgraded to a Drift Cycles Apex",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "collects retro video game cartridges",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "cooks mostly Mediterranean-inspired meals",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0024",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "rides a Drift Cycles Meridian",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "upgraded to a Drift Cycles Apex",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "volunteers at a community garden monthly",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "takes notes in Quill Notes",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "works a hybrid schedule",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0025",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "drives a Comet Roadster",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "upgraded to a Comet Voyager",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "volunteers at a community garden monthly",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "listens to music on Auria Sound",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0026",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "codes on a Fenwick Slate 13",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "upgraded to a Fenwick Slate 15",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "collects vintage postage stamps",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "switched to Northgate Fiber",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "dislikes spicy food",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0027",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "lives in Rivertown",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "moved to Lakeside last month",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "enjoys ambient electronic music",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "upgraded to a Comet Voyager",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0028",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        },
+        {
+          "fact_id": "f5",
+          "rationale": "independent fact, coexists with f3"
+        }
+      ],
+      "facts": [
+        {
+          "content": "lives in Rivertown",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "moved to Lakeside last month",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "enjoys building model trains as a hobby",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "rides a Drift Cycles Meridian",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        },
+        {
+          "content": "keeps a running gratitude list each night",
+          "date": "2024-01-13T09:00:00Z",
+          "fact_id": "f5"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f5"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "coexist",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f5",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-multi-0029",
+      "current_truth": [
+        {
+          "fact_id": "f2",
+          "rationale": "supersedes f1 on the same slot"
+        },
+        {
+          "fact_id": "f3",
+          "rationale": "independent fact, no supersede pair involves it as the earlier side of a same-slot update"
+        },
+        {
+          "fact_id": "f4",
+          "rationale": "independent fact, unrelated to every other fact in this case"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works out of the Meridian Tower office",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f1"
+        },
+        {
+          "content": "moved to the Cascadia Point office",
+          "date": "2024-04-07T09:00:00Z",
+          "fact_id": "f2"
+        },
+        {
+          "content": "follows a strict Tuesday gym routine",
+          "date": "2024-01-18T09:00:00Z",
+          "fact_id": "f3"
+        },
+        {
+          "content": "cooks mostly Mediterranean-inspired meals",
+          "date": "2024-07-26T09:00:00Z",
+          "fact_id": "f4"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f1",
+          "label": "supersede",
+          "later_id": "f2"
+        },
+        {
+          "earlier_id": "f1",
+          "label": "unrelated",
+          "later_id": "f3"
+        },
+        {
+          "earlier_id": "f2",
+          "label": "unrelated",
+          "later_id": "f4"
+        },
+        {
+          "earlier_id": "f3",
+          "label": "unrelated",
+          "later_id": "f4"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0000-employer",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest employer fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works at Northwind Traders",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "now works at Contoso Labs",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0001-home_city",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest home_city fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "lives in Rivertown",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "moved to Lakeside last month",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0002-code_editor",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest code_editor fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "codes in Nimbus Editor",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to Vertex IDE",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0003-programming_language",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest programming_language fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "writes mostly Solstice-lang",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "writes mostly Umbra-lang now",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0004-coffee_style",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest coffee_style fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "drinks black coffee, no sugar",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to oat-milk lattes",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0005-job_title",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest job_title fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works as a systems analyst",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "was promoted to engineering lead",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0006-phone_model",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest phone_model fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "carries a Solstice X12",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "upgraded to a Solstice X14",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0007-commute_mode",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest commute_mode fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "commutes by bicycle",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "now commutes by train",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0008-primary_browser",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest primary_browser fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "uses Aurora Browser",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to Meridian Browser",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0009-gym_membership",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest gym_membership fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "has a membership at Ironclad Gym",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to Summit Fitness",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0010-car_model",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest car_model fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "drives a Comet Roadster",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "upgraded to a Comet Voyager",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0011-bicycle_model",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest bicycle_model fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "rides a Drift Cycles Meridian",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "upgraded to a Drift Cycles Apex",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0012-laptop_model",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest laptop_model fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "codes on a Fenwick Slate 13",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "upgraded to a Fenwick Slate 15",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0013-tablet_model",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest tablet_model fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "sketches on a Halcyon Pad Mini",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "upgraded to a Halcyon Pad Pro",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0014-team_name",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest team_name fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "plays for the Emberfall Hawks",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "now plays for the Driftwood Otters",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0015-office_building",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest office_building fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works out of the Meridian Tower office",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "moved to the Cascadia Point office",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0016-video_streaming_service",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest video_streaming_service fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "streams shows on Lumen Play",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to Orbit Screen",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0017-music_streaming_service",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest music_streaming_service fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "listens to music on Auria Sound",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to Wavelength Audio",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0018-cloud_storage_provider",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest cloud_storage_provider fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "backs up files to Driftbox Cloud",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to Cirrus Vault",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0019-internet_provider",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest internet_provider fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "has home internet through Fenwick Broadband",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to Northgate Fiber",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0020-sport",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest sport fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "plays recreational soccer on weekends",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to recreational tennis on weekends",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0021-workout_routine",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest workout_routine fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "follows a strength-training gym routine",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to a running-focused training routine",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0022-hobby_class",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest hobby_class fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "takes a pottery class on Thursdays",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to a woodworking class on Thursdays",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0023-notetaking_app",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest notetaking_app fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "takes notes in Quill Notes",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to Lattice Notes",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0024-keyboard_layout",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest keyboard_layout fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "types on a QWERTY keyboard layout",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "switched to a Dvorak keyboard layout",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-supersede-0025-cuisine_style",
+      "current_truth": [
+        {
+          "fact_id": "f-later",
+          "rationale": "latest cuisine_style fact, not superseded by any later pair"
+        }
+      ],
+      "facts": [
+        {
+          "content": "cooks mostly Mediterranean-inspired meals",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-earlier"
+        },
+        {
+          "content": "shifted to mostly Southeast-Asian-inspired meals",
+          "date": "2024-05-07T09:00:00Z",
+          "fact_id": "f-later"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-earlier",
+          "label": "supersede",
+          "later_id": "f-later"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0000",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works at Northwind Traders",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "drinks black coffee, no sugar",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0001",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "lives in Rivertown",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "codes in Nimbus Editor",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0002",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "carries a Solstice X12",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "prefers the Nimbus code editor",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0003",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "commutes by bicycle",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "reads mostly historical fiction",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0004",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "uses Aurora Browser",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "has a membership at Ironclad Gym",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0005",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "was promoted to engineering lead",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "keeps a succulent on their desk",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0006",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "writes mostly Solstice-lang",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "volunteers at a community garden monthly",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0007",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "switched to oat-milk lattes",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "is left-handed",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0008",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "moved to Lakeside last month",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "practices calligraphy as a hobby",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0009",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "switched to Summit Fitness",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "follows a strict Tuesday gym routine",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0010",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "drives a Comet Roadster",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "plays for the Emberfall Hawks",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0011",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "codes on a Fenwick Slate 13",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "works out of the Meridian Tower office",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0012",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "streams shows on Lumen Play",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "backs up files to Driftbox Cloud",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0013",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "listens to music on Auria Sound",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "has home internet through Fenwick Broadband",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0014",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "plays recreational soccer on weekends",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "takes a pottery class on Thursdays",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0015",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "takes notes in Quill Notes",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "types on a QWERTY keyboard layout",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0016",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "cooks mostly Mediterranean-inspired meals",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "follows a strength-training gym routine",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0017",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "rides a Drift Cycles Meridian",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "sketches on a Halcyon Pad Mini",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0018",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "now plays for the Driftwood Otters",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "keeps a small herb garden on the balcony",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0019",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "moved to the Cascadia Point office",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "prefers aisle seats on short flights",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0020",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "switched to Orbit Screen",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "journals every morning before work",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0021",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "switched to Cirrus Vault",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "is a night owl who works best after 9pm",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0022",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "switched to Northgate Fiber",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys painting watercolor landscapes",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0023",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "switched to a woodworking class on Thursdays",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "prefers podcasts over music while commuting",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0024",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "switched to Lattice Notes",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "practices yoga twice a week",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0025",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "switched to a Dvorak keyboard layout",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "prefers a minimalist desk setup",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0026",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "shifted to mostly Southeast-Asian-inspired meals",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "collects vinyl records from the 1990s",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0027",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "switched to a running-focused training routine",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "is training for a half-marathon",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0028",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "upgraded to a Comet Voyager",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "grows tomatoes in a backyard garden",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0029",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "upgraded to a Drift Cycles Apex",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "prefers text messages over phone calls",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0030",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "switched to recreational tennis on weekends",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "prefers window seats on long flights",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0031",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "upgraded to a Halcyon Pad Pro",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "keeps a running gratitude list each night",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    }
+  ],
+  "goldset": "panella-supersede-confusion-matrix",
+  "seed": 20260707,
+  "version": "v1"
+}
