@@ -1,0 +1,346 @@
+version: "1"
+slots:
+  - id: "fact:legal_name"
+    kind: fact
+    domain: legal_name
+    description: "legal or full name of the user"
+    high_risk: false
+    aliases: [full_name, name]
+  - id: "fact:chosen_name"
+    kind: fact
+    domain: chosen_name
+    description: "preferred everyday name of the user"
+    high_risk: false
+    aliases: [display_name, nickname]
+  - id: "fact:pronoun"
+    kind: fact
+    domain: pronoun
+    description: "pronouns the user uses"
+    high_risk: false
+    aliases: [personal_pronouns, pronouns]
+  - id: "fact:home_city"
+    kind: fact
+    domain: home_city
+    description: "city the user calls home"
+    high_risk: false
+    aliases: [hometown, city]
+  - id: "fact:medical_allergy"
+    kind: fact
+    domain: medical_allergy
+    description: "medical allergy the user has"
+    high_risk: true
+    aliases: [allergy, food_allergy]
+    deny_neighbors: [cuisine, diet, dietary_restriction]
+    hr_lexicon: [allergic, allergy, allergen, anaphyla]
+  - id: "fact:medical_condition"
+    kind: fact
+    domain: medical_condition
+    description: "medical condition or diagnosis"
+    high_risk: true
+    aliases: [health_condition, diagnosis]
+    deny_neighbors: [fitness_goal, wellness_routine]
+    hr_lexicon: [diagnos, condition, chronic, syndrome]
+  - id: "fact:medication"
+    kind: fact
+    domain: medication
+    description: "medication the user takes"
+    high_risk: true
+    aliases: [medicine, prescription]
+    deny_neighbors: [wellness_routine]
+    hr_lexicon: [medicat, prescription, dosage, pill]
+  - id: "preference:diet"
+    kind: preference
+    domain: diet
+    description: "dietary pattern or eating approach"
+    high_risk: false
+    aliases: [eating_style, diet_plan]
+  - id: "constraint:dietary_restriction"
+    kind: constraint
+    domain: dietary_restriction
+    description: "non-medical dietary restriction"
+    high_risk: false
+    aliases: [food_restriction, restricted_food]
+  - id: "fact:home_address"
+    kind: fact
+    domain: home_address
+    description: "home street address"
+    high_risk: true
+    aliases: [address, residential_address]
+    deny_neighbors: [home_city]
+    hr_lexicon: [address, street, postal, zipcode]
+  - id: "fact:household_member"
+    kind: fact
+    domain: household_member
+    description: "person in the user's household"
+    high_risk: false
+    aliases: [roommate, housemate]
+  - id: "fact:home_type"
+    kind: fact
+    domain: home_type
+    description: "type of home or residence"
+    high_risk: false
+    aliases: [residence_type, housing_type]
+  - id: "preference:home_amenity"
+    kind: preference
+    domain: home_amenity
+    description: "preferred home amenity or feature"
+    high_risk: false
+    aliases: [house_feature, apartment_feature]
+  - id: "fact:employer"
+    kind: fact
+    domain: employer
+    description: "current employer or workplace organization"
+    high_risk: false
+    aliases: [workplace, company, current_employer, job_company]
+  - id: "fact:job_title"
+    kind: fact
+    domain: job_title
+    description: "current job title or role"
+    high_risk: false
+    aliases: [work_role, position]
+  - id: "fact:work_location"
+    kind: fact
+    domain: work_location
+    description: "usual work location"
+    high_risk: false
+    aliases: [office_location, workplace_location]
+  - id: "preference:work_style"
+    kind: preference
+    domain: work_style
+    description: "preferred way of working"
+    high_risk: false
+    aliases: [working_style, collaboration_style]
+  - id: "preference:career_goal"
+    kind: preference
+    domain: career_goal
+    description: "career goal or professional aspiration"
+    high_risk: false
+    aliases: [professional_goal, work_goal]
+  - id: "fact:vehicle"
+    kind: fact
+    domain: vehicle
+    description: "primary vehicle used by the user"
+    high_risk: false
+    aliases: [primary_vehicle, main_car]
+  - id: "preference:commute_mode"
+    kind: preference
+    domain: commute_mode
+    description: "preferred commuting mode"
+    high_risk: false
+    aliases: [transport_mode, commute]
+  - id: "preference:travel_class"
+    kind: preference
+    domain: travel_class
+    description: "preferred travel or flight class"
+    high_risk: false
+    aliases: [flight_class, cabin_class]
+  - id: "preference:parking_preference"
+    kind: preference
+    domain: parking_preference
+    description: "parking preference or requirement"
+    high_risk: false
+    aliases: [parking, garage_preference]
+  - id: "fact:phone_model"
+    kind: fact
+    domain: phone_model
+    description: "primary phone model"
+    high_risk: false
+    aliases: [mobile_phone, smartphone]
+  - id: "fact:computer_model"
+    kind: fact
+    domain: computer_model
+    description: "primary computer model"
+    high_risk: false
+    aliases: [laptop, desktop_computer]
+  - id: "preference:code_editor"
+    kind: preference
+    domain: code_editor
+    description: "preferred code editor"
+    high_risk: false
+    aliases: [editor, ide]
+  - id: "preference:browser"
+    kind: preference
+    domain: browser
+    description: "preferred web browser"
+    high_risk: false
+    aliases: [web_browser, browsing_app]
+  - id: "fact:email"
+    kind: fact
+    domain: email
+    description: "primary email account"
+    high_risk: true
+    aliases: [primary_email, email_address, main_email]
+    deny_neighbors: [email_service]
+    hr_lexicon: [email, inbox, address]
+  - id: "preference:email_service"
+    kind: preference
+    domain: email_service
+    description: "preferred email service"
+    high_risk: false
+    aliases: [mail_provider, email_provider]
+  - id: "fact:messaging_handle"
+    kind: fact
+    domain: messaging_handle
+    description: "messaging account handle"
+    high_risk: true
+    aliases: [chat_handle, username]
+    deny_neighbors: [messaging_service]
+    hr_lexicon: [handle, username, account]
+  - id: "preference:messaging_service"
+    kind: preference
+    domain: messaging_service
+    description: "preferred messaging service"
+    high_risk: false
+    aliases: [chat_service, messenger]
+  - id: "fact:morning_routine"
+    kind: fact
+    domain: morning_routine
+    description: "usual morning routine"
+    high_risk: false
+    aliases: [morning_schedule, morning_habit]
+  - id: "fact:sleep_schedule"
+    kind: fact
+    domain: sleep_schedule
+    description: "usual sleep schedule"
+    high_risk: false
+    aliases: [bedtime, sleep_time]
+  - id: "preference:meeting_time"
+    kind: preference
+    domain: meeting_time
+    description: "preferred meeting time"
+    high_risk: false
+    aliases: [meeting_schedule, appointment_time]
+  - id: "constraint:availability_window"
+    kind: constraint
+    domain: availability_window
+    description: "time window when the user is available"
+    high_risk: false
+    aliases: [available_time, free_time]
+  - id: "fact:partner_name"
+    kind: fact
+    domain: partner_name
+    description: "name of the user's partner"
+    high_risk: true
+    aliases: [spouse_name, significant_other]
+    deny_neighbors: [social_circle]
+    hr_lexicon: [partner, spouse, husband, wife]
+  - id: "fact:relationship_status"
+    kind: fact
+    domain: relationship_status
+    description: "relationship status"
+    high_risk: true
+    aliases: [marital_status, dating_status]
+    deny_neighbors: [social_circle]
+    hr_lexicon: [married, divorced, single, relationship]
+  - id: "fact:social_circle"
+    kind: fact
+    domain: social_circle
+    description: "social circle or friend group"
+    high_risk: false
+    aliases: [friend_group, friends]
+  - id: "preference:social_activity"
+    kind: preference
+    domain: social_activity
+    description: "preferred social activity"
+    high_risk: false
+    aliases: [group_activity, social_event]
+  - id: "fact:pet_name"
+    kind: fact
+    domain: pet_name
+    description: "name of a pet"
+    high_risk: false
+    aliases: [animal_name, pet]
+  - id: "fact:pet_type"
+    kind: fact
+    domain: pet_type
+    description: "type or species of pet"
+    high_risk: false
+    aliases: [animal_type, pet_species]
+  - id: "preference:pet_care"
+    kind: preference
+    domain: pet_care
+    description: "preferred pet care routine"
+    high_risk: false
+    aliases: [animal_care, pet_routine]
+  - id: "preference:cuisine"
+    kind: preference
+    domain: cuisine
+    description: "favorite cuisine or food style"
+    high_risk: false
+    aliases: [favorite_cuisine, food_preference]
+  - id: "preference:music_genre"
+    kind: preference
+    domain: music_genre
+    description: "preferred music genre"
+    high_risk: false
+    aliases: [music_style, favorite_music]
+  - id: "preference:fitness_goal"
+    kind: preference
+    domain: fitness_goal
+    description: "fitness goal or exercise preference"
+    high_risk: false
+    aliases: [exercise_goal, workout_goal]
+  - id: "preference:wellness_routine"
+    kind: preference
+    domain: wellness_routine
+    description: "wellness routine or self care practice"
+    high_risk: false
+    aliases: [self_care, health_routine]
+  - id: "fact:income_range"
+    kind: fact
+    domain: income_range
+    description: "income range of the user"
+    high_risk: true
+    aliases: [salary_range, earnings]
+    deny_neighbors: [budget_preference]
+    hr_lexicon: [income, salary, earnings, compensation]
+  - id: "preference:budget_preference"
+    kind: preference
+    domain: budget_preference
+    description: "budget preference for purchases"
+    high_risk: false
+    aliases: [spending_budget, price_range]
+  - id: "fact:payment_method"
+    kind: fact
+    domain: payment_method
+    description: "usual payment method"
+    high_risk: true
+    aliases: [card_payment, payment_card]
+    deny_neighbors: [budget_preference]
+    hr_lexicon: [credit_card, debit_card, card_number, payment]
+  - id: "preference:shopping_style"
+    kind: preference
+    domain: shopping_style
+    description: "preferred shopping style"
+    high_risk: false
+    aliases: [buying_style, purchase_habit]
+  - id: "constraint:emergency_contact"
+    kind: constraint
+    domain: emergency_contact
+    description: "emergency contact information"
+    high_risk: true
+    aliases: [emergency_person, urgent_contact]
+    deny_neighbors: [contact_preference]
+    hr_lexicon: [emergency, urgent, next_of_kin]
+  - id: "preference:contact_preference"
+    kind: preference
+    domain: contact_preference
+    description: "preferred contact method"
+    high_risk: false
+    aliases: [contact_method, reach_me]
+  - id: "constraint:accessibility_need"
+    kind: constraint
+    domain: accessibility_need
+    description: "accessibility need or accommodation"
+    high_risk: true
+    aliases: [accommodation_need, accessibility]
+    deny_neighbors: [travel_class, home_amenity]
+    hr_lexicon: [accessib, accommodation, disability, mobility]
+  - id: "constraint:safety_boundary"
+    kind: constraint
+    domain: safety_boundary
+    description: "personal safety boundary or restriction"
+    high_risk: true
+    aliases: [safety_limit, personal_boundary]
+    deny_neighbors: [social_activity]
+    hr_lexicon: [unsafe, safety, danger, boundary]
