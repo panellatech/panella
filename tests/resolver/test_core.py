@@ -78,7 +78,9 @@ def write_registry(tmp_path: Path, data: dict[str, object]) -> Path:
     ("raw_domain", "value", "expected_guard"),
     [("employer", "ordinary workplace", False), ("employer", "allergic reaction", True)],
 )
-def test_deterministic_pass_only_for_empty_risk_or_matched_self(raw_domain: str, value: str, expected_guard: bool) -> None:
+def test_deterministic_pass_for_empty_risk_and_escalation_for_other_hr_evidence(
+    raw_domain: str, value: str, expected_guard: bool
+) -> None:
     engine = ResolverEngine()
     decision = engine.resolve(request(raw_domain=raw_domain, value=value), ResolverContext(()), RunBudget(1))
     assert decision.guard_fired is expected_guard
@@ -98,6 +100,32 @@ def test_hr_deterministic_self_passes_without_transport() -> None:
     assert decision.high_risk is True
     assert decision.guard_fired is False
     assert provider.calls == 0
+
+
+def test_competing_hr_evidence_escalates_to_forced_hr_choice_set() -> None:
+    engine, provider = llm_engine(FallbackSuggestion("fact:medication", 1.0, (TransportAttempt("ok", 1),)))
+    decision = engine.resolve(request(uid="competing-hr", raw_domain="allergy", value="medication"), ResolverContext(()), RunBudget(1))
+
+    assert decision.guard_fired is True
+    assert decision.method == "llm_choice"
+    assert decision.slot_id == "fact:medication"
+    assert decision.risk_evidence.matched_hr_slot_ids == ("fact:medical_allergy", "fact:medication")
+    assert decision.blocking_receipt is not None
+    assert decision.blocking_receipt.choice_set == ("fact:medical_allergy", "fact:medication")
+    assert decision.blocking_receipt.slice == "hr"
+    assert provider.calls == 1
+
+
+def test_competing_hr_evidence_abstains_when_llm_is_disabled() -> None:
+    decision = ResolverEngine().resolve(
+        request(uid="competing-hr-disabled", raw_domain="allergy", value="medication"), ResolverContext(()), RunBudget(1)
+    )
+
+    assert decision.action == "ABSTAIN_ADD"
+    assert decision.slot_id is None
+    assert decision.guard_fired is True
+    assert decision.high_risk is True
+    assert decision.risk_evidence.matched_hr_slot_ids == ("fact:medical_allergy", "fact:medication")
 
 
 def test_short_circuit_hr_alias_propagates_risk_with_llm_disabled() -> None:
