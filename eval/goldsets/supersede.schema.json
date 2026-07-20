@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://panella.tech/eval/goldsets/supersede.schema.json",
   "title": "Panella supersede confusion-matrix goldset",
-  "description": "A synthetic goldset for scoring a fact-supersede/confusion-matrix classifier: given pairs of facts, does the classifier correctly label each pair supersede/coexist/unrelated, and does it correctly identify the currently-true fact set? See eval/goldsets/SCHEMA.md for label definitions and worked examples. Deterministic ordering: cases sorted by case_id; pairs within a case sorted by (earlier_id, later_id). v1 adds an optional per-pair `high_risk` flag (see `$defs/pair`) for high-risk/sensitive slots (medication, legal name, emergency contact, home-address-sharing, primary physician, dietary restriction).",
+  "description": "A synthetic goldset for scoring a fact-supersede/confusion-matrix classifier: given pairs of facts, does the classifier correctly label each pair supersede/coexist/unrelated, and does it correctly identify the currently-true fact set? See eval/goldsets/SCHEMA.md for label definitions and worked examples. Deterministic ordering: cases sorted by case_id; pairs within a case sorted by (earlier_id, later_id). v1 adds an optional per-pair `high_risk` flag (see `$defs/pair`) for high-risk/sensitive slots (medication, legal name, emergency contact, home-address-sharing, primary physician, dietary restriction). v1.1 adds a REQUIRED per-fact `probe` object (see `$defs/probe`): a simulated extractor emission for the fact — DATA for a downstream resolver to reconcile, never gold truth (the pair label stays the gold).",
   "type": "object",
   "required": ["goldset", "version", "cases"],
   "additionalProperties": false,
@@ -56,7 +56,7 @@
     },
     "fact": {
       "type": "object",
-      "required": ["fact_id", "content", "date"],
+      "required": ["fact_id", "content", "date", "probe"],
       "additionalProperties": false,
       "properties": {
         "fact_id": {
@@ -72,6 +72,31 @@
           "type": "string",
           "description": "ISO-8601 UTC timestamp this fact was observed/stated.",
           "format": "date-time"
+        },
+        "probe": { "$ref": "#/$defs/probe" }
+      }
+    },
+    "probe": {
+      "type": "object",
+      "description": "Required (v1.1+). A SIMULATED EXTRACTOR EMISSION for this fact — what a plausible extractor would output before any resolution. Probes are DATA a downstream resolver reconciles against the gold pair labels, never truth themselves: a supersede pair's two probes deliberately use DIFFERENT raw_domain surfaces from the slot's pool (key-stability pressure), and hr trap facts carry a DELIBERATELY mis-domained benign-looking raw_domain (the hr-escalation trap). See SCHEMA.md's probe section and synth_supersede.py's SLOT_SURFACES / HR_MISDOMAIN_SURFACES.",
+      "required": ["kind", "raw_domain", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["preference", "fact", "constraint"],
+          "description": "The emitted kind — the slot's kind in the preference|fact|constraint taxonomy."
+        },
+        "raw_domain": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$",
+          "description": "The emitted surface domain: a normalize_domain-stable snake_case string, drawn from the slot's surface pool — or, for hr trap facts, from the slot's deliberate mis-domain pool."
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The short extracted attribute value consistent with the fact content (not the whole sentence)."
         }
       }
     },

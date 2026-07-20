@@ -222,6 +222,10 @@ class ExtractionReport:
     key_correctness: float = 0.0
     key_stability: float = 0.0
     supersede_precision: float = 0.0
+    # supersede precision restricted to merged pairs on keys value-grounded for at least one
+    # HIGH-RISK gold slot (the hr subset of the same merged-pairs math). None when the run
+    # produced no hr merged pairs at all — backward compatible with pre-hr callers.
+    hr_supersede_precision: float | None = None
     high_risk_recall: float = 0.0
     high_risk_value_recall: float = 1.0
     high_risk_slot_recall: float = 1.0
@@ -344,13 +348,24 @@ def score(
     # extractor would merge (same key -> supersede candidate), how many are genuinely the SAME gold
     # slot? A cross-slot merge is a FALSE supersede (would demote a valid distinct fact) -- the
     # dangerous error. Unmerged real updates hurt RECALL (key_stability), not precision.
-    merged_pairs = correct_pairs = 0
-    for slots in key_slot_occ.values():
+    # hr_supersede_precision = the SAME math restricted to keys value-grounded for at least one
+    # HIGH-RISK gold slot (key_high_risk, the map the collision counting above already uses — the
+    # hr SLICE of merged-pairs precision, not a separate model). None when no hr merged pairs exist
+    # (backward compatible: pre-hr callers see a null field, never a vacuous 1.0).
+    merged_pairs = correct_pairs = hr_merged_pairs = hr_correct_pairs = 0
+    for k, slots in key_slot_occ.items():
+        is_hr_key = key_high_risk.get(k, False)
         for a, b in combinations(slots, 2):
             merged_pairs += 1
-            if a is not None and a == b:
+            correct = a is not None and a == b
+            if correct:
                 correct_pairs += 1
+            if is_hr_key:
+                hr_merged_pairs += 1
+                if correct:
+                    hr_correct_pairs += 1
     rep.supersede_precision = (correct_pairs / merged_pairs) if merged_pairs else 1.0
+    rep.hr_supersede_precision = (hr_correct_pairs / hr_merged_pairs) if hr_merged_pairs else None
 
     # Key STABILITY = merge RECALL over gold update pairs: a consecutive (older->newer) pair is
     # "merged" when the two sessions share ANY emitted key (so a supersede could fire on that slot).
@@ -545,6 +560,7 @@ def run_eval(chat_fn: ChatFn, *, goldset_path: Path = DEFAULT_GOLDSET, fixture_p
         "key_correctness": round(rep.key_correctness, 3),
         "key_stability": round(rep.key_stability, 3),
         "supersede_precision": round(rep.supersede_precision, 3),
+        "hr_supersede_precision": None if rep.hr_supersede_precision is None else round(rep.hr_supersede_precision, 3),
         "high_risk_recall": round(rep.high_risk_recall, 3),
         "high_risk_value_recall": round(rep.high_risk_value_recall, 3),
         "high_risk_slot_recall": round(rep.high_risk_slot_recall, 3),

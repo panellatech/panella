@@ -42,6 +42,29 @@ merged into it). `score_supersede.py` reports a dedicated hr-slice (`hr_supersed
 `hr_false_merge_count`, `hr_coverage`) over exactly these pairs, because a false merge here is a
 higher-consequence failure than an ordinary one.
 
+## `probe` (required, v1.1+)
+
+Every fact carries a required `probe` object — `{kind, raw_domain, value}` — a SIMULATED EXTRACTOR
+EMISSION for that fact: the kind the slot belongs to (`preference|fact|constraint`), a raw surface
+domain (normalize-stable snake_case), and the short extracted value. Probes are **data, not
+truth**: the pair `label` stays the gold, and a downstream resolver is scored on reconciling noisy
+probes against it.
+
+Two deliberate pressures are built in (both template-driven and deterministic —
+`synth_supersede.py`'s `SLOT_SURFACES`, `HR_MISDOMAIN_SURFACES`, `SLOT_KINDS`, `PROBE_VALUES`):
+
+- **Surface variance** — every slot has a pool of >=3 paraphrase surfaces (e.g. employer /
+  workplace / company_name), and a `supersede` pair's two probes always use DIFFERENT surfaces
+  from the pool. A resolver that merges only on string-equal domains scores zero key stability;
+  the goldset forces it to resolve paraphrase surfaces to one slot.
+- **Deliberate hr mis-domains** — in the hr trap cases (every `sc-hrunrelated-*` hr fact, and BOTH
+  hr facts of every `sc-hrmulti-*` case) the probe's `raw_domain` is a plausible BENIGN surface
+  for the sensitive content (an allergy emitted as `food_preference`, a medication as
+  `supplement_routine`, a legal name as `nickname`; some deliberately collide with real benign
+  slots' canonical surfaces). These exercise the resolver's hr-escalation gate: the surface says
+  benign, the content is sensitive, and trusting the surface is the failure. Standalone
+  `sc-hrsupersede-*` cases keep CORRECT surfaces — they measure key stability, not escalation.
+
 ## Worked examples
 
 ### `supersede` — positive

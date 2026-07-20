@@ -246,3 +246,30 @@ def test_hr_supersede_recall_deflated_by_missing_prediction() -> None:
     report = score(_HR_GOLDSET, predictions)
     assert report.hr_supersede_recall == 0.0
     assert report.hr_coverage == 0.5  # 1 of 2 hr pairs (hr-2) got a prediction; hr-1 did not
+
+
+def test_stringly_typed_high_risk_is_not_treated_as_hr() -> None:
+    """The hr-flag read is `is True`, not truthiness: a malformed stringly-typed flag ("true")
+    must NOT widen the hr slice — the goldset schema types the field as a real bool, and on
+    malformed input the scorer treats the pair as not-hr (hr fields stay None) instead of
+    silently accepting the string."""
+    goldset = {
+        "goldset": "panella-supersede-confusion-matrix",
+        "version": "v1",
+        "cases": [
+            {
+                "case_id": "s-1",
+                "facts": [
+                    {"fact_id": "a", "content": "takes Drug A", "date": "2024-01-01T00:00:00Z"},
+                    {"fact_id": "b", "content": "takes Drug B", "date": "2024-02-01T00:00:00Z"},
+                ],
+                "pairs": [{"earlier_id": "a", "later_id": "b", "label": "supersede", "high_risk": "true"}],
+                "current_truth": [{"fact_id": "b", "rationale": "latest"}],
+            }
+        ],
+    }
+    predictions = [{"case_id": "s-1", "earlier_id": "a", "later_id": "b", "predicted_label": "supersede"}]
+    report = score(goldset, predictions)
+    assert report.hr_supersede_recall is None
+    assert report.hr_false_merge_count is None
+    assert report.hr_coverage is None

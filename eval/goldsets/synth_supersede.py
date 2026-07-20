@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the supersede confusion-matrix goldset v1 (synthetic, fixed seed, deterministic).
+"""Generate the supersede confusion-matrix goldset v1.1 (synthetic, fixed seed, deterministic).
 
 v1 REPLACES v0 in the repo (v0 lives in git history — same seed, same generation approach, just a
 much larger and richer template pool). Produces a goldset spanning the three pair labels (supersede
@@ -11,6 +11,14 @@ later UNRELATED benign fact — the deadliest false-merge trap (recency + sensit
 classifier to merge them). Deterministic: a fixed seed + fixed generation order means a fresh regen
 is byte-identical to the committed `supersede_v1.json` (`--check` asserts this, plus schema validity
 against `supersede.schema.json`).
+
+PROBE CONTRACT (v1.1): every fact additionally carries a required `probe` object
+{kind, raw_domain, value} — a simulated extractor emission (DATA a downstream resolver reconciles,
+never gold truth). Supersede pairs always probe two DIFFERENT surfaces from the slot's >=3-surface
+pool (key-stability pressure); hr trap cases (every sc-hrunrelated-* hr fact, both hr facts of
+every sc-hrmulti-* case) probe a DELIBERATELY mis-domained benign surface (hr-escalation
+pressure). See SLOT_SURFACES / HR_MISDOMAIN_SURFACES / SLOT_KINDS / PROBE_VALUES and SCHEMA.md's
+probe section.
 
 ASPECT DISJOINTNESS (generator-enforced, not vibes): every template value carries a life-domain
 `aspect` tag from the closed `_ASPECTS` vocabulary (update-slot templates tag the slot; freeform
@@ -42,13 +50,14 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, NamedTuple
 
 SEED = 20260707
 GOLDSET_NAME = "panella-supersede-confusion-matrix"
-VERSION = "v1"
+VERSION = "v1.1"
 _HERE = Path(__file__).resolve().parent
 DEFAULT_OUT = _HERE / "supersede_v1.json"
 SCHEMA_PATH = _HERE / "supersede.schema.json"
@@ -408,6 +417,355 @@ CONTENT_META: dict[str, tuple[str, str]] = _build_content_meta()
 # `"high_risk": true` — `_check_hr_flags` (and the mirroring test) enforce the correspondence.
 HR_SLOTS: frozenset[str] = frozenset(t.slot for t in _HR_SUPERSEDE_SLOTS)
 
+# ---------------------------------------------------------------------------------------------
+# PROBE contract (v1.1) — every generated fact carries a `probe` object {kind, raw_domain, value}:
+# a SIMULATED EXTRACTOR EMISSION for that fact. Probes are DATA, not truth — the pair `label`
+# stays the gold; probes exist so a downstream resolver can be scored on reconciling noisy
+# surface domains against the gold structure. See SCHEMA.md's "probe" section.
+
+# probe.kind per slot (the slot's kind in the preference|fact|constraint taxonomy).
+SLOT_KINDS: dict[str, str] = {
+    # benign update slots
+    "employer": "fact", "home_city": "fact", "code_editor": "fact", "programming_language": "preference",
+    "coffee_style": "preference", "job_title": "fact", "phone_model": "fact", "commute_mode": "fact",
+    "primary_browser": "fact", "gym_membership": "fact", "car_model": "fact", "bicycle_model": "fact",
+    "laptop_model": "fact", "tablet_model": "fact", "team_name": "fact", "office_building": "fact",
+    "video_streaming_service": "fact", "music_streaming_service": "fact", "cloud_storage_provider": "fact",
+    "internet_provider": "fact", "sport": "fact", "workout_routine": "fact", "hobby_class": "fact",
+    "notetaking_app": "fact", "keyboard_layout": "fact", "cuisine_style": "preference",
+    # hr slots
+    "food_allergy": "fact", "medication": "fact", "dietary_restriction": "fact", "legal_name": "fact",
+    "emergency_contact": "fact", "home_address_sharing": "constraint", "primary_physician": "fact",
+    "secondary_medication": "fact", "religious_dietary_restriction": "fact", "secondary_physician": "fact",
+    # freeform slots
+    "gluten_avoidance": "preference", "music_genre": "preference", "seat_preference": "preference",
+    "desk_plant": "fact", "reading_genre": "preference", "badminton": "fact", "spice_tolerance": "preference",
+    "stamp_collection": "fact", "work_schedule": "fact", "volunteering": "fact", "desk_setup": "preference",
+    "newsletter_subscription": "fact", "evening_drink": "preference", "calligraphy": "fact",
+    "journaling_method": "fact", "gym_schedule": "fact", "handedness": "fact",
+    "documentary_preference": "preference", "houseplants": "fact", "market_trip": "fact",
+    "herb_garden": "fact", "trail_running": "fact", "game_cartridge_collection": "fact",
+    "journaling_habit": "fact", "chess": "fact", "chronotype": "fact", "painting": "fact",
+    "meal_prep": "fact", "podcast_preference": "preference", "aquarium_keeping": "fact", "yoga": "fact",
+    "birdwatching": "fact", "vinyl_collection": "fact", "board_game_night": "fact",
+    "half_marathon_training": "fact", "vegetable_garden": "fact", "hiking_trails": "fact",
+    "communication_preference": "preference", "coffee_brewing": "fact", "baking": "fact",
+    "gratitude_practice": "fact", "model_trains": "fact",
+}
+
+# CORRECT surface pools: >=3 normalize_domain-stable raw_domain variants per slot (the paraphrase
+# surfaces a real extractor plausibly emits for that slot). A supersede pair's two probes always
+# use DIFFERENT surfaces from its slot's pool (idx vs idx+1 rotation in `_probe` call sites) —
+# the key-stability pressure the resolver gate measures.
+SLOT_SURFACES: dict[str, tuple[str, ...]] = {
+    "employer": ("employer", "workplace", "company_name"),
+    "home_city": ("home_city", "city_of_residence", "current_city"),
+    "code_editor": ("code_editor", "editor", "ide_choice"),
+    "programming_language": ("programming_language", "favorite_language", "main_language"),
+    "coffee_style": ("coffee_style", "coffee_order", "coffee_preference"),
+    "job_title": ("job_title", "role", "position"),
+    "phone_model": ("phone_model", "phone", "mobile_device"),
+    "commute_mode": ("commute_mode", "commute", "transport_to_work"),
+    "primary_browser": ("primary_browser", "browser", "web_browser"),
+    "gym_membership": ("gym_membership", "gym", "fitness_club"),
+    "car_model": ("car_model", "car", "vehicle"),
+    "bicycle_model": ("bicycle_model", "bike", "bicycle"),
+    "laptop_model": ("laptop_model", "laptop", "work_computer"),
+    "tablet_model": ("tablet_model", "tablet", "drawing_device"),
+    "team_name": ("team_name", "sports_team", "club_team"),
+    "office_building": ("office_building", "office_location", "work_site"),
+    "video_streaming_service": ("video_streaming_service", "streaming_service", "tv_app"),
+    "music_streaming_service": ("music_streaming_service", "music_app", "music_service"),
+    "cloud_storage_provider": ("cloud_storage_provider", "cloud_storage", "backup_service"),
+    "internet_provider": ("internet_provider", "isp", "home_internet"),
+    "sport": ("sport", "weekend_sport", "recreational_sport"),
+    "workout_routine": ("workout_routine", "training_routine", "exercise_plan"),
+    "hobby_class": ("hobby_class", "weekly_class", "evening_class"),
+    "notetaking_app": ("notetaking_app", "notes_app", "note_tool"),
+    "keyboard_layout": ("keyboard_layout", "keyboard", "typing_layout"),
+    "cuisine_style": ("cuisine_style", "cooking_style", "home_cuisine"),
+    "food_allergy": ("food_allergy", "allergy", "allergen_alert"),
+    "medication": ("medication", "prescription", "current_medication"),
+    "dietary_restriction": ("dietary_restriction", "medical_diet", "prescribed_diet"),
+    "legal_name": ("legal_name", "full_legal_name", "official_name"),
+    "emergency_contact": ("emergency_contact", "ice_contact", "emergency_person"),
+    "home_address_sharing": ("home_address_sharing", "address_sharing_rule", "address_disclosure"),
+    "primary_physician": ("primary_physician", "primary_doctor", "family_doctor"),
+    "secondary_medication": ("secondary_medication", "migraine_medication", "second_prescription"),
+    "religious_dietary_restriction": ("religious_dietary_restriction", "faith_diet", "religious_diet"),
+    "secondary_physician": ("secondary_physician", "specialist", "specialist_doctor"),
+    "gluten_avoidance": ("gluten_avoidance", "gluten_habit", "dietary_avoidance"),
+    "music_genre": ("music_genre", "music_taste", "favorite_music"),
+    "seat_preference": ("seat_preference", "airplane_seat", "travel_seat"),
+    "desk_plant": ("desk_plant", "office_plant", "desk_greenery"),
+    "reading_genre": ("reading_genre", "book_taste", "favorite_books"),
+    "badminton": ("badminton", "racket_sport", "weekend_badminton"),
+    "spice_tolerance": ("spice_tolerance", "spice_preference", "spicy_food"),
+    "stamp_collection": ("stamp_collection", "philately", "stamp_hobby"),
+    "work_schedule": ("work_schedule", "schedule", "working_pattern"),
+    "volunteering": ("volunteering", "volunteer_work", "community_service"),
+    "desk_setup": ("desk_setup", "workstation", "desk_style"),
+    "newsletter_subscription": ("newsletter_subscription", "newsletter", "email_subscription"),
+    "evening_drink": ("evening_drink", "evening_beverage", "nighttime_drink"),
+    "calligraphy": ("calligraphy", "lettering_hobby", "calligraphy_practice"),
+    "journaling_method": ("journaling_method", "journal_system", "planning_method"),
+    "gym_schedule": ("gym_schedule", "gym_day", "workout_schedule"),
+    "handedness": ("handedness", "dominant_hand", "writing_hand"),
+    "documentary_preference": ("documentary_preference", "film_taste", "documentary_taste"),
+    "houseplants": ("houseplants", "indoor_plants", "plant_collection"),
+    "market_trip": ("market_trip", "market_routine", "saturday_errand"),
+    "herb_garden": ("herb_garden", "balcony_garden", "herb_growing"),
+    "trail_running": ("trail_running", "running_hobby", "trail_runs"),
+    "game_cartridge_collection": ("game_cartridge_collection", "game_collection", "retro_games"),
+    "journaling_habit": ("journaling_habit", "morning_journaling", "daily_writing"),
+    "chess": ("chess", "online_chess", "chess_habit"),
+    "chronotype": ("chronotype", "sleep_pattern", "productivity_hours"),
+    "painting": ("painting", "watercolor_hobby", "art_hobby"),
+    "meal_prep": ("meal_prep", "meal_planning", "sunday_cooking"),
+    "podcast_preference": ("podcast_preference", "commute_listening", "podcast_habit"),
+    "aquarium_keeping": ("aquarium_keeping", "aquarium", "fishkeeping"),
+    "yoga": ("yoga", "yoga_practice", "yoga_routine"),
+    "birdwatching": ("birdwatching", "birding", "bird_hobby"),
+    "vinyl_collection": ("vinyl_collection", "record_collection", "vinyl_hobby"),
+    "board_game_night": ("board_game_night", "game_night", "social_games"),
+    "half_marathon_training": ("half_marathon_training", "race_training", "marathon_prep"),
+    "vegetable_garden": ("vegetable_garden", "backyard_garden", "tomato_growing"),
+    "hiking_trails": ("hiking_trails", "trail_list", "hiking_hobby"),
+    "communication_preference": ("communication_preference", "contact_method", "messaging_preference"),
+    "coffee_brewing": ("coffee_brewing", "home_brewing", "coffee_hobby"),
+    "baking": ("baking", "bread_baking", "weekend_baking"),
+    "gratitude_practice": ("gratitude_practice", "gratitude_list", "nightly_reflection"),
+    "model_trains": ("model_trains", "model_building", "train_hobby"),
+}
+
+# DELIBERATE MIS-DOMAIN pools — hr slots only. In the hr TRAP cases (every sc-hrunrelated-* hr
+# fact, and BOTH hr facts of every sc-hrmulti-* case) the probe's raw_domain is drawn from this
+# pool instead of the slot's correct pool: a plausible-looking BENIGN surface for sensitive
+# content (allergy emitted as a food preference, medication as a supplement routine, legal name
+# as a nickname). These exercise the resolver's hr-escalation gate — the surface says benign, the
+# content is sensitive, and trusting the surface is the failure. Some entries deliberately
+# COLLIDE with real benign slots' canonical surfaces (e.g. "cuisine_style",
+# "communication_preference") — the hardest trap shape. Standalone sc-hrsupersede-* cases use the
+# CORRECT pools (they measure key stability, not escalation).
+HR_MISDOMAIN_SURFACES: dict[str, tuple[str, ...]] = {
+    "food_allergy": ("food_preference", "disliked_foods", "diet"),
+    "medication": ("supplement_routine", "daily_vitamins", "wellness_habit"),
+    "dietary_restriction": ("food_preference", "eating_style", "cuisine_style"),
+    "legal_name": ("nickname", "display_name", "username"),
+    "emergency_contact": ("frequent_contact", "close_friend", "family_member"),
+    "home_address_sharing": ("privacy_preference", "sharing_setting", "communication_preference"),
+    "primary_physician": ("service_provider", "professional_contact", "frequent_contact"),
+    "secondary_medication": ("supplement_routine", "sleep_aid", "wellness_habit"),
+    "secondary_physician": ("professional_contact", "service_provider", "consultant"),
+    "religious_dietary_restriction": ("food_preference", "cuisine_style", "dining_habit"),
+}
+
+# probe.value per content — the short extracted attribute value consistent with the fact text
+# (what an extractor would emit as `value`, not the whole sentence). Content-addressed so a
+# content reused across pools always probes the same value.
+PROBE_VALUES: dict[str, str] = {
+    "works at Northwind Traders": "Northwind Traders",
+    "now works at Contoso Labs": "Contoso Labs",
+    "has recently started a new role at Contoso Labs": "Contoso Labs",
+    "lives in Rivertown": "Rivertown",
+    "moved to Lakeside last month": "Lakeside",
+    "has recently settled into life in Lakeside": "Lakeside",
+    "codes in Nimbus Editor": "Nimbus Editor",
+    "switched to Vertex IDE": "Vertex IDE",
+    "prefers the Nimbus code editor": "Nimbus Editor",
+    "writes mostly Solstice-lang": "Solstice-lang",
+    "writes mostly Umbra-lang now": "Umbra-lang",
+    "drinks black coffee, no sugar": "black, no sugar",
+    "switched to oat-milk lattes": "oat-milk lattes",
+    "works as a systems analyst": "systems analyst",
+    "was promoted to engineering lead": "engineering lead",
+    "carries a Solstice X12": "Solstice X12",
+    "upgraded to a Solstice X14": "Solstice X14",
+    "commutes by bicycle": "bicycle",
+    "now commutes by train": "train",
+    "uses Aurora Browser": "Aurora Browser",
+    "switched to Meridian Browser": "Meridian Browser",
+    "has a membership at Ironclad Gym": "Ironclad Gym",
+    "switched to Summit Fitness": "Summit Fitness",
+    "drives a Comet Roadster": "Comet Roadster",
+    "upgraded to a Comet Voyager": "Comet Voyager",
+    "has recently gotten comfortable behind the wheel of a Comet Voyager": "Comet Voyager",
+    "rides a Drift Cycles Meridian": "Drift Cycles Meridian",
+    "upgraded to a Drift Cycles Apex": "Drift Cycles Apex",
+    "codes on a Fenwick Slate 13": "Fenwick Slate 13",
+    "upgraded to a Fenwick Slate 15": "Fenwick Slate 15",
+    "sketches on a Halcyon Pad Mini": "Halcyon Pad Mini",
+    "upgraded to a Halcyon Pad Pro": "Halcyon Pad Pro",
+    "plays for the Emberfall Hawks": "Emberfall Hawks",
+    "now plays for the Driftwood Otters": "Driftwood Otters",
+    "has recently settled in as a player for the Driftwood Otters": "Driftwood Otters",
+    "works out of the Meridian Tower office": "Meridian Tower",
+    "moved to the Cascadia Point office": "Cascadia Point",
+    "has recently gotten settled into the Cascadia Point office day-to-day": "Cascadia Point",
+    "streams shows on Lumen Play": "Lumen Play",
+    "switched to Orbit Screen": "Orbit Screen",
+    "has recently gotten hooked on Orbit Screen for their shows": "Orbit Screen",
+    "listens to music on Auria Sound": "Auria Sound",
+    "switched to Wavelength Audio": "Wavelength Audio",
+    "backs up files to Driftbox Cloud": "Driftbox Cloud",
+    "switched to Cirrus Vault": "Cirrus Vault",
+    "has home internet through Fenwick Broadband": "Fenwick Broadband",
+    "switched to Northgate Fiber": "Northgate Fiber",
+    "plays recreational soccer on weekends": "recreational soccer",
+    "switched to recreational tennis on weekends": "recreational tennis",
+    "follows a strength-training gym routine": "strength training",
+    "switched to a running-focused training routine": "running-focused training",
+    "takes a pottery class on Thursdays": "pottery class",
+    "switched to a woodworking class on Thursdays": "woodworking class",
+    "takes notes in Quill Notes": "Quill Notes",
+    "switched to Lattice Notes": "Lattice Notes",
+    "has recently moved all their notes over to Lattice Notes": "Lattice Notes",
+    "switched to the Quill Notes note-taking app": "Quill Notes",
+    "types on a QWERTY keyboard layout": "QWERTY",
+    "switched to a Dvorak keyboard layout": "Dvorak",
+    "cooks mostly Mediterranean-inspired meals": "Mediterranean-inspired",
+    "shifted to mostly Southeast-Asian-inspired meals": "Southeast-Asian-inspired",
+    "has recently been leaning into Southeast-Asian-inspired meals for dinner": "Southeast-Asian-inspired",
+    "manages a mild tree-nut sensitivity flagged by their care team": "tree nuts, mild sensitivity",
+    "was diagnosed with a severe tree-nut allergy after follow-up testing": "tree nuts, severe",
+    "is allergic to shellfish": "shellfish",
+    "carries an epinephrine auto-injector for a peanut allergy": "peanuts, carries epinephrine",
+    "takes Veltrazine daily for hypertension": "Veltrazine, daily",
+    "switched to Norvexol last month": "Norvexol",
+    "takes Sorevastin nightly for a thyroid condition": "Sorevastin, nightly",
+    "follows a low-sodium diet ordered by their care team": "low-sodium diet",
+    "moved to a gluten-free diet after a recent diagnosis": "gluten-free diet",
+    "goes by the legal name Marlowe Kestrel": "Marlowe Kestrel",
+    "legally changed their name to Marlowe Ashgrove last spring": "Marlowe Ashgrove",
+    "is legally known as Elowen Bramhall after a recent name change": "Elowen Bramhall",
+    "lists Priya Osgood as their emergency contact": "Priya Osgood",
+    "updated their emergency contact to Devon Achebe last month": "Devon Achebe",
+    "relies on Jonas Whitfield as their emergency contact": "Jonas Whitfield",
+    "has a standing rule to never share their home address with anyone who asks": "never share",
+    "updated the rule to allow sharing their home address only with verified family members": "verified family only",
+    "never shares their home address unless a visit is pre-approved by a family member": "pre-approved visits only",
+    "sees Dr. Naomi Falkirk as their primary physician": "Dr. Naomi Falkirk",
+    "switched to Dr. Osei Bramwell as their primary physician": "Dr. Osei Bramwell",
+    "sees Dr. Imara Voss for ongoing care as their primary physician": "Dr. Imara Voss",
+    "takes Halbrivan for a chronic migraine condition": "Halbrivan",
+    "switched to Quenavir after their neurologist changed the plan": "Quenavir",
+    "keeps halal dietary requirements when dining out": "halal",
+    "shifted to kosher dietary requirements after a household change": "kosher",
+    "sees Dr. Kavita Lindqvist for specialist care": "Dr. Kavita Lindqvist",
+    "was referred to Dr. Tobias Renner for specialist care after a practice change": "Dr. Tobias Renner",
+    "avoids gluten in their diet": "avoids gluten",
+    "enjoys ambient electronic music": "ambient electronic",
+    "prefers window seats when traveling": "window seat",
+    "prefers aisle seats on short flights": "aisle seat, short flights",
+    "prefers window seats on long flights": "window seat, long flights",
+    "keeps a succulent on their desk": "desk succulent",
+    "reads mostly historical fiction": "historical fiction",
+    "reads science fiction novels on weekends": "science fiction",
+    "plays badminton on weekends": "weekend badminton",
+    "dislikes spicy food": "dislikes spicy",
+    "collects vintage postage stamps": "vintage postage stamps",
+    "works a hybrid schedule": "hybrid",
+    "volunteers at a community garden monthly": "community garden, monthly",
+    "volunteers at a local animal shelter twice a month": "animal shelter, twice monthly",
+    "uses a standing desk": "standing desk",
+    "prefers a minimalist desk setup": "minimalist",
+    "subscribes to a weekly astronomy newsletter": "weekly astronomy newsletter",
+    "prefers tea over coffee in the evening": "tea in the evening",
+    "practices calligraphy as a hobby": "calligraphy",
+    "keeps a bullet journal": "bullet journal",
+    "follows a strict Tuesday gym routine": "Tuesday gym routine",
+    "is left-handed": "left-handed",
+    "enjoys documentary films": "documentaries",
+    "prefers historical documentaries over dramas": "historical documentaries",
+    "has two houseplants named after constellations": "two houseplants",
+    "bikes to the farmers market on Saturdays": "Saturday farmers market by bike",
+    "keeps a small herb garden on the balcony": "balcony herb garden",
+    "enjoys long-distance trail running": "long-distance trail running",
+    "collects retro video game cartridges": "retro game cartridges",
+    "journals every morning before work": "morning journaling",
+    "plays chess online in the evenings": "online chess, evenings",
+    "is a night owl who works best after 9pm": "night owl",
+    "enjoys painting watercolor landscapes": "watercolor landscapes",
+    "follows a weekly meal-prep routine on Sundays": "Sunday meal prep",
+    "prefers podcasts over music while commuting": "podcasts over music",
+    "keeps an aquarium with two goldfish": "two goldfish",
+    "practices yoga twice a week": "twice-weekly yoga",
+    "enjoys birdwatching on weekend hikes": "weekend birdwatching",
+    "collects vinyl records from the 1990s": "1990s vinyl records",
+    "attends a monthly board game night": "monthly board game night",
+    "is training for a half-marathon": "half-marathon training",
+    "grows tomatoes in a backyard garden": "backyard tomatoes",
+    "keeps a list of favorite hiking trails": "favorite hiking trails",
+    "prefers text messages over phone calls": "text messages",
+    "enjoys home-brewing coffee on weekends": "weekend home-brewing",
+    "bakes sourdough bread on weekends": "weekend sourdough",
+    "keeps a running gratitude list each night": "nightly gratitude list",
+    "enjoys building model trains as a hobby": "model trains",
+}
+
+_DOMAIN_NORM_RE = re.compile(r"[^a-z0-9]+")
+
+
+def _is_normalized_domain(s: str) -> bool:
+    """True when `s` is already its own normalize_domain form (lowercase snake, no leading/
+    trailing/collapsed separators) — mirrors eval.goldsets.preference_extraction.normalize_domain
+    without importing it (this module stays dependency-free)."""
+    return bool(s) and _DOMAIN_NORM_RE.sub("_", s.strip().lower()).strip("_") == s
+
+
+def _check_probe_registry() -> None:
+    """Import-time completeness/consistency proof for the probe registries: every CONTENT_META
+    slot has a kind and a >=3-surface pool of normalize-stable, in-pool-unique surfaces; every hr
+    slot (and ONLY hr slots) has a mis-domain pool, normalize-stable and disjoint from its own
+    correct pool; every content has a non-empty probe value. Raises so an incomplete registry can
+    never silently generate."""
+    slots = {slot for slot, _aspect in CONTENT_META.values()}
+    for slot in sorted(slots):
+        if slot not in SLOT_KINDS or SLOT_KINDS[slot] not in ("preference", "fact", "constraint"):
+            raise ValueError(f"slot {slot!r} missing a valid SLOT_KINDS entry")
+        pool = SLOT_SURFACES.get(slot)
+        if not pool or len(pool) < 3 or len(set(pool)) != len(pool):
+            raise ValueError(f"slot {slot!r} needs a >=3 unique-surface pool in SLOT_SURFACES")
+        for surface in pool:
+            if not _is_normalized_domain(surface):
+                raise ValueError(f"surface {surface!r} for slot {slot!r} is not normalize-stable")
+    for extra in set(SLOT_KINDS) - slots | set(SLOT_SURFACES) - slots:
+        raise ValueError(f"registry covers unknown slot {extra!r}")
+    if set(HR_MISDOMAIN_SURFACES) != set(HR_SLOTS):
+        raise ValueError("HR_MISDOMAIN_SURFACES must cover exactly the hr slots")
+    for slot, mis_pool in HR_MISDOMAIN_SURFACES.items():
+        if not mis_pool or len(mis_pool) < 2 or len(set(mis_pool)) != len(mis_pool):
+            raise ValueError(f"hr slot {slot!r} needs a >=2 unique-surface mis-domain pool")
+        for surface in mis_pool:
+            if not _is_normalized_domain(surface):
+                raise ValueError(f"mis-domain surface {surface!r} for {slot!r} is not normalize-stable")
+        if set(mis_pool) & set(SLOT_SURFACES[slot]):
+            raise ValueError(f"hr slot {slot!r} mis-domain pool overlaps its own correct pool")
+    for content in CONTENT_META:
+        value = PROBE_VALUES.get(content)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"content has no probe value: {content!r}")
+    for extra_content in set(PROBE_VALUES) - set(CONTENT_META):
+        raise ValueError(f"PROBE_VALUES covers unknown content {extra_content!r}")
+
+
+_check_probe_registry()
+
+
+def _probe(content: str, surface_idx: int, *, misdomain: bool = False) -> dict[str, Any]:
+    """The simulated extractor emission for `content`: the slot's kind, a surface from the slot's
+    correct pool (or, for hr trap facts, its DELIBERATE mis-domain pool), and the short extracted
+    value. `surface_idx` rotates deterministically over the pool — call sites pass `idx` vs
+    `idx + 1` for the two ends of a supersede pair, which always yields two DIFFERENT surfaces
+    (consecutive indices mod a pool of length >= 2)."""
+    slot, _aspect = CONTENT_META[content]
+    pool = HR_MISDOMAIN_SURFACES[slot] if misdomain else SLOT_SURFACES[slot]
+    return {
+        "kind": SLOT_KINDS[slot],
+        "raw_domain": pool[surface_idx % len(pool)],
+        "value": PROBE_VALUES[content],
+    }
+
 
 def _dt(base: datetime, days_offset: int) -> str:
     return (base + timedelta(days=days_offset)).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -416,8 +774,8 @@ def _dt(base: datetime, days_offset: int) -> str:
 def _case_supersede(idx: int, slot: str, earlier_val: str, later_val: str, base: datetime) -> dict[str, Any]:
     case_id = f"sc-supersede-{idx:04d}-{slot}"
     facts = [
-        {"fact_id": "f-earlier", "content": earlier_val, "date": _dt(base, 0)},
-        {"fact_id": "f-later", "content": later_val, "date": _dt(base, 120)},
+        {"fact_id": "f-earlier", "content": earlier_val, "date": _dt(base, 0), "probe": _probe(earlier_val, idx)},
+        {"fact_id": "f-later", "content": later_val, "date": _dt(base, 120), "probe": _probe(later_val, idx + 1)},
     ]
     pairs = [{"earlier_id": "f-earlier", "later_id": "f-later", "label": "supersede"}]
     current_truth = [{"fact_id": "f-later", "rationale": f"latest {slot} fact, not superseded by any later pair"}]
@@ -430,8 +788,8 @@ def _case_hr_supersede(idx: int, slot: str, earlier_val: str, later_val: str, ba
     contact, home-address-sharing, primary physician, dietary restriction)."""
     case_id = f"sc-hrsupersede-{idx:04d}-{slot}"
     facts = [
-        {"fact_id": "f-earlier", "content": earlier_val, "date": _dt(base, 0)},
-        {"fact_id": "f-later", "content": later_val, "date": _dt(base, 120)},
+        {"fact_id": "f-earlier", "content": earlier_val, "date": _dt(base, 0), "probe": _probe(earlier_val, idx)},
+        {"fact_id": "f-later", "content": later_val, "date": _dt(base, 120), "probe": _probe(later_val, idx + 1)},
     ]
     pairs = [{"earlier_id": "f-earlier", "later_id": "f-later", "label": "supersede", "high_risk": True}]
     current_truth = [{"fact_id": "f-later", "rationale": f"latest {slot} fact, not superseded by any later pair"}]
@@ -441,8 +799,8 @@ def _case_hr_supersede(idx: int, slot: str, earlier_val: str, later_val: str, ba
 def _case_coexist(idx: int, val_a: str, val_b: str, base: datetime) -> dict[str, Any]:
     case_id = f"sc-coexist-{idx:04d}"
     facts = [
-        {"fact_id": "f-a", "content": val_a, "date": _dt(base, 0)},
-        {"fact_id": "f-b", "content": val_b, "date": _dt(base, 30)},
+        {"fact_id": "f-a", "content": val_a, "date": _dt(base, 0), "probe": _probe(val_a, idx)},
+        {"fact_id": "f-b", "content": val_b, "date": _dt(base, 30), "probe": _probe(val_b, idx)},
     ]
     pairs = [{"earlier_id": "f-a", "later_id": "f-b", "label": "coexist"}]
     current_truth = [
@@ -455,8 +813,8 @@ def _case_coexist(idx: int, val_a: str, val_b: str, base: datetime) -> dict[str,
 def _case_unrelated(idx: int, val_a: str, val_b: str, base: datetime) -> dict[str, Any]:
     case_id = f"sc-unrelated-{idx:04d}"
     facts = [
-        {"fact_id": "f-a", "content": val_a, "date": _dt(base, 0)},
-        {"fact_id": "f-b", "content": val_b, "date": _dt(base, 45)},
+        {"fact_id": "f-a", "content": val_a, "date": _dt(base, 0), "probe": _probe(val_a, idx)},
+        {"fact_id": "f-b", "content": val_b, "date": _dt(base, 45), "probe": _probe(val_b, idx)},
     ]
     pairs = [{"earlier_id": "f-a", "later_id": "f-b", "label": "unrelated"}]
     current_truth = [
@@ -472,8 +830,10 @@ def _case_hr_unrelated(idx: int, val_a: str, val_b: str, base: datetime) -> dict
     carries: recency + sensitivity must not cause a classifier to merge them."""
     case_id = f"sc-hrunrelated-{idx:04d}"
     facts = [
-        {"fact_id": "f-a", "content": val_a, "date": _dt(base, 0)},
-        {"fact_id": "f-b", "content": val_b, "date": _dt(base, 45)},
+        # f-a is the hr fact — its probe is DELIBERATELY mis-domained (see HR_MISDOMAIN_SURFACES):
+        # sensitive content under a plausible benign surface, the hr-escalation trap.
+        {"fact_id": "f-a", "content": val_a, "date": _dt(base, 0), "probe": _probe(val_a, idx, misdomain=True)},
+        {"fact_id": "f-b", "content": val_b, "date": _dt(base, 45), "probe": _probe(val_b, idx)},
     ]
     pairs = [{"earlier_id": "f-a", "later_id": "f-b", "label": "unrelated", "high_risk": True}]
     current_truth = [
@@ -491,8 +851,8 @@ def _case_coexist_trap(idx: int, slot: str, earlier_val: str, later_val: str, ba
     statements, but they share a slot — the correct label is `supersede`, not `coexist`."""
     case_id = f"sc-coexisttrap-{idx:04d}-{slot}_trap"
     facts = [
-        {"fact_id": "f-earlier", "content": earlier_val, "date": _dt(base, 0)},
-        {"fact_id": "f-later", "content": later_val, "date": _dt(base, 135)},
+        {"fact_id": "f-earlier", "content": earlier_val, "date": _dt(base, 0), "probe": _probe(earlier_val, idx)},
+        {"fact_id": "f-later", "content": later_val, "date": _dt(base, 135), "probe": _probe(later_val, idx + 1)},
     ]
     pairs = [{"earlier_id": "f-earlier", "later_id": "f-later", "label": "supersede"}]
     current_truth = [
@@ -577,10 +937,10 @@ def _case_multi_fact(idx: int, rng: random.Random, base: datetime) -> dict[str, 
     unrelated_val = _draw(rng, _UNRELATED_PAIRS, accept_unrelated)[0]
 
     facts = [
-        {"fact_id": "f1", "content": slot_t.earlier, "date": _dt(base, 0)},
-        {"fact_id": "f2", "content": slot_t.later, "date": _dt(base, 90)},
-        {"fact_id": "f3", "content": coexist_b, "date": _dt(base, 10)},
-        {"fact_id": "f4", "content": unrelated_val, "date": _dt(base, 200)},
+        {"fact_id": "f1", "content": slot_t.earlier, "date": _dt(base, 0), "probe": _probe(slot_t.earlier, idx)},
+        {"fact_id": "f2", "content": slot_t.later, "date": _dt(base, 90), "probe": _probe(slot_t.later, idx + 1)},
+        {"fact_id": "f3", "content": coexist_b, "date": _dt(base, 10), "probe": _probe(coexist_b, idx)},
+        {"fact_id": "f4", "content": unrelated_val, "date": _dt(base, 200), "probe": _probe(unrelated_val, idx)},
     ]
     pairs = [
         {"earlier_id": "f1", "later_id": "f2", "label": "supersede"},
@@ -594,7 +954,7 @@ def _case_multi_fact(idx: int, rng: random.Random, base: datetime) -> dict[str, 
         {"fact_id": "f4", "rationale": "independent fact, unrelated to every other fact in this case"},
     ]
     if include_coexist:
-        facts.append({"fact_id": "f5", "content": coexist_a, "date": _dt(base, 5)})
+        facts.append({"fact_id": "f5", "content": coexist_a, "date": _dt(base, 5), "probe": _probe(coexist_a, idx)})
         pairs.append({"earlier_id": "f5", "later_id": "f3", "label": "coexist"})
         pairs.append({"earlier_id": "f1", "later_id": "f5", "label": "unrelated"})
         pairs.append({"earlier_id": "f5", "later_id": "f4", "label": "unrelated"})
@@ -630,10 +990,14 @@ def _case_hr_multi_fact(idx: int, rng: random.Random, base: datetime) -> dict[st
 
     unrelated_a, unrelated_b = _draw(rng, _UNRELATED_PAIRS, accept_tuple)
     facts = [
-        {"fact_id": "f1", "content": hr_t.earlier, "date": _dt(base, 0)},
-        {"fact_id": "f2", "content": hr_t.later, "date": _dt(base, 90)},
-        {"fact_id": "f3", "content": unrelated_a, "date": _dt(base, 15)},
-        {"fact_id": "f4", "content": unrelated_b, "date": _dt(base, 210)},
+        # BOTH hr facts' probes are DELIBERATELY mis-domained (different wrong surfaces via the
+        # idx/idx+1 rotation over HR_MISDOMAIN_SURFACES): the hr supersede pair still gets two
+        # DIFFERENT raw_domains (stability pressure) while every hr-involving pair in this case is
+        # simultaneously an hr-escalation trap — benign-looking surfaces over sensitive content.
+        {"fact_id": "f1", "content": hr_t.earlier, "date": _dt(base, 0), "probe": _probe(hr_t.earlier, idx, misdomain=True)},
+        {"fact_id": "f2", "content": hr_t.later, "date": _dt(base, 90), "probe": _probe(hr_t.later, idx + 1, misdomain=True)},
+        {"fact_id": "f3", "content": unrelated_a, "date": _dt(base, 15), "probe": _probe(unrelated_a, idx)},
+        {"fact_id": "f4", "content": unrelated_b, "date": _dt(base, 210), "probe": _probe(unrelated_b, idx)},
     ]
     pairs = [
         {"earlier_id": "f1", "later_id": "f2", "label": "supersede", "high_risk": True},
@@ -703,7 +1067,8 @@ def _validate_schema(data: dict[str, Any]) -> list[str]:
     if extra_top:
         errors.append(f"unexpected top-level keys: {sorted(extra_top)}")
     case_allowed = {"case_id", "facts", "pairs", "current_truth"}
-    fact_allowed = {"fact_id", "content", "date"}
+    fact_allowed = {"fact_id", "content", "date", "probe"}
+    probe_allowed = {"kind", "raw_domain", "value"}
     pair_allowed = {"earlier_id", "later_id", "label", "high_risk"}
     ct_allowed = {"fact_id", "rationale"}
     seen_case_ids: set[str] = set()
@@ -735,6 +1100,26 @@ def _validate_schema(data: dict[str, Any]) -> list[str]:
             for req in ("content", "date"):
                 if req not in fact:
                     errors.append(f"case {cid} fact {fid}: missing {req!r}")
+            # probe (REQUIRED, v1.1): the simulated extractor emission — exact key set, kind in
+            # the taxonomy, raw_domain a non-empty normalize-stable snake string, value non-empty.
+            probe = fact.get("probe")
+            if not isinstance(probe, dict):
+                errors.append(f"case {cid} fact {fid}: missing/invalid probe object")
+                continue
+            extra_pr = set(probe) - probe_allowed
+            if extra_pr:
+                errors.append(f"case {cid} fact {fid}: probe has unexpected keys {sorted(extra_pr)}")
+            for req in probe_allowed:
+                if req not in probe:
+                    errors.append(f"case {cid} fact {fid}: probe missing {req!r}")
+            if "kind" in probe and probe["kind"] not in ("preference", "fact", "constraint"):
+                errors.append(f"case {cid} fact {fid}: probe has invalid kind {probe['kind']!r}")
+            if "raw_domain" in probe and (
+                not isinstance(probe["raw_domain"], str) or not _is_normalized_domain(probe["raw_domain"])
+            ):
+                errors.append(f"case {cid} fact {fid}: probe raw_domain {probe.get('raw_domain')!r} is not a normalize-stable snake string")
+            if "value" in probe and (not isinstance(probe["value"], str) or not probe["value"].strip()):
+                errors.append(f"case {cid} fact {fid}: probe value must be a non-empty string")
         pairs = case.get("pairs")
         if not isinstance(pairs, list):
             errors.append(f"case {cid}: pairs must be an array")
@@ -864,6 +1249,23 @@ def _check_hr_flags(data: dict[str, Any]) -> list[str]:
     return errors
 
 
+def _check_current_truth(data: dict[str, Any]) -> list[str]:
+    """current_truth structural invariant, swept over the ENTIRE goldset: for every case, the
+    current_truth fact_ids must equal ALL fact_ids minus the earlier-side ids of `supersede`
+    pairs (a superseded fact is no longer currently true; every other fact is). Returns failure
+    messages (empty = clean)."""
+    errors: list[str] = []
+    for case in data.get("cases", []):
+        cid = case.get("case_id", "<missing case_id>")
+        fact_ids = {f["fact_id"] for f in case.get("facts", [])}
+        superseded = {p["earlier_id"] for p in case.get("pairs", []) if p.get("label") == "supersede"}
+        expected = fact_ids - superseded
+        actual = {ct["fact_id"] for ct in case.get("current_truth", [])}
+        if actual != expected:
+            errors.append(f"case {cid}: current_truth {sorted(actual)} != expected {sorted(expected)}")
+    return errors
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
@@ -909,6 +1311,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  - {e}", file=stderr)
         return 2
 
+    ct_errors = _check_current_truth(data)
+    if ct_errors:
+        print("CURRENT-TRUTH FAILURES:", file=stderr)
+        for e in ct_errors:
+            print(f"  - {e}", file=stderr)
+        return 2
+
     rendered = json.dumps(data, indent=2, sort_keys=True) + "\n"
 
     if args.check:
@@ -920,7 +1329,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"CHECK FAILED: regeneration differs from {args.out} — determinism broken", file=stderr)
             return 2
         print(
-            f"CHECK OK: {args.out} is schema-valid, content-bars-clean, aspect-disjointness-clean, hr-flag-clean, "
+            f"CHECK OK: {args.out} is schema-valid, content-bars-clean, aspect-disjointness-clean, hr-flag-clean, current-truth-clean, "
             f"and byte-identical to a fresh regen ({len(data['cases'])} cases, seed={args.seed})"
         )
         return 0

@@ -114,13 +114,16 @@ def _gold_pairs(goldset: dict[str, Any]) -> dict[tuple[str, str, str], str]:
 def _gold_high_risk_flags(goldset: dict[str, Any]) -> dict[tuple[str, str, str], bool]:
     """Flatten the goldset into {(case_id, earlier_id, later_id): high_risk}. A pair lacking the
     optional `high_risk` field is treated as False, matching the schema's optional-field
-    semantics (see supersede.schema.json's `$defs/pair.high_risk`)."""
+    semantics (see supersede.schema.json's `$defs/pair.high_risk`). The check is `is True`, not
+    truthiness: the schema types the field as a real bool, so a stringly-typed "true"/"yes" (which
+    a truthiness cast would silently accept) counts as NOT high-risk rather than widening the hr
+    slice on malformed input."""
     out: dict[tuple[str, str, str], bool] = {}
     for case in goldset.get("cases", []):
         case_id = case["case_id"]
         for pair in case.get("pairs", []):
             key = (case_id, pair["earlier_id"], pair["later_id"])
-            out[key] = bool(pair.get("high_risk", False))
+            out[key] = pair.get("high_risk") is True
     return out
 
 

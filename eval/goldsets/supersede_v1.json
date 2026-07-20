@@ -16,12 +16,22 @@
         {
           "content": "drinks black coffee, no sugar",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "coffee_style",
+            "value": "black, no sugar"
+          }
         },
         {
           "content": "prefers tea over coffee in the evening",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "evening_drink",
+            "value": "tea in the evening"
+          }
         }
       ],
       "pairs": [
@@ -48,12 +58,22 @@
         {
           "content": "enjoys home-brewing coffee on weekends",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "home_brewing",
+            "value": "weekend home-brewing"
+          }
         },
         {
           "content": "prefers tea over coffee in the evening",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "evening_beverage",
+            "value": "tea in the evening"
+          }
         }
       ],
       "pairs": [
@@ -80,12 +100,22 @@
         {
           "content": "plays chess online in the evenings",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "chess_habit",
+            "value": "online chess, evenings"
+          }
         },
         {
           "content": "plays recreational soccer on weekends",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "recreational_sport",
+            "value": "recreational soccer"
+          }
         }
       ],
       "pairs": [
@@ -112,12 +142,22 @@
         {
           "content": "plays badminton on weekends",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "badminton",
+            "value": "weekend badminton"
+          }
         },
         {
           "content": "practices yoga twice a week",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "yoga",
+            "value": "twice-weekly yoga"
+          }
         }
       ],
       "pairs": [
@@ -144,12 +184,22 @@
         {
           "content": "follows a strict Tuesday gym routine",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gym_day",
+            "value": "Tuesday gym routine"
+          }
         },
         {
           "content": "enjoys long-distance trail running",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "running_hobby",
+            "value": "long-distance trail running"
+          }
         }
       ],
       "pairs": [
@@ -176,12 +226,22 @@
         {
           "content": "is training for a half-marathon",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "marathon_prep",
+            "value": "half-marathon training"
+          }
         },
         {
           "content": "plays badminton on weekends",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "weekend_badminton",
+            "value": "weekend badminton"
+          }
         }
       ],
       "pairs": [
@@ -208,12 +268,22 @@
         {
           "content": "reads science fiction novels on weekends",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "reading_genre",
+            "value": "science fiction"
+          }
         },
         {
           "content": "streams shows on Lumen Play",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "video_streaming_service",
+            "value": "Lumen Play"
+          }
         }
       ],
       "pairs": [
@@ -240,12 +310,22 @@
         {
           "content": "reads mostly historical fiction",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "book_taste",
+            "value": "historical fiction"
+          }
         },
         {
           "content": "subscribes to a weekly astronomy newsletter",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "newsletter",
+            "value": "weekly astronomy newsletter"
+          }
         }
       ],
       "pairs": [
@@ -272,12 +352,22 @@
         {
           "content": "prefers podcasts over music while commuting",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "podcast_habit",
+            "value": "podcasts over music"
+          }
         },
         {
           "content": "enjoys documentary films",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "documentary_taste",
+            "value": "documentaries"
+          }
         }
       ],
       "pairs": [
@@ -304,12 +394,22 @@
         {
           "content": "enjoys ambient electronic music",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "music_genre",
+            "value": "ambient electronic"
+          }
         },
         {
           "content": "collects vinyl records from the 1990s",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vinyl_collection",
+            "value": "1990s vinyl records"
+          }
         }
       ],
       "pairs": [
@@ -336,12 +436,22 @@
         {
           "content": "practices calligraphy as a hobby",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "lettering_hobby",
+            "value": "calligraphy"
+          }
         },
         {
           "content": "collects vintage postage stamps",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "philately",
+            "value": "vintage postage stamps"
+          }
         }
       ],
       "pairs": [
@@ -368,12 +478,22 @@
         {
           "content": "enjoys painting watercolor landscapes",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "art_hobby",
+            "value": "watercolor landscapes"
+          }
         },
         {
           "content": "enjoys building model trains as a hobby",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "train_hobby",
+            "value": "model trains"
+          }
         }
       ],
       "pairs": [
@@ -400,12 +520,22 @@
         {
           "content": "keeps a small herb garden on the balcony",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "herb_garden",
+            "value": "balcony herb garden"
+          }
         },
         {
           "content": "grows tomatoes in a backyard garden",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vegetable_garden",
+            "value": "backyard tomatoes"
+          }
         }
       ],
       "pairs": [
@@ -432,12 +562,22 @@
         {
           "content": "enjoys birdwatching on weekend hikes",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "birding",
+            "value": "weekend birdwatching"
+          }
         },
         {
           "content": "keeps a list of favorite hiking trails",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "trail_list",
+            "value": "favorite hiking trails"
+          }
         }
       ],
       "pairs": [
@@ -464,12 +604,22 @@
         {
           "content": "keeps an aquarium with two goldfish",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "fishkeeping",
+            "value": "two goldfish"
+          }
         },
         {
           "content": "collects retro video game cartridges",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "retro_games",
+            "value": "retro game cartridges"
+          }
         }
       ],
       "pairs": [
@@ -496,12 +646,22 @@
         {
           "content": "keeps a succulent on their desk",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "desk_plant",
+            "value": "desk succulent"
+          }
         },
         {
           "content": "has two houseplants named after constellations",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "houseplants",
+            "value": "two houseplants"
+          }
         }
       ],
       "pairs": [
@@ -528,12 +688,22 @@
         {
           "content": "uses a standing desk",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "workstation",
+            "value": "standing desk"
+          }
         },
         {
           "content": "keeps a succulent on their desk",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "office_plant",
+            "value": "desk succulent"
+          }
         }
       ],
       "pairs": [
@@ -560,12 +730,22 @@
         {
           "content": "keeps a bullet journal",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "planning_method",
+            "value": "bullet journal"
+          }
         },
         {
           "content": "journals every morning before work",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "daily_writing",
+            "value": "morning journaling"
+          }
         }
       ],
       "pairs": [
@@ -592,12 +772,22 @@
         {
           "content": "is a night owl who works best after 9pm",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "chronotype",
+            "value": "night owl"
+          }
         },
         {
           "content": "keeps a running gratitude list each night",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gratitude_practice",
+            "value": "nightly gratitude list"
+          }
         }
       ],
       "pairs": [
@@ -624,12 +814,22 @@
         {
           "content": "avoids gluten in their diet",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "gluten_habit",
+            "value": "avoids gluten"
+          }
         },
         {
           "content": "dislikes spicy food",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "spice_preference",
+            "value": "dislikes spicy"
+          }
         }
       ],
       "pairs": [
@@ -656,12 +856,22 @@
         {
           "content": "follows a weekly meal-prep routine on Sundays",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "sunday_cooking",
+            "value": "Sunday meal prep"
+          }
         },
         {
           "content": "bakes sourdough bread on weekends",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "weekend_baking",
+            "value": "weekend sourdough"
+          }
         }
       ],
       "pairs": [
@@ -688,12 +898,22 @@
         {
           "content": "prefers window seats when traveling",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "seat_preference",
+            "value": "window seat"
+          }
         },
         {
           "content": "bikes to the farmers market on Saturdays",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "market_trip",
+            "value": "Saturday farmers market by bike"
+          }
         }
       ],
       "pairs": [
@@ -720,12 +940,22 @@
         {
           "content": "volunteers at a community garden monthly",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "volunteer_work",
+            "value": "community garden, monthly"
+          }
         },
         {
           "content": "attends a monthly board game night",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "game_night",
+            "value": "monthly board game night"
+          }
         }
       ],
       "pairs": [
@@ -752,12 +982,22 @@
         {
           "content": "works a hybrid schedule",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "working_pattern",
+            "value": "hybrid"
+          }
         },
         {
           "content": "works out of the Meridian Tower office",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "work_site",
+            "value": "Meridian Tower"
+          }
         }
       ],
       "pairs": [
@@ -784,12 +1024,22 @@
         {
           "content": "writes mostly Solstice-lang",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "programming_language",
+            "value": "Solstice-lang"
+          }
         },
         {
           "content": "codes in Nimbus Editor",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "code_editor",
+            "value": "Nimbus Editor"
+          }
         }
       ],
       "pairs": [
@@ -816,12 +1066,22 @@
         {
           "content": "uses Aurora Browser",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "browser",
+            "value": "Aurora Browser"
+          }
         },
         {
           "content": "takes notes in Quill Notes",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "notes_app",
+            "value": "Quill Notes"
+          }
         }
       ],
       "pairs": [
@@ -848,12 +1108,22 @@
         {
           "content": "carries a Solstice X12",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "mobile_device",
+            "value": "Solstice X12"
+          }
         },
         {
           "content": "sketches on a Halcyon Pad Mini",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "drawing_device",
+            "value": "Halcyon Pad Mini"
+          }
         }
       ],
       "pairs": [
@@ -880,12 +1150,22 @@
         {
           "content": "backs up files to Driftbox Cloud",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "cloud_storage_provider",
+            "value": "Driftbox Cloud"
+          }
         },
         {
           "content": "has home internet through Fenwick Broadband",
           "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "internet_provider",
+            "value": "Fenwick Broadband"
+          }
         }
       ],
       "pairs": [
@@ -908,12 +1188,22 @@
         {
           "content": "lives in Rivertown",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "home_city",
+            "value": "Rivertown"
+          }
         },
         {
           "content": "has recently settled into life in Lakeside",
           "date": "2024-05-22T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "city_of_residence",
+            "value": "Lakeside"
+          }
         }
       ],
       "pairs": [
@@ -936,12 +1226,22 @@
         {
           "content": "works at Northwind Traders",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "workplace",
+            "value": "Northwind Traders"
+          }
         },
         {
           "content": "has recently started a new role at Contoso Labs",
           "date": "2024-05-22T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "company_name",
+            "value": "Contoso Labs"
+          }
         }
       ],
       "pairs": [
@@ -964,12 +1264,22 @@
         {
           "content": "drives a Comet Roadster",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vehicle",
+            "value": "Comet Roadster"
+          }
         },
         {
           "content": "has recently gotten comfortable behind the wheel of a Comet Voyager",
           "date": "2024-05-22T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "car_model",
+            "value": "Comet Voyager"
+          }
         }
       ],
       "pairs": [
@@ -992,12 +1302,22 @@
         {
           "content": "plays for the Emberfall Hawks",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "team_name",
+            "value": "Emberfall Hawks"
+          }
         },
         {
           "content": "has recently settled in as a player for the Driftwood Otters",
           "date": "2024-05-22T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "sports_team",
+            "value": "Driftwood Otters"
+          }
         }
       ],
       "pairs": [
@@ -1020,12 +1340,22 @@
         {
           "content": "streams shows on Lumen Play",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "streaming_service",
+            "value": "Lumen Play"
+          }
         },
         {
           "content": "has recently gotten hooked on Orbit Screen for their shows",
           "date": "2024-05-22T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "tv_app",
+            "value": "Orbit Screen"
+          }
         }
       ],
       "pairs": [
@@ -1048,12 +1378,22 @@
         {
           "content": "takes notes in Quill Notes",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "note_tool",
+            "value": "Quill Notes"
+          }
         },
         {
           "content": "has recently moved all their notes over to Lattice Notes",
           "date": "2024-05-22T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "notetaking_app",
+            "value": "Lattice Notes"
+          }
         }
       ],
       "pairs": [
@@ -1076,12 +1416,22 @@
         {
           "content": "cooks mostly Mediterranean-inspired meals",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "cuisine_style",
+            "value": "Mediterranean-inspired"
+          }
         },
         {
           "content": "has recently been leaning into Southeast-Asian-inspired meals for dinner",
           "date": "2024-05-22T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "cooking_style",
+            "value": "Southeast-Asian-inspired"
+          }
         }
       ],
       "pairs": [
@@ -1104,12 +1454,22 @@
         {
           "content": "works out of the Meridian Tower office",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "office_location",
+            "value": "Meridian Tower"
+          }
         },
         {
           "content": "has recently gotten settled into the Cascadia Point office day-to-day",
           "date": "2024-05-22T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "work_site",
+            "value": "Cascadia Point"
+          }
         }
       ],
       "pairs": [
@@ -1140,22 +1500,42 @@
         {
           "content": "goes by the legal name Marlowe Kestrel",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "nickname",
+            "value": "Marlowe Kestrel"
+          }
         },
         {
           "content": "legally changed their name to Marlowe Ashgrove last spring",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "display_name",
+            "value": "Marlowe Ashgrove"
+          }
         },
         {
           "content": "switched to Cirrus Vault",
           "date": "2024-01-23T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "cloud_storage_provider",
+            "value": "Cirrus Vault"
+          }
         },
         {
           "content": "is a night owl who works best after 9pm",
           "date": "2024-08-05T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "chronotype",
+            "value": "night owl"
+          }
         }
       ],
       "pairs": [
@@ -1204,22 +1584,42 @@
         {
           "content": "follows a low-sodium diet ordered by their care team",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "eating_style",
+            "value": "low-sodium diet"
+          }
         },
         {
           "content": "moved to a gluten-free diet after a recent diagnosis",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "cuisine_style",
+            "value": "gluten-free diet"
+          }
         },
         {
           "content": "collects vinyl records from the 1990s",
           "date": "2024-01-23T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "record_collection",
+            "value": "1990s vinyl records"
+          }
         },
         {
           "content": "attends a monthly board game night",
           "date": "2024-08-05T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "game_night",
+            "value": "monthly board game night"
+          }
         }
       ],
       "pairs": [
@@ -1268,22 +1668,42 @@
         {
           "content": "goes by the legal name Marlowe Kestrel",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "username",
+            "value": "Marlowe Kestrel"
+          }
         },
         {
           "content": "legally changed their name to Marlowe Ashgrove last spring",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "nickname",
+            "value": "Marlowe Ashgrove"
+          }
         },
         {
           "content": "switched to a Dvorak keyboard layout",
           "date": "2024-01-23T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "typing_layout",
+            "value": "Dvorak"
+          }
         },
         {
           "content": "prefers a minimalist desk setup",
           "date": "2024-08-05T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "desk_style",
+            "value": "minimalist"
+          }
         }
       ],
       "pairs": [
@@ -1332,22 +1752,42 @@
         {
           "content": "takes Veltrazine daily for hypertension",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "supplement_routine",
+            "value": "Veltrazine, daily"
+          }
         },
         {
           "content": "switched to Norvexol last month",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "daily_vitamins",
+            "value": "Norvexol"
+          }
         },
         {
           "content": "prefers window seats on long flights",
           "date": "2024-01-23T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "seat_preference",
+            "value": "window seat, long flights"
+          }
         },
         {
           "content": "bakes sourdough bread on weekends",
           "date": "2024-08-05T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "baking",
+            "value": "weekend sourdough"
+          }
         }
       ],
       "pairs": [
@@ -1396,22 +1836,42 @@
         {
           "content": "has a standing rule to never share their home address with anyone who asks",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "constraint",
+            "raw_domain": "sharing_setting",
+            "value": "never share"
+          }
         },
         {
           "content": "updated the rule to allow sharing their home address only with verified family members",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "constraint",
+            "raw_domain": "communication_preference",
+            "value": "verified family only"
+          }
         },
         {
           "content": "commutes by bicycle",
           "date": "2024-01-23T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "commute",
+            "value": "bicycle"
+          }
         },
         {
           "content": "reads mostly historical fiction",
           "date": "2024-08-05T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "book_taste",
+            "value": "historical fiction"
+          }
         }
       ],
       "pairs": [
@@ -1460,22 +1920,42 @@
         {
           "content": "manages a mild tree-nut sensitivity flagged by their care team",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "diet",
+            "value": "tree nuts, mild sensitivity"
+          }
         },
         {
           "content": "was diagnosed with a severe tree-nut allergy after follow-up testing",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "food_preference",
+            "value": "tree nuts, severe"
+          }
         },
         {
           "content": "upgraded to a Comet Voyager",
           "date": "2024-01-23T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vehicle",
+            "value": "Comet Voyager"
+          }
         },
         {
           "content": "grows tomatoes in a backyard garden",
           "date": "2024-08-05T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "tomato_growing",
+            "value": "backyard tomatoes"
+          }
         }
       ],
       "pairs": [
@@ -1516,12 +1996,22 @@
         {
           "content": "manages a mild tree-nut sensitivity flagged by their care team",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "food_allergy",
+            "value": "tree nuts, mild sensitivity"
+          }
         },
         {
           "content": "was diagnosed with a severe tree-nut allergy after follow-up testing",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "allergy",
+            "value": "tree nuts, severe"
+          }
         }
       ],
       "pairs": [
@@ -1545,12 +2035,22 @@
         {
           "content": "takes Veltrazine daily for hypertension",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "prescription",
+            "value": "Veltrazine, daily"
+          }
         },
         {
           "content": "switched to Norvexol last month",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "current_medication",
+            "value": "Norvexol"
+          }
         }
       ],
       "pairs": [
@@ -1574,12 +2074,22 @@
         {
           "content": "follows a low-sodium diet ordered by their care team",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "prescribed_diet",
+            "value": "low-sodium diet"
+          }
         },
         {
           "content": "moved to a gluten-free diet after a recent diagnosis",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "dietary_restriction",
+            "value": "gluten-free diet"
+          }
         }
       ],
       "pairs": [
@@ -1603,12 +2113,22 @@
         {
           "content": "goes by the legal name Marlowe Kestrel",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "legal_name",
+            "value": "Marlowe Kestrel"
+          }
         },
         {
           "content": "legally changed their name to Marlowe Ashgrove last spring",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "full_legal_name",
+            "value": "Marlowe Ashgrove"
+          }
         }
       ],
       "pairs": [
@@ -1632,12 +2152,22 @@
         {
           "content": "lists Priya Osgood as their emergency contact",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "ice_contact",
+            "value": "Priya Osgood"
+          }
         },
         {
           "content": "updated their emergency contact to Devon Achebe last month",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "emergency_person",
+            "value": "Devon Achebe"
+          }
         }
       ],
       "pairs": [
@@ -1661,12 +2191,22 @@
         {
           "content": "has a standing rule to never share their home address with anyone who asks",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "constraint",
+            "raw_domain": "address_disclosure",
+            "value": "never share"
+          }
         },
         {
           "content": "updated the rule to allow sharing their home address only with verified family members",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "constraint",
+            "raw_domain": "home_address_sharing",
+            "value": "verified family only"
+          }
         }
       ],
       "pairs": [
@@ -1690,12 +2230,22 @@
         {
           "content": "sees Dr. Naomi Falkirk as their primary physician",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "primary_physician",
+            "value": "Dr. Naomi Falkirk"
+          }
         },
         {
           "content": "switched to Dr. Osei Bramwell as their primary physician",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "primary_doctor",
+            "value": "Dr. Osei Bramwell"
+          }
         }
       ],
       "pairs": [
@@ -1719,12 +2269,22 @@
         {
           "content": "takes Halbrivan for a chronic migraine condition",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "migraine_medication",
+            "value": "Halbrivan"
+          }
         },
         {
           "content": "switched to Quenavir after their neurologist changed the plan",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "second_prescription",
+            "value": "Quenavir"
+          }
         }
       ],
       "pairs": [
@@ -1748,12 +2308,22 @@
         {
           "content": "keeps halal dietary requirements when dining out",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "religious_diet",
+            "value": "halal"
+          }
         },
         {
           "content": "shifted to kosher dietary requirements after a household change",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "religious_dietary_restriction",
+            "value": "kosher"
+          }
         }
       ],
       "pairs": [
@@ -1777,12 +2347,22 @@
         {
           "content": "sees Dr. Kavita Lindqvist for specialist care",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "secondary_physician",
+            "value": "Dr. Kavita Lindqvist"
+          }
         },
         {
           "content": "was referred to Dr. Tobias Renner for specialist care after a practice change",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "specialist",
+            "value": "Dr. Tobias Renner"
+          }
         }
       ],
       "pairs": [
@@ -1810,12 +2390,22 @@
         {
           "content": "is allergic to shellfish",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "food_preference",
+            "value": "shellfish"
+          }
         },
         {
           "content": "switched to the Quill Notes note-taking app",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "notetaking_app",
+            "value": "Quill Notes"
+          }
         }
       ],
       "pairs": [
@@ -1843,12 +2433,22 @@
         {
           "content": "takes Veltrazine daily for hypertension",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "daily_vitamins",
+            "value": "Veltrazine, daily"
+          }
         },
         {
           "content": "now plays for the Driftwood Otters",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "sports_team",
+            "value": "Driftwood Otters"
+          }
         }
       ],
       "pairs": [
@@ -1876,12 +2476,22 @@
         {
           "content": "follows a low-sodium diet ordered by their care team",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "cuisine_style",
+            "value": "low-sodium diet"
+          }
         },
         {
           "content": "upgraded to a Comet Voyager",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vehicle",
+            "value": "Comet Voyager"
+          }
         }
       ],
       "pairs": [
@@ -1909,12 +2519,22 @@
         {
           "content": "goes by the legal name Marlowe Kestrel",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "nickname",
+            "value": "Marlowe Kestrel"
+          }
         },
         {
           "content": "streams shows on Lumen Play",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "video_streaming_service",
+            "value": "Lumen Play"
+          }
         }
       ],
       "pairs": [
@@ -1942,12 +2562,22 @@
         {
           "content": "lists Priya Osgood as their emergency contact",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "close_friend",
+            "value": "Priya Osgood"
+          }
         },
         {
           "content": "backs up files to Driftbox Cloud",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "cloud_storage",
+            "value": "Driftbox Cloud"
+          }
         }
       ],
       "pairs": [
@@ -1975,12 +2605,22 @@
         {
           "content": "has a standing rule to never share their home address with anyone who asks",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "constraint",
+            "raw_domain": "communication_preference",
+            "value": "never share"
+          }
         },
         {
           "content": "has home internet through Fenwick Broadband",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "home_internet",
+            "value": "Fenwick Broadband"
+          }
         }
       ],
       "pairs": [
@@ -2008,12 +2648,22 @@
         {
           "content": "sees Dr. Naomi Falkirk as their primary physician",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "service_provider",
+            "value": "Dr. Naomi Falkirk"
+          }
         },
         {
           "content": "takes a pottery class on Thursdays",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "hobby_class",
+            "value": "pottery class"
+          }
         }
       ],
       "pairs": [
@@ -2041,12 +2691,22 @@
         {
           "content": "takes Halbrivan for a chronic migraine condition",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "sleep_aid",
+            "value": "Halbrivan"
+          }
         },
         {
           "content": "types on a QWERTY keyboard layout",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "keyboard",
+            "value": "QWERTY"
+          }
         }
       ],
       "pairs": [
@@ -2074,12 +2734,22 @@
         {
           "content": "keeps halal dietary requirements when dining out",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "dining_habit",
+            "value": "halal"
+          }
         },
         {
           "content": "collects retro video game cartridges",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "retro_games",
+            "value": "retro game cartridges"
+          }
         }
       ],
       "pairs": [
@@ -2107,12 +2777,22 @@
         {
           "content": "was diagnosed with a severe tree-nut allergy after follow-up testing",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "food_preference",
+            "value": "tree nuts, severe"
+          }
         },
         {
           "content": "codes on a Fenwick Slate 13",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "laptop_model",
+            "value": "Fenwick Slate 13"
+          }
         }
       ],
       "pairs": [
@@ -2140,12 +2820,22 @@
         {
           "content": "switched to Norvexol last month",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "daily_vitamins",
+            "value": "Norvexol"
+          }
         },
         {
           "content": "works out of the Meridian Tower office",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "office_location",
+            "value": "Meridian Tower"
+          }
         }
       ],
       "pairs": [
@@ -2173,12 +2863,22 @@
         {
           "content": "moved to a gluten-free diet after a recent diagnosis",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "cuisine_style",
+            "value": "gluten-free diet"
+          }
         },
         {
           "content": "sketches on a Halcyon Pad Mini",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "drawing_device",
+            "value": "Halcyon Pad Mini"
+          }
         }
       ],
       "pairs": [
@@ -2206,12 +2906,22 @@
         {
           "content": "legally changed their name to Marlowe Ashgrove last spring",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "nickname",
+            "value": "Marlowe Ashgrove"
+          }
         },
         {
           "content": "listens to music on Auria Sound",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "music_streaming_service",
+            "value": "Auria Sound"
+          }
         }
       ],
       "pairs": [
@@ -2239,12 +2949,22 @@
         {
           "content": "updated their emergency contact to Devon Achebe last month",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "close_friend",
+            "value": "Devon Achebe"
+          }
         },
         {
           "content": "rides a Drift Cycles Meridian",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bike",
+            "value": "Drift Cycles Meridian"
+          }
         }
       ],
       "pairs": [
@@ -2272,12 +2992,22 @@
         {
           "content": "updated the rule to allow sharing their home address only with verified family members",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "constraint",
+            "raw_domain": "communication_preference",
+            "value": "verified family only"
+          }
         },
         {
           "content": "plays recreational soccer on weekends",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "recreational_sport",
+            "value": "recreational soccer"
+          }
         }
       ],
       "pairs": [
@@ -2305,12 +3035,22 @@
         {
           "content": "switched to Dr. Osei Bramwell as their primary physician",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "service_provider",
+            "value": "Dr. Osei Bramwell"
+          }
         },
         {
           "content": "follows a strength-training gym routine",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "workout_routine",
+            "value": "strength training"
+          }
         }
       ],
       "pairs": [
@@ -2338,12 +3078,22 @@
         {
           "content": "switched to Quenavir after their neurologist changed the plan",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "sleep_aid",
+            "value": "Quenavir"
+          }
         },
         {
           "content": "drives a Comet Roadster",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "car",
+            "value": "Comet Roadster"
+          }
         }
       ],
       "pairs": [
@@ -2371,12 +3121,22 @@
         {
           "content": "shifted to kosher dietary requirements after a household change",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "dining_habit",
+            "value": "kosher"
+          }
         },
         {
           "content": "takes notes in Quill Notes",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "note_tool",
+            "value": "Quill Notes"
+          }
         }
       ],
       "pairs": [
@@ -2404,12 +3164,22 @@
         {
           "content": "carries an epinephrine auto-injector for a peanut allergy",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "food_preference",
+            "value": "peanuts, carries epinephrine"
+          }
         },
         {
           "content": "collects vinyl records from the 1990s",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vinyl_collection",
+            "value": "1990s vinyl records"
+          }
         }
       ],
       "pairs": [
@@ -2437,12 +3207,22 @@
         {
           "content": "takes Sorevastin nightly for a thyroid condition",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "daily_vitamins",
+            "value": "Sorevastin, nightly"
+          }
         },
         {
           "content": "prefers a minimalist desk setup",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "workstation",
+            "value": "minimalist"
+          }
         }
       ],
       "pairs": [
@@ -2470,12 +3250,22 @@
         {
           "content": "is legally known as Elowen Bramhall after a recent name change",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "username",
+            "value": "Elowen Bramhall"
+          }
         },
         {
           "content": "enjoys painting watercolor landscapes",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "art_hobby",
+            "value": "watercolor landscapes"
+          }
         }
       ],
       "pairs": [
@@ -2503,12 +3293,22 @@
         {
           "content": "relies on Jonas Whitfield as their emergency contact",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "frequent_contact",
+            "value": "Jonas Whitfield"
+          }
         },
         {
           "content": "grows tomatoes in a backyard garden",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vegetable_garden",
+            "value": "backyard tomatoes"
+          }
         }
       ],
       "pairs": [
@@ -2536,12 +3336,22 @@
         {
           "content": "never shares their home address unless a visit is pre-approved by a family member",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "constraint",
+            "raw_domain": "sharing_setting",
+            "value": "pre-approved visits only"
+          }
         },
         {
           "content": "prefers text messages over phone calls",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "contact_method",
+            "value": "text messages"
+          }
         }
       ],
       "pairs": [
@@ -2569,12 +3379,22 @@
         {
           "content": "sees Dr. Imara Voss for ongoing care as their primary physician",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "frequent_contact",
+            "value": "Dr. Imara Voss"
+          }
         },
         {
           "content": "keeps an aquarium with two goldfish",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "fishkeeping",
+            "value": "two goldfish"
+          }
         }
       ],
       "pairs": [
@@ -2610,27 +3430,52 @@
         {
           "content": "sketches on a Halcyon Pad Mini",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "tablet_model",
+            "value": "Halcyon Pad Mini"
+          }
         },
         {
           "content": "upgraded to a Halcyon Pad Pro",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "tablet",
+            "value": "Halcyon Pad Pro"
+          }
         },
         {
           "content": "grows tomatoes in a backyard garden",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vegetable_garden",
+            "value": "backyard tomatoes"
+          }
         },
         {
           "content": "plays recreational soccer on weekends",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "sport",
+            "value": "recreational soccer"
+          }
         },
         {
           "content": "keeps a small herb garden on the balcony",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "herb_garden",
+            "value": "balcony herb garden"
+          }
         }
       ],
       "pairs": [
@@ -2691,22 +3536,42 @@
         {
           "content": "lives in Rivertown",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "city_of_residence",
+            "value": "Rivertown"
+          }
         },
         {
           "content": "moved to Lakeside last month",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "current_city",
+            "value": "Lakeside"
+          }
         },
         {
           "content": "codes in Nimbus Editor",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "editor",
+            "value": "Nimbus Editor"
+          }
         },
         {
           "content": "prefers a minimalist desk setup",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "workstation",
+            "value": "minimalist"
+          }
         }
       ],
       "pairs": [
@@ -2756,27 +3621,52 @@
         {
           "content": "writes mostly Solstice-lang",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "main_language",
+            "value": "Solstice-lang"
+          }
         },
         {
           "content": "writes mostly Umbra-lang now",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "programming_language",
+            "value": "Umbra-lang"
+          }
         },
         {
           "content": "practices yoga twice a week",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "yoga_routine",
+            "value": "twice-weekly yoga"
+          }
         },
         {
           "content": "journals every morning before work",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "daily_writing",
+            "value": "morning journaling"
+          }
         },
         {
           "content": "plays badminton on weekends",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "weekend_badminton",
+            "value": "weekend badminton"
+          }
         }
       ],
       "pairs": [
@@ -2837,22 +3727,42 @@
         {
           "content": "works at Northwind Traders",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "employer",
+            "value": "Northwind Traders"
+          }
         },
         {
           "content": "now works at Contoso Labs",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "workplace",
+            "value": "Contoso Labs"
+          }
         },
         {
           "content": "enjoys long-distance trail running",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "trail_running",
+            "value": "long-distance trail running"
+          }
         },
         {
           "content": "upgraded to a Drift Cycles Apex",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bicycle_model",
+            "value": "Drift Cycles Apex"
+          }
         }
       ],
       "pairs": [
@@ -2902,27 +3812,52 @@
         {
           "content": "follows a strength-training gym routine",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "training_routine",
+            "value": "strength training"
+          }
         },
         {
           "content": "switched to a running-focused training routine",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "exercise_plan",
+            "value": "running-focused training"
+          }
         },
         {
           "content": "prefers tea over coffee in the evening",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "evening_beverage",
+            "value": "tea in the evening"
+          }
         },
         {
           "content": "keeps a bullet journal",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "journal_system",
+            "value": "bullet journal"
+          }
         },
         {
           "content": "drinks black coffee, no sugar",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "coffee_order",
+            "value": "black, no sugar"
+          }
         }
       ],
       "pairs": [
@@ -2983,22 +3918,42 @@
         {
           "content": "lives in Rivertown",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "current_city",
+            "value": "Rivertown"
+          }
         },
         {
           "content": "moved to Lakeside last month",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "home_city",
+            "value": "Lakeside"
+          }
         },
         {
           "content": "codes in Nimbus Editor",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "ide_choice",
+            "value": "Nimbus Editor"
+          }
         },
         {
           "content": "prefers text messages over phone calls",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "messaging_preference",
+            "value": "text messages"
+          }
         }
       ],
       "pairs": [
@@ -3048,27 +4003,52 @@
         {
           "content": "listens to music on Auria Sound",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "music_streaming_service",
+            "value": "Auria Sound"
+          }
         },
         {
           "content": "switched to Wavelength Audio",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "music_app",
+            "value": "Wavelength Audio"
+          }
         },
         {
           "content": "has two houseplants named after constellations",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "houseplants",
+            "value": "two houseplants"
+          }
         },
         {
           "content": "prefers aisle seats on short flights",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "seat_preference",
+            "value": "aisle seat, short flights"
+          }
         },
         {
           "content": "keeps a succulent on their desk",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "desk_plant",
+            "value": "desk succulent"
+          }
         }
       ],
       "pairs": [
@@ -3129,22 +4109,42 @@
         {
           "content": "works as a systems analyst",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "role",
+            "value": "systems analyst"
+          }
         },
         {
           "content": "was promoted to engineering lead",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "position",
+            "value": "engineering lead"
+          }
         },
         {
           "content": "keeps a succulent on their desk",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "office_plant",
+            "value": "desk succulent"
+          }
         },
         {
           "content": "shifted to mostly Southeast-Asian-inspired meals",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "cooking_style",
+            "value": "Southeast-Asian-inspired"
+          }
         }
       ],
       "pairs": [
@@ -3194,27 +4194,52 @@
         {
           "content": "works at Northwind Traders",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "company_name",
+            "value": "Northwind Traders"
+          }
         },
         {
           "content": "now works at Contoso Labs",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "employer",
+            "value": "Contoso Labs"
+          }
         },
         {
           "content": "keeps a list of favorite hiking trails",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "hiking_hobby",
+            "value": "favorite hiking trails"
+          }
         },
         {
           "content": "prefers podcasts over music while commuting",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "podcast_habit",
+            "value": "podcasts over music"
+          }
         },
         {
           "content": "enjoys birdwatching on weekend hikes",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bird_hobby",
+            "value": "weekend birdwatching"
+          }
         }
       ],
       "pairs": [
@@ -3275,22 +4300,42 @@
         {
           "content": "works as a systems analyst",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "job_title",
+            "value": "systems analyst"
+          }
         },
         {
           "content": "was promoted to engineering lead",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "role",
+            "value": "engineering lead"
+          }
         },
         {
           "content": "keeps a list of favorite hiking trails",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "hiking_trails",
+            "value": "favorite hiking trails"
+          }
         },
         {
           "content": "listens to music on Auria Sound",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "music_streaming_service",
+            "value": "Auria Sound"
+          }
         }
       ],
       "pairs": [
@@ -3340,27 +4385,52 @@
         {
           "content": "cooks mostly Mediterranean-inspired meals",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "cooking_style",
+            "value": "Mediterranean-inspired"
+          }
         },
         {
           "content": "shifted to mostly Southeast-Asian-inspired meals",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "home_cuisine",
+            "value": "Southeast-Asian-inspired"
+          }
         },
         {
           "content": "collects vinyl records from the 1990s",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "record_collection",
+            "value": "1990s vinyl records"
+          }
         },
         {
           "content": "practices yoga twice a week",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "yoga_practice",
+            "value": "twice-weekly yoga"
+          }
         },
         {
           "content": "enjoys ambient electronic music",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "music_taste",
+            "value": "ambient electronic"
+          }
         }
       ],
       "pairs": [
@@ -3421,22 +4491,42 @@
         {
           "content": "works at Northwind Traders",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "company_name",
+            "value": "Northwind Traders"
+          }
         },
         {
           "content": "now works at Contoso Labs",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "employer",
+            "value": "Contoso Labs"
+          }
         },
         {
           "content": "journals every morning before work",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "daily_writing",
+            "value": "morning journaling"
+          }
         },
         {
           "content": "collects vinyl records from the 1990s",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vinyl_hobby",
+            "value": "1990s vinyl records"
+          }
         }
       ],
       "pairs": [
@@ -3486,27 +4576,52 @@
         {
           "content": "carries a Solstice X12",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "phone_model",
+            "value": "Solstice X12"
+          }
         },
         {
           "content": "upgraded to a Solstice X14",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "phone",
+            "value": "Solstice X14"
+          }
         },
         {
           "content": "works out of the Meridian Tower office",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "office_building",
+            "value": "Meridian Tower"
+          }
         },
         {
           "content": "keeps a running gratitude list each night",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gratitude_practice",
+            "value": "nightly gratitude list"
+          }
         },
         {
           "content": "works a hybrid schedule",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "work_schedule",
+            "value": "hybrid"
+          }
         }
       ],
       "pairs": [
@@ -3567,22 +4682,42 @@
         {
           "content": "cooks mostly Mediterranean-inspired meals",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "cooking_style",
+            "value": "Mediterranean-inspired"
+          }
         },
         {
           "content": "shifted to mostly Southeast-Asian-inspired meals",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "home_cuisine",
+            "value": "Southeast-Asian-inspired"
+          }
         },
         {
           "content": "grows tomatoes in a backyard garden",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "backyard_garden",
+            "value": "backyard tomatoes"
+          }
         },
         {
           "content": "switched to Lattice Notes",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "notes_app",
+            "value": "Lattice Notes"
+          }
         }
       ],
       "pairs": [
@@ -3632,27 +4767,52 @@
         {
           "content": "has home internet through Fenwick Broadband",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "home_internet",
+            "value": "Fenwick Broadband"
+          }
         },
         {
           "content": "switched to Northgate Fiber",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "internet_provider",
+            "value": "Northgate Fiber"
+          }
         },
         {
           "content": "collects vinyl records from the 1990s",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vinyl_hobby",
+            "value": "1990s vinyl records"
+          }
         },
         {
           "content": "keeps a bullet journal",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "planning_method",
+            "value": "bullet journal"
+          }
         },
         {
           "content": "enjoys ambient electronic music",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "favorite_music",
+            "value": "ambient electronic"
+          }
         }
       ],
       "pairs": [
@@ -3713,22 +4873,42 @@
         {
           "content": "has a membership at Ironclad Gym",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gym_membership",
+            "value": "Ironclad Gym"
+          }
         },
         {
           "content": "switched to Summit Fitness",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gym",
+            "value": "Summit Fitness"
+          }
         },
         {
           "content": "takes notes in Quill Notes",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "notetaking_app",
+            "value": "Quill Notes"
+          }
         },
         {
           "content": "prefers window seats when traveling",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "seat_preference",
+            "value": "window seat"
+          }
         }
       ],
       "pairs": [
@@ -3778,27 +4958,52 @@
         {
           "content": "carries a Solstice X12",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "phone",
+            "value": "Solstice X12"
+          }
         },
         {
           "content": "upgraded to a Solstice X14",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "mobile_device",
+            "value": "Solstice X14"
+          }
         },
         {
           "content": "bakes sourdough bread on weekends",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bread_baking",
+            "value": "weekend sourdough"
+          }
         },
         {
           "content": "practices yoga twice a week",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "yoga_practice",
+            "value": "twice-weekly yoga"
+          }
         },
         {
           "content": "follows a weekly meal-prep routine on Sundays",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "meal_planning",
+            "value": "Sunday meal prep"
+          }
         }
       ],
       "pairs": [
@@ -3859,22 +5064,42 @@
         {
           "content": "has a membership at Ironclad Gym",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "fitness_club",
+            "value": "Ironclad Gym"
+          }
         },
         {
           "content": "switched to Summit Fitness",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gym_membership",
+            "value": "Summit Fitness"
+          }
         },
         {
           "content": "grows tomatoes in a backyard garden",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "tomato_growing",
+            "value": "backyard tomatoes"
+          }
         },
         {
           "content": "journals every morning before work",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "daily_writing",
+            "value": "morning journaling"
+          }
         }
       ],
       "pairs": [
@@ -3924,27 +5149,52 @@
         {
           "content": "rides a Drift Cycles Meridian",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bicycle_model",
+            "value": "Drift Cycles Meridian"
+          }
         },
         {
           "content": "upgraded to a Drift Cycles Apex",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bike",
+            "value": "Drift Cycles Apex"
+          }
         },
         {
           "content": "has home internet through Fenwick Broadband",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "internet_provider",
+            "value": "Fenwick Broadband"
+          }
         },
         {
           "content": "now plays for the Driftwood Otters",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "team_name",
+            "value": "Driftwood Otters"
+          }
         },
         {
           "content": "backs up files to Driftbox Cloud",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "cloud_storage_provider",
+            "value": "Driftbox Cloud"
+          }
         }
       ],
       "pairs": [
@@ -4005,22 +5255,42 @@
         {
           "content": "takes a pottery class on Thursdays",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "weekly_class",
+            "value": "pottery class"
+          }
         },
         {
           "content": "switched to a woodworking class on Thursdays",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "evening_class",
+            "value": "woodworking class"
+          }
         },
         {
           "content": "subscribes to a weekly astronomy newsletter",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "newsletter",
+            "value": "weekly astronomy newsletter"
+          }
         },
         {
           "content": "switched to recreational tennis on weekends",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "weekend_sport",
+            "value": "recreational tennis"
+          }
         }
       ],
       "pairs": [
@@ -4070,27 +5340,52 @@
         {
           "content": "rides a Drift Cycles Meridian",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bicycle",
+            "value": "Drift Cycles Meridian"
+          }
         },
         {
           "content": "upgraded to a Drift Cycles Apex",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bicycle_model",
+            "value": "Drift Cycles Apex"
+          }
         },
         {
           "content": "practices yoga twice a week",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "yoga_routine",
+            "value": "twice-weekly yoga"
+          }
         },
         {
           "content": "journals every morning before work",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "daily_writing",
+            "value": "morning journaling"
+          }
         },
         {
           "content": "plays badminton on weekends",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "weekend_badminton",
+            "value": "weekend badminton"
+          }
         }
       ],
       "pairs": [
@@ -4151,22 +5446,42 @@
         {
           "content": "carries a Solstice X12",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "phone_model",
+            "value": "Solstice X12"
+          }
         },
         {
           "content": "upgraded to a Solstice X14",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "phone",
+            "value": "Solstice X14"
+          }
         },
         {
           "content": "codes in Nimbus Editor",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "code_editor",
+            "value": "Nimbus Editor"
+          }
         },
         {
           "content": "switched to a running-focused training routine",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "workout_routine",
+            "value": "running-focused training"
+          }
         }
       ],
       "pairs": [
@@ -4216,27 +5531,52 @@
         {
           "content": "cooks mostly Mediterranean-inspired meals",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "cooking_style",
+            "value": "Mediterranean-inspired"
+          }
         },
         {
           "content": "shifted to mostly Southeast-Asian-inspired meals",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "home_cuisine",
+            "value": "Southeast-Asian-inspired"
+          }
         },
         {
           "content": "enjoys documentary films",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "film_taste",
+            "value": "documentaries"
+          }
         },
         {
           "content": "moved to Lakeside last month",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "city_of_residence",
+            "value": "Lakeside"
+          }
         },
         {
           "content": "prefers podcasts over music while commuting",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "commute_listening",
+            "value": "podcasts over music"
+          }
         }
       ],
       "pairs": [
@@ -4297,22 +5637,42 @@
         {
           "content": "has home internet through Fenwick Broadband",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "home_internet",
+            "value": "Fenwick Broadband"
+          }
         },
         {
           "content": "switched to Northgate Fiber",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "internet_provider",
+            "value": "Northgate Fiber"
+          }
         },
         {
           "content": "collects vinyl records from the 1990s",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vinyl_hobby",
+            "value": "1990s vinyl records"
+          }
         },
         {
           "content": "prefers a minimalist desk setup",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "desk_style",
+            "value": "minimalist"
+          }
         }
       ],
       "pairs": [
@@ -4362,27 +5722,52 @@
         {
           "content": "cooks mostly Mediterranean-inspired meals",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "cuisine_style",
+            "value": "Mediterranean-inspired"
+          }
         },
         {
           "content": "shifted to mostly Southeast-Asian-inspired meals",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "cooking_style",
+            "value": "Southeast-Asian-inspired"
+          }
         },
         {
           "content": "subscribes to a weekly astronomy newsletter",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "newsletter_subscription",
+            "value": "weekly astronomy newsletter"
+          }
         },
         {
           "content": "commutes by bicycle",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "commute_mode",
+            "value": "bicycle"
+          }
         },
         {
           "content": "reads mostly historical fiction",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "reading_genre",
+            "value": "historical fiction"
+          }
         }
       ],
       "pairs": [
@@ -4443,22 +5828,42 @@
         {
           "content": "works at Northwind Traders",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "workplace",
+            "value": "Northwind Traders"
+          }
         },
         {
           "content": "now works at Contoso Labs",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "company_name",
+            "value": "Contoso Labs"
+          }
         },
         {
           "content": "prefers tea over coffee in the evening",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "evening_beverage",
+            "value": "tea in the evening"
+          }
         },
         {
           "content": "switched to a running-focused training routine",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "training_routine",
+            "value": "running-focused training"
+          }
         }
       ],
       "pairs": [
@@ -4508,27 +5913,52 @@
         {
           "content": "sketches on a Halcyon Pad Mini",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "drawing_device",
+            "value": "Halcyon Pad Mini"
+          }
         },
         {
           "content": "upgraded to a Halcyon Pad Pro",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "tablet_model",
+            "value": "Halcyon Pad Pro"
+          }
         },
         {
           "content": "grows tomatoes in a backyard garden",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "tomato_growing",
+            "value": "backyard tomatoes"
+          }
         },
         {
           "content": "uses Aurora Browser",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "web_browser",
+            "value": "Aurora Browser"
+          }
         },
         {
           "content": "keeps a small herb garden on the balcony",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "herb_growing",
+            "value": "balcony herb garden"
+          }
         }
       ],
       "pairs": [
@@ -4589,22 +6019,42 @@
         {
           "content": "rides a Drift Cycles Meridian",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bicycle_model",
+            "value": "Drift Cycles Meridian"
+          }
         },
         {
           "content": "upgraded to a Drift Cycles Apex",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bike",
+            "value": "Drift Cycles Apex"
+          }
         },
         {
           "content": "enjoys building model trains as a hobby",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "model_trains",
+            "value": "model trains"
+          }
         },
         {
           "content": "cooks mostly Mediterranean-inspired meals",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "cuisine_style",
+            "value": "Mediterranean-inspired"
+          }
         }
       ],
       "pairs": [
@@ -4654,27 +6104,52 @@
         {
           "content": "rides a Drift Cycles Meridian",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bike",
+            "value": "Drift Cycles Meridian"
+          }
         },
         {
           "content": "upgraded to a Drift Cycles Apex",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bicycle",
+            "value": "Drift Cycles Apex"
+          }
         },
         {
           "content": "enjoys long-distance trail running",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "running_hobby",
+            "value": "long-distance trail running"
+          }
         },
         {
           "content": "has two houseplants named after constellations",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "indoor_plants",
+            "value": "two houseplants"
+          }
         },
         {
           "content": "follows a strict Tuesday gym routine",
           "date": "2024-01-13T09:00:00Z",
-          "fact_id": "f5"
+          "fact_id": "f5",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gym_day",
+            "value": "Tuesday gym routine"
+          }
         }
       ],
       "pairs": [
@@ -4735,22 +6210,42 @@
         {
           "content": "backs up files to Driftbox Cloud",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f1"
+          "fact_id": "f1",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "backup_service",
+            "value": "Driftbox Cloud"
+          }
         },
         {
           "content": "switched to Cirrus Vault",
           "date": "2024-04-07T09:00:00Z",
-          "fact_id": "f2"
+          "fact_id": "f2",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "cloud_storage_provider",
+            "value": "Cirrus Vault"
+          }
         },
         {
           "content": "works out of the Meridian Tower office",
           "date": "2024-01-18T09:00:00Z",
-          "fact_id": "f3"
+          "fact_id": "f3",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "work_site",
+            "value": "Meridian Tower"
+          }
         },
         {
           "content": "collects vinyl records from the 1990s",
           "date": "2024-07-26T09:00:00Z",
-          "fact_id": "f4"
+          "fact_id": "f4",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vinyl_hobby",
+            "value": "1990s vinyl records"
+          }
         }
       ],
       "pairs": [
@@ -4788,12 +6283,22 @@
         {
           "content": "works at Northwind Traders",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "employer",
+            "value": "Northwind Traders"
+          }
         },
         {
           "content": "now works at Contoso Labs",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "workplace",
+            "value": "Contoso Labs"
+          }
         }
       ],
       "pairs": [
@@ -4816,12 +6321,22 @@
         {
           "content": "lives in Rivertown",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "city_of_residence",
+            "value": "Rivertown"
+          }
         },
         {
           "content": "moved to Lakeside last month",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "current_city",
+            "value": "Lakeside"
+          }
         }
       ],
       "pairs": [
@@ -4844,12 +6359,22 @@
         {
           "content": "codes in Nimbus Editor",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "ide_choice",
+            "value": "Nimbus Editor"
+          }
         },
         {
           "content": "switched to Vertex IDE",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "code_editor",
+            "value": "Vertex IDE"
+          }
         }
       ],
       "pairs": [
@@ -4872,12 +6397,22 @@
         {
           "content": "writes mostly Solstice-lang",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "programming_language",
+            "value": "Solstice-lang"
+          }
         },
         {
           "content": "writes mostly Umbra-lang now",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "favorite_language",
+            "value": "Umbra-lang"
+          }
         }
       ],
       "pairs": [
@@ -4900,12 +6435,22 @@
         {
           "content": "drinks black coffee, no sugar",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "coffee_order",
+            "value": "black, no sugar"
+          }
         },
         {
           "content": "switched to oat-milk lattes",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "coffee_preference",
+            "value": "oat-milk lattes"
+          }
         }
       ],
       "pairs": [
@@ -4928,12 +6473,22 @@
         {
           "content": "works as a systems analyst",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "position",
+            "value": "systems analyst"
+          }
         },
         {
           "content": "was promoted to engineering lead",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "job_title",
+            "value": "engineering lead"
+          }
         }
       ],
       "pairs": [
@@ -4956,12 +6511,22 @@
         {
           "content": "carries a Solstice X12",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "phone_model",
+            "value": "Solstice X12"
+          }
         },
         {
           "content": "upgraded to a Solstice X14",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "phone",
+            "value": "Solstice X14"
+          }
         }
       ],
       "pairs": [
@@ -4984,12 +6549,22 @@
         {
           "content": "commutes by bicycle",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "commute",
+            "value": "bicycle"
+          }
         },
         {
           "content": "now commutes by train",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "transport_to_work",
+            "value": "train"
+          }
         }
       ],
       "pairs": [
@@ -5012,12 +6587,22 @@
         {
           "content": "uses Aurora Browser",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "web_browser",
+            "value": "Aurora Browser"
+          }
         },
         {
           "content": "switched to Meridian Browser",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "primary_browser",
+            "value": "Meridian Browser"
+          }
         }
       ],
       "pairs": [
@@ -5040,12 +6625,22 @@
         {
           "content": "has a membership at Ironclad Gym",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gym_membership",
+            "value": "Ironclad Gym"
+          }
         },
         {
           "content": "switched to Summit Fitness",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gym",
+            "value": "Summit Fitness"
+          }
         }
       ],
       "pairs": [
@@ -5068,12 +6663,22 @@
         {
           "content": "drives a Comet Roadster",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "car",
+            "value": "Comet Roadster"
+          }
         },
         {
           "content": "upgraded to a Comet Voyager",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vehicle",
+            "value": "Comet Voyager"
+          }
         }
       ],
       "pairs": [
@@ -5096,12 +6701,22 @@
         {
           "content": "rides a Drift Cycles Meridian",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bicycle",
+            "value": "Drift Cycles Meridian"
+          }
         },
         {
           "content": "upgraded to a Drift Cycles Apex",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bicycle_model",
+            "value": "Drift Cycles Apex"
+          }
         }
       ],
       "pairs": [
@@ -5124,12 +6739,22 @@
         {
           "content": "codes on a Fenwick Slate 13",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "laptop_model",
+            "value": "Fenwick Slate 13"
+          }
         },
         {
           "content": "upgraded to a Fenwick Slate 15",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "laptop",
+            "value": "Fenwick Slate 15"
+          }
         }
       ],
       "pairs": [
@@ -5152,12 +6777,22 @@
         {
           "content": "sketches on a Halcyon Pad Mini",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "tablet",
+            "value": "Halcyon Pad Mini"
+          }
         },
         {
           "content": "upgraded to a Halcyon Pad Pro",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "drawing_device",
+            "value": "Halcyon Pad Pro"
+          }
         }
       ],
       "pairs": [
@@ -5180,12 +6815,22 @@
         {
           "content": "plays for the Emberfall Hawks",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "club_team",
+            "value": "Emberfall Hawks"
+          }
         },
         {
           "content": "now plays for the Driftwood Otters",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "team_name",
+            "value": "Driftwood Otters"
+          }
         }
       ],
       "pairs": [
@@ -5208,12 +6853,22 @@
         {
           "content": "works out of the Meridian Tower office",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "office_building",
+            "value": "Meridian Tower"
+          }
         },
         {
           "content": "moved to the Cascadia Point office",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "office_location",
+            "value": "Cascadia Point"
+          }
         }
       ],
       "pairs": [
@@ -5236,12 +6891,22 @@
         {
           "content": "streams shows on Lumen Play",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "streaming_service",
+            "value": "Lumen Play"
+          }
         },
         {
           "content": "switched to Orbit Screen",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "tv_app",
+            "value": "Orbit Screen"
+          }
         }
       ],
       "pairs": [
@@ -5264,12 +6929,22 @@
         {
           "content": "listens to music on Auria Sound",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "music_service",
+            "value": "Auria Sound"
+          }
         },
         {
           "content": "switched to Wavelength Audio",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "music_streaming_service",
+            "value": "Wavelength Audio"
+          }
         }
       ],
       "pairs": [
@@ -5292,12 +6967,22 @@
         {
           "content": "backs up files to Driftbox Cloud",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "cloud_storage_provider",
+            "value": "Driftbox Cloud"
+          }
         },
         {
           "content": "switched to Cirrus Vault",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "cloud_storage",
+            "value": "Cirrus Vault"
+          }
         }
       ],
       "pairs": [
@@ -5320,12 +7005,22 @@
         {
           "content": "has home internet through Fenwick Broadband",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "isp",
+            "value": "Fenwick Broadband"
+          }
         },
         {
           "content": "switched to Northgate Fiber",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "home_internet",
+            "value": "Northgate Fiber"
+          }
         }
       ],
       "pairs": [
@@ -5348,12 +7043,22 @@
         {
           "content": "plays recreational soccer on weekends",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "recreational_sport",
+            "value": "recreational soccer"
+          }
         },
         {
           "content": "switched to recreational tennis on weekends",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "sport",
+            "value": "recreational tennis"
+          }
         }
       ],
       "pairs": [
@@ -5376,12 +7081,22 @@
         {
           "content": "follows a strength-training gym routine",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "workout_routine",
+            "value": "strength training"
+          }
         },
         {
           "content": "switched to a running-focused training routine",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "training_routine",
+            "value": "running-focused training"
+          }
         }
       ],
       "pairs": [
@@ -5404,12 +7119,22 @@
         {
           "content": "takes a pottery class on Thursdays",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "weekly_class",
+            "value": "pottery class"
+          }
         },
         {
           "content": "switched to a woodworking class on Thursdays",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "evening_class",
+            "value": "woodworking class"
+          }
         }
       ],
       "pairs": [
@@ -5432,12 +7157,22 @@
         {
           "content": "takes notes in Quill Notes",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "note_tool",
+            "value": "Quill Notes"
+          }
         },
         {
           "content": "switched to Lattice Notes",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "notetaking_app",
+            "value": "Lattice Notes"
+          }
         }
       ],
       "pairs": [
@@ -5460,12 +7195,22 @@
         {
           "content": "types on a QWERTY keyboard layout",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "keyboard_layout",
+            "value": "QWERTY"
+          }
         },
         {
           "content": "switched to a Dvorak keyboard layout",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "keyboard",
+            "value": "Dvorak"
+          }
         }
       ],
       "pairs": [
@@ -5488,12 +7233,22 @@
         {
           "content": "cooks mostly Mediterranean-inspired meals",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-earlier"
+          "fact_id": "f-earlier",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "cooking_style",
+            "value": "Mediterranean-inspired"
+          }
         },
         {
           "content": "shifted to mostly Southeast-Asian-inspired meals",
           "date": "2024-05-07T09:00:00Z",
-          "fact_id": "f-later"
+          "fact_id": "f-later",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "home_cuisine",
+            "value": "Southeast-Asian-inspired"
+          }
         }
       ],
       "pairs": [
@@ -5520,12 +7275,22 @@
         {
           "content": "works at Northwind Traders",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "employer",
+            "value": "Northwind Traders"
+          }
         },
         {
           "content": "drinks black coffee, no sugar",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "coffee_style",
+            "value": "black, no sugar"
+          }
         }
       ],
       "pairs": [
@@ -5552,12 +7317,22 @@
         {
           "content": "lives in Rivertown",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "city_of_residence",
+            "value": "Rivertown"
+          }
         },
         {
           "content": "codes in Nimbus Editor",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "editor",
+            "value": "Nimbus Editor"
+          }
         }
       ],
       "pairs": [
@@ -5584,12 +7359,22 @@
         {
           "content": "carries a Solstice X12",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "mobile_device",
+            "value": "Solstice X12"
+          }
         },
         {
           "content": "prefers the Nimbus code editor",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "ide_choice",
+            "value": "Nimbus Editor"
+          }
         }
       ],
       "pairs": [
@@ -5616,12 +7401,22 @@
         {
           "content": "commutes by bicycle",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "commute_mode",
+            "value": "bicycle"
+          }
         },
         {
           "content": "reads mostly historical fiction",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "reading_genre",
+            "value": "historical fiction"
+          }
         }
       ],
       "pairs": [
@@ -5648,12 +7443,22 @@
         {
           "content": "uses Aurora Browser",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "browser",
+            "value": "Aurora Browser"
+          }
         },
         {
           "content": "has a membership at Ironclad Gym",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gym",
+            "value": "Ironclad Gym"
+          }
         }
       ],
       "pairs": [
@@ -5680,12 +7485,22 @@
         {
           "content": "was promoted to engineering lead",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "position",
+            "value": "engineering lead"
+          }
         },
         {
           "content": "keeps a succulent on their desk",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "desk_greenery",
+            "value": "desk succulent"
+          }
         }
       ],
       "pairs": [
@@ -5712,12 +7527,22 @@
         {
           "content": "writes mostly Solstice-lang",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "programming_language",
+            "value": "Solstice-lang"
+          }
         },
         {
           "content": "volunteers at a community garden monthly",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "volunteering",
+            "value": "community garden, monthly"
+          }
         }
       ],
       "pairs": [
@@ -5744,12 +7569,22 @@
         {
           "content": "switched to oat-milk lattes",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "coffee_order",
+            "value": "oat-milk lattes"
+          }
         },
         {
           "content": "is left-handed",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "dominant_hand",
+            "value": "left-handed"
+          }
         }
       ],
       "pairs": [
@@ -5776,12 +7611,22 @@
         {
           "content": "moved to Lakeside last month",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "current_city",
+            "value": "Lakeside"
+          }
         },
         {
           "content": "practices calligraphy as a hobby",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "calligraphy_practice",
+            "value": "calligraphy"
+          }
         }
       ],
       "pairs": [
@@ -5808,12 +7653,22 @@
         {
           "content": "switched to Summit Fitness",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gym_membership",
+            "value": "Summit Fitness"
+          }
         },
         {
           "content": "enjoys documentary films",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "documentary_preference",
+            "value": "documentaries"
+          }
         }
       ],
       "pairs": [
@@ -5840,12 +7695,22 @@
         {
           "content": "drives a Comet Roadster",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "car",
+            "value": "Comet Roadster"
+          }
         },
         {
           "content": "plays for the Emberfall Hawks",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "sports_team",
+            "value": "Emberfall Hawks"
+          }
         }
       ],
       "pairs": [
@@ -5872,12 +7737,22 @@
         {
           "content": "codes on a Fenwick Slate 13",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "work_computer",
+            "value": "Fenwick Slate 13"
+          }
         },
         {
           "content": "works out of the Meridian Tower office",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "work_site",
+            "value": "Meridian Tower"
+          }
         }
       ],
       "pairs": [
@@ -5904,12 +7779,22 @@
         {
           "content": "streams shows on Lumen Play",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "video_streaming_service",
+            "value": "Lumen Play"
+          }
         },
         {
           "content": "backs up files to Driftbox Cloud",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "cloud_storage_provider",
+            "value": "Driftbox Cloud"
+          }
         }
       ],
       "pairs": [
@@ -5936,12 +7821,22 @@
         {
           "content": "listens to music on Auria Sound",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "music_app",
+            "value": "Auria Sound"
+          }
         },
         {
           "content": "has home internet through Fenwick Broadband",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "isp",
+            "value": "Fenwick Broadband"
+          }
         }
       ],
       "pairs": [
@@ -5968,12 +7863,22 @@
         {
           "content": "plays recreational soccer on weekends",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "recreational_sport",
+            "value": "recreational soccer"
+          }
         },
         {
           "content": "takes a pottery class on Thursdays",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "evening_class",
+            "value": "pottery class"
+          }
         }
       ],
       "pairs": [
@@ -6000,12 +7905,22 @@
         {
           "content": "takes notes in Quill Notes",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "notetaking_app",
+            "value": "Quill Notes"
+          }
         },
         {
           "content": "types on a QWERTY keyboard layout",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "keyboard_layout",
+            "value": "QWERTY"
+          }
         }
       ],
       "pairs": [
@@ -6032,12 +7947,22 @@
         {
           "content": "cooks mostly Mediterranean-inspired meals",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "cooking_style",
+            "value": "Mediterranean-inspired"
+          }
         },
         {
           "content": "follows a strength-training gym routine",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "training_routine",
+            "value": "strength training"
+          }
         }
       ],
       "pairs": [
@@ -6064,12 +7989,22 @@
         {
           "content": "rides a Drift Cycles Meridian",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bicycle",
+            "value": "Drift Cycles Meridian"
+          }
         },
         {
           "content": "sketches on a Halcyon Pad Mini",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "drawing_device",
+            "value": "Halcyon Pad Mini"
+          }
         }
       ],
       "pairs": [
@@ -6096,12 +8031,22 @@
         {
           "content": "now plays for the Driftwood Otters",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "team_name",
+            "value": "Driftwood Otters"
+          }
         },
         {
           "content": "keeps a small herb garden on the balcony",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "herb_garden",
+            "value": "balcony herb garden"
+          }
         }
       ],
       "pairs": [
@@ -6128,12 +8073,22 @@
         {
           "content": "moved to the Cascadia Point office",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "office_location",
+            "value": "Cascadia Point"
+          }
         },
         {
           "content": "prefers aisle seats on short flights",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "airplane_seat",
+            "value": "aisle seat, short flights"
+          }
         }
       ],
       "pairs": [
@@ -6160,12 +8115,22 @@
         {
           "content": "switched to Orbit Screen",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "tv_app",
+            "value": "Orbit Screen"
+          }
         },
         {
           "content": "journals every morning before work",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "daily_writing",
+            "value": "morning journaling"
+          }
         }
       ],
       "pairs": [
@@ -6192,12 +8157,22 @@
         {
           "content": "switched to Cirrus Vault",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "cloud_storage_provider",
+            "value": "Cirrus Vault"
+          }
         },
         {
           "content": "is a night owl who works best after 9pm",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "chronotype",
+            "value": "night owl"
+          }
         }
       ],
       "pairs": [
@@ -6224,12 +8199,22 @@
         {
           "content": "switched to Northgate Fiber",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "isp",
+            "value": "Northgate Fiber"
+          }
         },
         {
           "content": "enjoys painting watercolor landscapes",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "watercolor_hobby",
+            "value": "watercolor landscapes"
+          }
         }
       ],
       "pairs": [
@@ -6256,12 +8241,22 @@
         {
           "content": "switched to a woodworking class on Thursdays",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "evening_class",
+            "value": "woodworking class"
+          }
         },
         {
           "content": "prefers podcasts over music while commuting",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "podcast_habit",
+            "value": "podcasts over music"
+          }
         }
       ],
       "pairs": [
@@ -6288,12 +8283,22 @@
         {
           "content": "switched to Lattice Notes",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "notetaking_app",
+            "value": "Lattice Notes"
+          }
         },
         {
           "content": "practices yoga twice a week",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "yoga",
+            "value": "twice-weekly yoga"
+          }
         }
       ],
       "pairs": [
@@ -6320,12 +8325,22 @@
         {
           "content": "switched to a Dvorak keyboard layout",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "keyboard",
+            "value": "Dvorak"
+          }
         },
         {
           "content": "prefers a minimalist desk setup",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "workstation",
+            "value": "minimalist"
+          }
         }
       ],
       "pairs": [
@@ -6352,12 +8367,22 @@
         {
           "content": "shifted to mostly Southeast-Asian-inspired meals",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "home_cuisine",
+            "value": "Southeast-Asian-inspired"
+          }
         },
         {
           "content": "collects vinyl records from the 1990s",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vinyl_hobby",
+            "value": "1990s vinyl records"
+          }
         }
       ],
       "pairs": [
@@ -6384,12 +8409,22 @@
         {
           "content": "switched to a running-focused training routine",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "workout_routine",
+            "value": "running-focused training"
+          }
         },
         {
           "content": "prefers historical documentaries over dramas",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "documentary_preference",
+            "value": "historical documentaries"
+          }
         }
       ],
       "pairs": [
@@ -6416,12 +8451,22 @@
         {
           "content": "upgraded to a Comet Voyager",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "car",
+            "value": "Comet Voyager"
+          }
         },
         {
           "content": "grows tomatoes in a backyard garden",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "backyard_garden",
+            "value": "backyard tomatoes"
+          }
         }
       ],
       "pairs": [
@@ -6448,12 +8493,22 @@
         {
           "content": "upgraded to a Drift Cycles Apex",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "bicycle",
+            "value": "Drift Cycles Apex"
+          }
         },
         {
           "content": "prefers text messages over phone calls",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "messaging_preference",
+            "value": "text messages"
+          }
         }
       ],
       "pairs": [
@@ -6480,12 +8535,22 @@
         {
           "content": "switched to recreational tennis on weekends",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "sport",
+            "value": "recreational tennis"
+          }
         },
         {
           "content": "prefers window seats on long flights",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "seat_preference",
+            "value": "window seat, long flights"
+          }
         }
       ],
       "pairs": [
@@ -6512,12 +8577,22 @@
         {
           "content": "upgraded to a Halcyon Pad Pro",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "tablet",
+            "value": "Halcyon Pad Pro"
+          }
         },
         {
           "content": "keeps a running gratitude list each night",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gratitude_list",
+            "value": "nightly gratitude list"
+          }
         }
       ],
       "pairs": [
@@ -6544,12 +8619,22 @@
         {
           "content": "avoids gluten in their diet",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "dietary_avoidance",
+            "value": "avoids gluten"
+          }
         },
         {
           "content": "enjoys ambient electronic music",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "favorite_music",
+            "value": "ambient electronic"
+          }
         }
       ],
       "pairs": [
@@ -6576,12 +8661,22 @@
         {
           "content": "prefers window seats when traveling",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "seat_preference",
+            "value": "window seat"
+          }
         },
         {
           "content": "keeps a succulent on their desk",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "desk_plant",
+            "value": "desk succulent"
+          }
         }
       ],
       "pairs": [
@@ -6608,12 +8703,22 @@
         {
           "content": "reads mostly historical fiction",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "book_taste",
+            "value": "historical fiction"
+          }
         },
         {
           "content": "plays badminton on weekends",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "racket_sport",
+            "value": "weekend badminton"
+          }
         }
       ],
       "pairs": [
@@ -6640,12 +8745,22 @@
         {
           "content": "dislikes spicy food",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "spicy_food",
+            "value": "dislikes spicy"
+          }
         },
         {
           "content": "collects vintage postage stamps",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "stamp_hobby",
+            "value": "vintage postage stamps"
+          }
         }
       ],
       "pairs": [
@@ -6672,12 +8787,22 @@
         {
           "content": "works a hybrid schedule",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "work_schedule",
+            "value": "hybrid"
+          }
         },
         {
           "content": "volunteers at a community garden monthly",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "volunteering",
+            "value": "community garden, monthly"
+          }
         }
       ],
       "pairs": [
@@ -6704,12 +8829,22 @@
         {
           "content": "uses a standing desk",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "workstation",
+            "value": "standing desk"
+          }
         },
         {
           "content": "subscribes to a weekly astronomy newsletter",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "newsletter",
+            "value": "weekly astronomy newsletter"
+          }
         }
       ],
       "pairs": [
@@ -6736,12 +8871,22 @@
         {
           "content": "prefers tea over coffee in the evening",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "nighttime_drink",
+            "value": "tea in the evening"
+          }
         },
         {
           "content": "practices calligraphy as a hobby",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "calligraphy_practice",
+            "value": "calligraphy"
+          }
         }
       ],
       "pairs": [
@@ -6768,12 +8913,22 @@
         {
           "content": "keeps a bullet journal",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "journaling_method",
+            "value": "bullet journal"
+          }
         },
         {
           "content": "follows a strict Tuesday gym routine",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gym_schedule",
+            "value": "Tuesday gym routine"
+          }
         }
       ],
       "pairs": [
@@ -6800,12 +8955,22 @@
         {
           "content": "is left-handed",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "dominant_hand",
+            "value": "left-handed"
+          }
         },
         {
           "content": "enjoys documentary films",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "film_taste",
+            "value": "documentaries"
+          }
         }
       ],
       "pairs": [
@@ -6832,12 +8997,22 @@
         {
           "content": "has two houseplants named after constellations",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "plant_collection",
+            "value": "two houseplants"
+          }
         },
         {
           "content": "bikes to the farmers market on Saturdays",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "saturday_errand",
+            "value": "Saturday farmers market by bike"
+          }
         }
       ],
       "pairs": [
@@ -6864,12 +9039,22 @@
         {
           "content": "keeps a small herb garden on the balcony",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "herb_garden",
+            "value": "balcony herb garden"
+          }
         },
         {
           "content": "enjoys long-distance trail running",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "trail_running",
+            "value": "long-distance trail running"
+          }
         }
       ],
       "pairs": [
@@ -6896,12 +9081,22 @@
         {
           "content": "prefers aisle seats on short flights",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "airplane_seat",
+            "value": "aisle seat, short flights"
+          }
         },
         {
           "content": "collects retro video game cartridges",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "game_collection",
+            "value": "retro game cartridges"
+          }
         }
       ],
       "pairs": [
@@ -6928,12 +9123,22 @@
         {
           "content": "journals every morning before work",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "daily_writing",
+            "value": "morning journaling"
+          }
         },
         {
           "content": "plays chess online in the evenings",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "chess_habit",
+            "value": "online chess, evenings"
+          }
         }
       ],
       "pairs": [
@@ -6960,12 +9165,22 @@
         {
           "content": "is a night owl who works best after 9pm",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "chronotype",
+            "value": "night owl"
+          }
         },
         {
           "content": "volunteers at a local animal shelter twice a month",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "volunteering",
+            "value": "animal shelter, twice monthly"
+          }
         }
       ],
       "pairs": [
@@ -6992,12 +9207,22 @@
         {
           "content": "enjoys painting watercolor landscapes",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "watercolor_hobby",
+            "value": "watercolor landscapes"
+          }
         },
         {
           "content": "follows a weekly meal-prep routine on Sundays",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "meal_planning",
+            "value": "Sunday meal prep"
+          }
         }
       ],
       "pairs": [
@@ -7024,12 +9249,22 @@
         {
           "content": "prefers podcasts over music while commuting",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "podcast_habit",
+            "value": "podcasts over music"
+          }
         },
         {
           "content": "keeps an aquarium with two goldfish",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "fishkeeping",
+            "value": "two goldfish"
+          }
         }
       ],
       "pairs": [
@@ -7056,12 +9291,22 @@
         {
           "content": "practices yoga twice a week",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "yoga",
+            "value": "twice-weekly yoga"
+          }
         },
         {
           "content": "reads science fiction novels on weekends",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "reading_genre",
+            "value": "science fiction"
+          }
         }
       ],
       "pairs": [
@@ -7088,12 +9333,22 @@
         {
           "content": "prefers a minimalist desk setup",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "workstation",
+            "value": "minimalist"
+          }
         },
         {
           "content": "enjoys birdwatching on weekend hikes",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "birding",
+            "value": "weekend birdwatching"
+          }
         }
       ],
       "pairs": [
@@ -7120,12 +9375,22 @@
         {
           "content": "collects vinyl records from the 1990s",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "vinyl_hobby",
+            "value": "1990s vinyl records"
+          }
         },
         {
           "content": "attends a monthly board game night",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "social_games",
+            "value": "monthly board game night"
+          }
         }
       ],
       "pairs": [
@@ -7152,12 +9417,22 @@
         {
           "content": "is training for a half-marathon",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "half_marathon_training",
+            "value": "half-marathon training"
+          }
         },
         {
           "content": "prefers historical documentaries over dramas",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "documentary_preference",
+            "value": "historical documentaries"
+          }
         }
       ],
       "pairs": [
@@ -7184,12 +9459,22 @@
         {
           "content": "prefers text messages over phone calls",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "contact_method",
+            "value": "text messages"
+          }
         },
         {
           "content": "enjoys home-brewing coffee on weekends",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "home_brewing",
+            "value": "weekend home-brewing"
+          }
         }
       ],
       "pairs": [
@@ -7216,12 +9501,22 @@
         {
           "content": "prefers window seats on long flights",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "preference",
+            "raw_domain": "travel_seat",
+            "value": "window seat, long flights"
+          }
         },
         {
           "content": "bakes sourdough bread on weekends",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "weekend_baking",
+            "value": "weekend sourdough"
+          }
         }
       ],
       "pairs": [
@@ -7248,12 +9543,22 @@
         {
           "content": "keeps a running gratitude list each night",
           "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
+          "fact_id": "f-a",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "gratitude_practice",
+            "value": "nightly gratitude list"
+          }
         },
         {
           "content": "enjoys building model trains as a hobby",
           "date": "2024-02-22T09:00:00Z",
-          "fact_id": "f-b"
+          "fact_id": "f-b",
+          "probe": {
+            "kind": "fact",
+            "raw_domain": "model_trains",
+            "value": "model trains"
+          }
         }
       ],
       "pairs": [
@@ -7267,5 +9572,5 @@
   ],
   "goldset": "panella-supersede-confusion-matrix",
   "seed": 20260707,
-  "version": "v1"
+  "version": "v1.1"
 }

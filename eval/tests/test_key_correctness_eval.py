@@ -272,3 +272,54 @@ def test_cross_slot_collision_forces_no_go() -> None:
     rep = score(items, extractions)
     assert rep.harmful_collisions == 1
     assert rep.collisions == [{"extractor_key": "fact:merged_slot", "gold_slots": ["fact:code_editor", "fact:employer"]}]
+    # Neither item is high_risk, so no merged pair sits on an hr-grounded key — the hr slice of
+    # supersede precision must stay None (backward compat), even though the ordinary
+    # supersede_precision was computed (and is 0.0 here).
+    assert rep.supersede_precision == 0.0
+    assert rep.hr_supersede_precision is None
+
+
+def test_hr_supersede_precision_drops_on_hr_wrong_merge() -> None:
+    """hr_supersede_precision = the hr slice of merged-pairs precision: an hr item and a benign
+    item grounded under the SAME emitted key (different gold slots) is a wrong merge on an
+    hr-grounded key -> hr precision 0.0. A clean hr update pair merged on one shared key ->
+    1.0 with no hr collisions."""
+    wrong_items = [
+        GoldItem(
+            item_id="hr-a", text="allergy text", should_extract=True, high_risk=True,
+            gold_kind="fact", gold_key="fact:medical_allergy", gold_value="shellfish",
+            lifecycle=None, effective_at=None,
+        ),
+        GoldItem(
+            item_id="ben-b", text="diet text", should_extract=True, high_risk=False,
+            gold_kind="preference", gold_key="preference:diet", gold_value="avoids shellfish dishes",
+            lifecycle=None, effective_at=None,
+        ),
+    ]
+    wrong_extractions = {
+        "hr-a": [PreferenceCandidate(source_sid="hr-a", kind="fact", domain="food_rule", value="shellfish", confidence=0.9, evidence="")],
+        "ben-b": [PreferenceCandidate(source_sid="ben-b", kind="fact", domain="food_rule", value="avoids shellfish dishes", confidence=0.9, evidence="")],
+    }
+    rep = score(wrong_items, wrong_extractions)
+    assert rep.hr_supersede_precision == 0.0
+    assert rep.high_risk_collisions == 1  # same machinery, consistent verdicts
+
+    clean_items = [
+        GoldItem(
+            item_id="med-1", text="start text", should_extract=True, high_risk=True,
+            gold_kind="fact", gold_key="fact:medication", gold_value="Veltrazine",
+            lifecycle="med", effective_at="2025/01/01",
+        ),
+        GoldItem(
+            item_id="med-2", text="switch", should_extract=True, high_risk=True,
+            gold_kind="fact", gold_key="fact:medication", gold_value="Norvexol",
+            lifecycle="med", effective_at="2025/06/01",
+        ),
+    ]
+    clean_extractions = {
+        "med-1": [PreferenceCandidate(source_sid="med-1", kind="fact", domain="medication", value="Veltrazine", confidence=0.9, evidence="")],
+        "med-2": [PreferenceCandidate(source_sid="med-2", kind="fact", domain="medication", value="Norvexol", confidence=0.9, evidence="")],
+    }
+    rep_clean = score(clean_items, clean_extractions)
+    assert rep_clean.hr_supersede_precision == 1.0
+    assert rep_clean.high_risk_collisions == 0
