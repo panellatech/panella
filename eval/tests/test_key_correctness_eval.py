@@ -11,10 +11,12 @@ from eval.goldsets.key_correctness_eval import (
     ExtractionReport,
     GoldItem,
     decide,
+    high_risk_value_match,
     load_fixture_text,
     load_items,
     run_eval,
     score,
+    value_match,
 )
 from eval.goldsets.preference_extraction import PreferenceCandidate
 
@@ -107,6 +109,60 @@ def test_perfect_extractor_passes_go_no_go() -> None:
     # proving the gate is actually exercisable now (not just structurally present-but-untested).
     assert result["high_risk_supersede_proven"] is True
     assert result["report"]["high_risk_update_pairs"] >= 5
+
+
+def test_wrong_sensitive_value_on_gold_key_does_not_prove_hr_supersede() -> None:
+    """GH-bot r2 finding: the hr-supersede proof loop grounded pairs through the ordinary lenient
+    `value_match` (>=50% token overlap), so an extractor emitting the RIGHT gold key with a WRONG
+    sensitive value sharing half the tokens (e.g. "Marlowe Wrongname" for gold "Marlowe Kestrel",
+    or a polarity flip like "stopped Veltrazine") could still flip
+    ``high_risk_supersede_proven=true`` and silently remove the rollout caveat. The proof now
+    additionally requires BOTH sides of every hr update pair to have a candidate on the gold key
+    whose value passes the SAFE `high_risk_value_match` — this scripted extractor emits the exact
+    gold key but such a wrong value on EVERY hr update session (and the perfect gold candidate
+    everywhere else), so the flag must stay False while the pairs are still counted."""
+    # gold_value -> a wrong value that PASSES lenient value_match (>=50% of gold tokens present)
+    # but FAILS high_risk_value_match (missing gold token, or a negation/polarity flip) — the
+    # premise is asserted per item below, so a matcher change that breaks the trap fails loudly.
+    wrong_values = {
+        "Veltrazine": "stopped Veltrazine",
+        "Norvexol": "stopped Norvexol",
+        "Priya Osgood": "Priya Wrongperson",
+        "Devon Achebe": "Devon Wrongperson",
+        "Marlowe Kestrel": "Marlowe Wrongname",
+        "Marlowe Ashgrove": "Marlowe Wrongname",
+        "Dr. Naomi Falkirk": "Dr. Naomi Wrongdoc",
+        "Dr. Osei Bramwell": "Dr. Osei Wrongdoc",
+        "Dr. Imara Voss": "Dr. Imara Wrongdoc",
+        "low-sodium diet": "high-sodium diet",
+        "gluten-free diet": "gluten-rich diet",
+    }
+    items = load_items(DEFAULT_GOLDSET, DEFAULT_FIXTURE)
+    hr_update_items = [it for it in items if it.high_risk and it.lifecycle]
+    assert len(hr_update_items) >= 5  # premise: the v1 fixture carries hr update chains
+
+    script: dict[str, list[dict]] = {}
+    for it in items:
+        if not it.should_extract or not it.gold_key or not it.gold_value:
+            continue
+        kind, domain = it.gold_key.split(":", 1)
+        if it.high_risk and it.lifecycle:
+            wrong = wrong_values[it.gold_value]  # KeyError = fixture grew an unmapped hr chain
+            assert value_match(it.gold_value, wrong), (it.gold_value, wrong)
+            assert not high_risk_value_match(it.gold_value, wrong), (it.gold_value, wrong)
+            value = wrong
+        else:
+            value = it.gold_value
+        script[it.text[:30]] = [
+            {"kind": kind, "domain": domain, "value": value, "confidence": 0.9, "evidence": it.text[:40]}
+        ]
+    chat_fn = _fake_chat_fn_perfect(script)
+    result = run_eval(chat_fn, goldset_path=DEFAULT_GOLDSET, fixture_path=DEFAULT_FIXTURE)
+    # The pairs are present and counted — but none may count as SAFELY merged, so the proof flag
+    # stays False and the unproven caveat stays in force.
+    assert result["report"]["high_risk_update_pairs"] >= 5
+    assert result["high_risk_supersede_proven"] is False
+    assert any("high_risk_supersede_proven" in c for c in result["caveats"])
 
 
 def test_extractor_that_hallucinates_on_negatives_fails_no_go() -> None:

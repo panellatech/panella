@@ -27,10 +27,13 @@ lifecycles — see ``fixtures/continuity_set_v1.json`` and the matching ``lifecy
 ``fixtures/extraction_goldset_v1.json``), so high-risk SUPERSEDE precision IS exercisable now: a
 clean extractor run CAN report ``high_risk_supersede_proven=true``. This flag stays COMPUTED from
 the actual run's results (every high-risk update pair merged on its gold key across the WHOLE
-chain, zero high-risk collisions) — it is never asserted merely because the fixture now CONTAINS
-high-risk update pairs; a weak or partial extractor still reports ``false`` here even on this
-richer fixture. Treat a ``true`` reading as "proven for THIS run's extractor against the current
-fixture", not a permanent property of the goldset.
+chain, with BOTH sides of each pair additionally grounded by a candidate on that key passing the
+SAFE ``high_risk_value_match`` — a wrong sensitive value that merely shares half the gold tokens,
+or flips polarity, does not count — and zero high-risk collisions) — it is never asserted merely
+because the fixture now CONTAINS high-risk update pairs; a weak, partial, or wrong-valued
+extractor still reports ``false`` here even on this richer fixture. Treat a ``true`` reading as
+"proven for THIS run's extractor against the current fixture", not a permanent property of the
+goldset.
 """
 
 from __future__ import annotations
@@ -262,10 +265,20 @@ def score(
     hr_total = sum(1 for it in positives if it.high_risk)
     recall_hits = value_hits = key_correct = hr_recall = hr_key_correct = hr_value_hits = hr_slot_hits = 0
     grounded_keys: dict[str, set[str]] = {}  # item_id -> keys of candidates value-matching the gold value
+    # item_id -> keys of candidates whose value passes the SAFE high_risk_value_match (all gold
+    # tokens present / restriction direction+noun, equal net polarity — the same matcher
+    # high_risk_value_recall and high_risk_slot_recall ground through). The hr-supersede PROOF
+    # requires the gold key here on BOTH sides of a pair: lenient 50%-overlap value_match grounding
+    # alone would let a WRONG sensitive value sharing half the tokens (or a polarity flip) count a
+    # pair as safely merged.
+    safe_hr_keys: dict[str, set[str]] = {}
     for it in positives:
         cands = extractions.get(it.item_id, [])
         grounded = {c.canonical_key for c in cands if it.gold_value and value_match(it.gold_value, c.value)}
         grounded_keys[it.item_id] = grounded
+        safe_hr_keys[it.item_id] = {
+            c.canonical_key for c in cands if it.gold_value and high_risk_value_match(it.gold_value, c.value)
+        }
         best = _best_candidate(it, cands)
         if best is not None:
             recall_hits += 1
@@ -361,10 +374,13 @@ def score(
         rep.per_lifecycle.append({"lifecycle": lc, "merged_pairs": lc_ok, "gold_pairs": lc_pairs, "stable": lc_ok == lc_pairs})
     rep.key_stability = (stab_hits / gold_pairs) if gold_pairs else 1.0
 
-    # High-risk SUPERSEDE coverage (HONEST SCOPE): is there any high-risk UPDATE pair, and is it
-    # merged on the GOLD key? The shipped fixture has only high-risk SINGLETONS, so this stays False
-    # -- high-risk supersede precision is UNPROVEN here. Hard gate for a FUTURE high-risk-supersede
-    # rollout (extend the goldset until proven), NOT a bar this eval itself must clear.
+    # High-risk SUPERSEDE coverage (HONEST SCOPE): is every high-risk UPDATE pair merged on the
+    # GOLD key — SAFELY? A pair counts only when, on BOTH sides, the gold key is grounded by the
+    # lenient value_match AND by a candidate passing the SAFE high_risk_value_match on that same
+    # key (see safe_hr_keys above): a wrong sensitive value sharing >=50% of the gold tokens (or a
+    # polarity flip) on the correct key must NOT prove the pair merged — that would clear the
+    # rollout caveat on an unsafe hr extraction. Hard gate for a FUTURE high-risk-supersede
+    # rollout, NOT a bar this eval itself must clear (a False here is a caveat, never a fail).
     hr_update_pairs = hr_update_ok = 0
     for lc_items in by_lifecycle.values():
         if len(lc_items) < 2 or not any(i.high_risk for i in lc_items):
@@ -373,7 +389,13 @@ def score(
         for older, newer in zip(ordered, ordered[1:], strict=False):
             hr_update_pairs += 1
             gold = newer.gold_key
-            if gold and gold in pos_keys[older.item_id] and gold in pos_keys[newer.item_id]:
+            if (
+                gold
+                and gold in pos_keys[older.item_id]
+                and gold in pos_keys[newer.item_id]
+                and gold in safe_hr_keys[older.item_id]
+                and gold in safe_hr_keys[newer.item_id]
+            ):
                 hr_update_ok += 1
     rep.high_risk_update_pairs = hr_update_pairs
     rep.high_risk_supersede_proven = hr_update_pairs > 0 and hr_update_ok == hr_update_pairs and rep.high_risk_collisions == 0
@@ -479,7 +501,8 @@ def decide(rep: ExtractionReport) -> dict:
         else:
             caveats.append(
                 "high-risk SUPERSEDE precision UNPROVEN (the goldset contains high-risk update "
-                "pairs, but this run did not merge every one on its gold key with zero high-risk "
+                "pairs, but this run did not safely merge every one on its gold key — safe "
+                "high-risk value match required on both pair sides — with zero high-risk "
                 "collisions — an extractor coverage failure, not a fixture gap); a future "
                 "high-risk-supersede rollout stays gated until high_risk_supersede_proven is true"
             )
