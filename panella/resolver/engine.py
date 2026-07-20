@@ -65,23 +65,33 @@ class ResolverEngine:
         provider: FallbackProvider | None = None,
     ) -> None:
         self.config = config or ResolverConfig(False, 1000, None, None, None)
-        self.registry = registry or load_registry()
+        self.registry = registry if registry is not None else load_registry()
         self.provider: FallbackProvider = provider or _AlwaysMissProvider()
-        assert len(self.registry.slots) >= MIN_REGISTRY_SLOTS
-        assert self.registry.content_hash == PINNED_REGISTRY_HASH
+        if len(self.registry.slots) < MIN_REGISTRY_SLOTS:
+            raise ValueError(f"registry must contain at least {MIN_REGISTRY_SLOTS} slots")
+        if self.registry.content_hash != PINNED_REGISTRY_HASH:
+            raise ValueError("registry content hash does not match the pin")
+        self._llm_disabled_reason: str | None = None
         if self.config.llm_enabled:
-            self._assert_manifest_binding()
+            self._llm_disabled_reason = self._manifest_binding_disabled_reason()
 
-    def _assert_manifest_binding(self) -> None:
+    def _manifest_binding_disabled_reason(self) -> str | None:
         manifest = self.config.manifest
-        assert manifest is not None
-        assert self.config.manifest_hash is not None
-        assert self.config.evidence_hash is not None
-        assert manifest.registry_hash == self.registry.content_hash
-        assert manifest.normalizer_rules_hash == normalizer_rules_hash
-        assert manifest.resolver_code_version == RESOLVER_CODE_VERSION
-        assert manifest.model_id == self.provider.model_id
-        assert manifest.prompt_template_hash == self.provider.prompt_template_hash
+        if manifest is None:
+            return "manifest_component_mismatch:manifest"
+        bindings = (
+            ("manifest_hash", self.config.manifest_hash is not None),
+            ("evidence_hash", self.config.evidence_hash is not None),
+            ("registry_hash", manifest.registry_hash == self.registry.content_hash),
+            ("normalizer_rules_hash", manifest.normalizer_rules_hash == normalizer_rules_hash),
+            ("resolver_code_version", manifest.resolver_code_version == RESOLVER_CODE_VERSION),
+            ("model_id", manifest.model_id == self.provider.model_id),
+            ("prompt_template_hash", manifest.prompt_template_hash == self.provider.prompt_template_hash),
+        )
+        for field, matches in bindings:
+            if not matches:
+                return f"manifest_component_mismatch:{field}"
+        return None
 
     def _versions(self) -> VersionStamp:
         return VersionStamp(
@@ -96,7 +106,8 @@ class ResolverEngine:
     def _unresolved_domain(request_uid: str, budget: RunBudget) -> str:
         encoded = f"xunres_{hashlib.sha256(request_uid.encode('utf-8')).hexdigest()[:32]}"
         known_uid = budget.seen_unresolved.get(encoded)
-        assert known_uid is None or known_uid == request_uid
+        if known_uid is not None and known_uid != request_uid:
+            raise RuntimeError("unresolved-domain encoding collision")
         budget.seen_unresolved[encoded] = request_uid
         return encoded
 
@@ -213,6 +224,16 @@ class ResolverEngine:
         attempts = suggestion.attempts
         if not attempts:
             return "invalid_output", "empty_attempts"
+        if any(
+            attempt.raw_excerpt is not None
+            and (
+                attempt.outcome != "invalid_output"
+                or not isinstance(attempt.raw_excerpt, str)
+                or len(attempt.raw_excerpt.encode("utf-8")) > 200
+            )
+            for attempt in attempts
+        ):
+            return "invalid_output", "excerpt_misuse"
         if len(attempts) > 2 or (
             len(attempts) == 2 and attempts[0].outcome not in {"transport_error", "timeout"}
         ):
@@ -231,7 +252,8 @@ class ResolverEngine:
         return "ok", None
 
     def resolve(self, request: ResolveRequest, context: ResolverContext, budget: RunBudget) -> ResolveDecision:
-        assert request.request_uid not in budget.seen_uids
+        if request.request_uid in budget.seen_uids:
+            raise ValueError("duplicate request_uid in run budget")
         budget.seen_uids.add(request.request_uid)
         risk_evidence = compute_risk_evidence(request, self.registry)
         normalized = resolver_normalize(request.raw_domain)
@@ -257,6 +279,15 @@ class ResolverEngine:
                 guard_fired=False,
             )
 
+        if self._llm_disabled_reason is not None:
+            return self._abstain(
+                request,
+                budget,
+                risk_evidence,
+                "not_attempted_disabled",
+                guard_fired=guard_fired,
+                disabled_reason=self._llm_disabled_reason,
+            )
         if not self.config.llm_enabled:
             return self._abstain(
                 request, budget, risk_evidence, "not_attempted_disabled", guard_fired=guard_fired,
@@ -336,7 +367,8 @@ class ResolverEngine:
                 request, budget, risk_evidence, "abstained", guard_fired=guard_fired,
                 blocking_receipt=blocking.receipt, llm_receipt=receipt,
             )
-        assert calibrated is not None
+        if calibrated is None:
+            raise RuntimeError("successful provider output must have calibrated confidence")
         calibration = self.config.manifest.slices[blocking.receipt.slice]  # type: ignore[union-attr]
         if calibrated < calibration.tau:
             return self._abstain(

@@ -107,6 +107,21 @@ def test_short_circuit_hr_alias_propagates_risk_with_llm_disabled() -> None:
     assert decision.risk_evidence.matched_hr_slot_ids == ("fact:medical_allergy",)
 
 
+def test_manifest_component_mismatch_disables_llm_and_preserves_high_risk() -> None:
+    manifest = dataclasses.replace(valid_manifest(), model_id="different-model")
+    provider = FakeProvider(FallbackSuggestion("ABSTAIN", 0.0, (TransportAttempt("ok", 1),)))
+    engine = ResolverEngine(ResolverConfig(True, 20, manifest, "manifest", "evidence"), provider=provider)
+
+    decision = engine.resolve(request(raw_domain="employer", value="allergic reaction"), ResolverContext(()), RunBudget(1))
+
+    assert decision.fallback_outcome == "not_attempted_disabled"
+    assert decision.disabled_reason == "manifest_component_mismatch:model_id"
+    assert decision.guard_fired is True
+    assert decision.high_risk is True
+    assert decision.blocking_receipt is None and decision.llm_receipt is None
+    assert provider.calls == 0
+
+
 @pytest.mark.parametrize(
     ("budget", "expected_outcome", "blocking", "llm"),
     [
@@ -208,12 +223,12 @@ def test_unresolved_encoding_and_run_invariants() -> None:
     budget = RunBudget(1)
     decision = engine.resolve(request(uid="once"), ResolverContext(()), budget)
     assert decision.unresolved_domain == "xunres_" + hashlib.sha256(b"once").hexdigest()[:32]
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError, match="duplicate request_uid"):
         engine.resolve(request(uid="once"), ResolverContext(()), budget)
     collision_uid = "collision"
     encoded = "xunres_" + hashlib.sha256(collision_uid.encode()).hexdigest()[:32]
     collision_budget = RunBudget(1, seen_unresolved={encoded: "other-request"})
-    with pytest.raises(AssertionError):
+    with pytest.raises(RuntimeError, match="encoding collision"):
         engine.resolve(request(uid=collision_uid), ResolverContext(()), collision_budget)
     assert split_slot_id("fact:employer") == ("fact", "employer")
     with pytest.raises(ValueError):
@@ -241,22 +256,88 @@ def test_normalize_reference_vectors(vector: tuple[str, str]) -> None:
     assert resolver_normalize(vector[0]) == vector[1]
 
 
-def test_registry_fail_matrix(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "missing_field",
+        "duplicate_id",
+        "two_form_collision",
+        "dangling_neighbor",
+        "high_risk_without_lexicon",
+        "reserved_alias",
+        "below_minimum_slots",
+        "id_does_not_match_kind_domain",
+        "noncanonical_domain",
+        "noncanonical_alias",
+        "high_risk_not_bool",
+        "too_many_deny_neighbors",
+        "too_many_hr_lexicon_terms",
+        "non_high_risk_with_hr_lexicon",
+        "deny_neighbor_is_high_risk",
+        "unexpected_root_keys",
+        "reserved_unresolved_domain",
+    ),
+)
+def test_registry_fail_matrix(tmp_path: Path, mutation: str) -> None:
     base = registry_data()
-    cases: list[dict[str, object]] = []
-    missing = copy.deepcopy(base); del missing["slots"][0]["description"]; cases.append(missing)
-    duplicate = copy.deepcopy(base); duplicate["slots"].append(copy.deepcopy(duplicate["slots"][0])); cases.append(duplicate)
-    collision = copy.deepcopy(base); collision["slots"][1]["aliases"].append("name"); cases.append(collision)
-    dangling = copy.deepcopy(base); dangling["slots"][4]["deny_neighbors"] = ["not_a_slot"]; cases.append(dangling)
-    no_lexicon = copy.deepcopy(base); no_lexicon["slots"][4]["hr_lexicon"] = []; cases.append(no_lexicon)
-    reserved = copy.deepcopy(base); reserved["slots"][0]["aliases"].append("xunres_bad"); cases.append(reserved)
-    too_small = copy.deepcopy(base); too_small["slots"] = too_small["slots"][:49]; cases.append(too_small)
-    for data in cases:
-        with pytest.raises(ValueError):
-            load_registry(write_registry(tmp_path, data), expected_hash=None)
-    pin_mutation = copy.deepcopy(base); pin_mutation["version"] = "2"
+
+    match mutation:
+        case "missing_field":
+            del base["slots"][0]["description"]
+        case "duplicate_id":
+            base["slots"].append(copy.deepcopy(base["slots"][0]))
+        case "two_form_collision":
+            base["slots"][1]["aliases"].append("name")
+        case "dangling_neighbor":
+            base["slots"][4]["deny_neighbors"] = ["not_a_slot"]
+        case "high_risk_without_lexicon":
+            base["slots"][4]["hr_lexicon"] = []
+        case "reserved_alias":
+            base["slots"][0]["aliases"].append("xunres_bad")
+        case "below_minimum_slots":
+            base["slots"] = base["slots"][:49]
+        case "id_does_not_match_kind_domain":
+            base["slots"][0]["id"] = "fact:not_legal_name"
+        case "noncanonical_domain":
+            base["slots"][0]["domain"] = "Legal_Name"
+            base["slots"][0]["id"] = "fact:Legal_Name"
+        case "noncanonical_alias":
+            base["slots"][0]["aliases"].append("Full Name")
+        case "high_risk_not_bool":
+            base["slots"][0]["high_risk"] = "false"
+        case "too_many_deny_neighbors":
+            base["slots"][0]["deny_neighbors"] = ["chosen_name", "pronoun", "home_city", "diet", "dietary_restriction"]
+        case "too_many_hr_lexicon_terms":
+            base["slots"][4]["hr_lexicon"] = [f"term_{index}" for index in range(9)]
+        case "non_high_risk_with_hr_lexicon":
+            base["slots"][0]["hr_lexicon"] = ["sensitive"]
+        case "deny_neighbor_is_high_risk":
+            base["slots"][4]["deny_neighbors"] = ["medical_condition"]
+        case "unexpected_root_keys":
+            base["unexpected"] = True
+        case "reserved_unresolved_domain":
+            base["slots"][0]["domain"] = "xunres_bad"
+            base["slots"][0]["id"] = "fact:xunres_bad"
+        case _:
+            raise ValueError(f"unknown registry mutation: {mutation}")
+
+    with pytest.raises(ValueError):
+        load_registry(write_registry(tmp_path, base), expected_hash=None)
+
+
+def test_registry_pin_mismatch_still_raises(tmp_path: Path) -> None:
+    pin_mutation = registry_data()
+    pin_mutation["version"] = "2"
     with pytest.raises(ValueError, match="content hash"):
         load_registry(write_registry(tmp_path, pin_mutation))
+
+
+def test_injected_registry_integrity_still_raises() -> None:
+    registry = load_registry()
+    with pytest.raises(ValueError, match="content hash"):
+        ResolverEngine(registry=dataclasses.replace(registry, content_hash="not-pinned"))
+    with pytest.raises(ValueError, match="at least"):
+        ResolverEngine(registry=dataclasses.replace(registry, slots=()))
 
 
 def test_hr_alias_only_matching_after_folding_is_a_miss() -> None:
@@ -306,6 +387,23 @@ def test_provider_contract_violations(suggestion: FallbackSuggestion, violation:
     engine, _ = llm_engine(suggestion)
     decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
     assert decision.fallback_outcome == outcome
+    assert decision.llm_receipt is not None
+    assert decision.llm_receipt.provider_contract_violation == violation
+
+
+@pytest.mark.parametrize(
+    ("attempt", "violation"),
+    (
+        (TransportAttempt("invalid_output", 1, "invalid response"), None),
+        (TransportAttempt("ok", 1, "invalid response"), "excerpt_misuse"),
+        (TransportAttempt("invalid_output", 1, "é" * 101), "excerpt_misuse"),
+    ),
+)
+def test_provider_raw_excerpt_contract(attempt: TransportAttempt, violation: str | None) -> None:
+    engine, _ = llm_engine(FallbackSuggestion(None, None, (attempt,)))
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+
+    assert decision.fallback_outcome == "invalid_output"
     assert decision.llm_receipt is not None
     assert decision.llm_receipt.provider_contract_violation == violation
 
