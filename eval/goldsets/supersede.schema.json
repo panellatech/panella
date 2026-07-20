@@ -91,7 +91,7 @@
         "label": {
           "type": "string",
           "enum": ["supersede", "coexist", "unrelated"],
-          "description": "supersede = later_id replaces earlier_id as the current truth for the same slot; coexist = both remain true simultaneously (not a slot update); unrelated = the two facts share no slot/subject (a classifier merging them would be a false collision)."
+          "description": "supersede = later_id replaces earlier_id as the current truth for the same slot; coexist = both remain true simultaneously in the SAME aspect (life domain) but DIFFERENT slots (same-cluster facts, neither updating the other); unrelated = the two facts live in different aspects and share no slot/subject (a classifier merging them would be a false collision). coexist-vs-unrelated is a mechanical biconditional over synth_supersede.py's aspect tags — see eval/goldsets/SCHEMA.md."
         },
         "high_risk": {
           "type": "boolean",

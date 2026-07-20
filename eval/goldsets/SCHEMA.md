@@ -13,21 +13,23 @@ A **pair** is `(earlier_id, later_id)` — two facts from the same case, `earlie
 - **`supersede`** — `later_id` replaces `earlier_id` as the current truth for the SAME slot (same
   subject + attribute). An ideal system's `current_truth` for this case includes `later_id` for
   that slot, NOT `earlier_id`.
-- **`coexist`** — both facts remain true simultaneously; this is not a slot-update pair (e.g. two
-  independent preferences, or two facts about different attributes of the same entity). An ideal
-  system's `current_truth` includes BOTH.
-- **`unrelated`** — the two facts share no slot or subject at all. A classifier that merges them
-  into the same tracked "fact" would be a false collision (the dangerous failure mode
-  `score_supersede.py`'s confusion matrix exists to catch).
+- **`coexist`** — both facts remain true simultaneously AND share an aspect (life domain) while
+  occupying DIFFERENT slots: two same-cluster facts (two beverage habits, two sports) neither of
+  which updates the other. An ideal system's `current_truth` includes BOTH.
+- **`unrelated`** — the two facts live in DIFFERENT aspects (life domains) and share no slot or
+  subject at all. A classifier that merges them into the same tracked "fact" would be a false
+  collision (the dangerous failure mode `score_supersede.py`'s confusion matrix exists to catch).
 
-**`coexist` vs `unrelated` — the discriminator.** Both labels keep both facts in `current_truth`,
-so the boundary is about RELATEDNESS, not survival. `coexist` is deliberately narrow: it marks a
-pair the case presents as candidate related-aspects — facts a naive updater might wrongly treat as
-a slot update of one another (the anti-false-supersede probe). Any pair of merely independent
-attributes of the user — different slots, no shared aspect cluster — is `unrelated`, even though
-both facts are simultaneously true of the same person (the anti-false-merge trap; "same user" is
-never by itself a shared subject, otherwise every pair in a personal-memory goldset would share
-one). When genuinely torn between `coexist` and `unrelated`, the label is `unrelated`.
+**`coexist` vs `unrelated` — the discriminator (mechanical).** Both labels keep both facts in
+`current_truth`, so the boundary is about RELATEDNESS, not survival — and it is a
+generator-enforced BICONDITIONAL over the aspect tags in `synth_supersede.py`'s `CONTENT_META`
+map, not judgment: a pair of simultaneously-true facts is `coexist` exactly when the two facts
+share an aspect but occupy different slots — same-cluster facts a naive updater might wrongly
+treat as a slot update of one another (the anti-false-supersede probe: morning coffee style vs
+evening tea; chess vs weekend soccer). A pair of facts from DIFFERENT aspects is `unrelated`, even
+though both are simultaneously true of the same person ("same user" is never by itself a shared
+subject, otherwise every pair in a personal-memory goldset would share one — the anti-false-merge
+trap). Same aspect AND same slot is `supersede` territory (a real update), never `coexist`.
 
 ## `high_risk` (optional, v1+)
 
@@ -74,13 +76,15 @@ category.
 
 ```json
 {
-  "earlier_id": "diet-a",
-  "later_id": "music-a",
+  "earlier_id": "coffee-a",
+  "later_id": "tea-a",
   "label": "coexist"
 }
 ```
-Facts: `diet-a` = "avoids gluten"; `music-a` = "enjoys ambient electronic music". Both remain true
-at once — neither updates the other. `current_truth` includes both.
+Facts: `coffee-a` = "drinks black coffee, no sugar" (2024-02-18); `tea-a` = "prefers tea over
+coffee in the evening" (2024-03-05). SAME aspect (beverage) but DIFFERENT slots (morning coffee
+style vs evening drink): a naive updater might read the later tea fact as replacing the coffee
+fact — it does not; both remain true at once. `current_truth` includes both.
 
 ### `coexist` — negative (a pair that looks like `coexist` but is actually `supersede`)
 
@@ -101,13 +105,16 @@ coexisting facts (the way two unrelated preferences do); they are actually the S
 
 ```json
 {
-  "earlier_id": "phone-a",
-  "later_id": "editor-a",
+  "earlier_id": "diet-a",
+  "later_id": "music-a",
   "label": "unrelated"
 }
 ```
-Facts: `phone-a` = "phone model is a Solstice X12"; `editor-a` = "prefers the Nimbus code editor".
-No shared slot or subject.
+Facts: `diet-a` = "avoids gluten in their diet"; `music-a` = "enjoys ambient electronic music".
+DIFFERENT aspects (dining vs music), no shared slot or subject — both facts are true of the same
+person at once, but that alone never relates them: under the biconditional a cross-aspect pair is
+`unrelated` by definition (labeling this shape `coexist` was exactly the pre-r3 vocabulary drift),
+and a system merging them fabricates a relationship.
 
 ### `high_risk` — `supersede` positive
 
@@ -148,9 +155,9 @@ exact numbers). Cases are ordered by `case_id`; pairs within a case are ordered 
 
 Additionally, every template value carries a life-domain `aspect` tag (a closed vocabulary inside
 `synth_supersede.py`, exported as the `CONTENT_META` map), and the generator mechanically enforces
-ASPECT DISJOINTNESS for `unrelated` pairs: multi-fact draws that would label two same-aspect (or
-same-slot, or identical-content) facts `unrelated` are deterministically rejected and redrawn, and
-a post-generation sweep (`_check_aspect_disjointness`, also part of `--check`) asserts over the
-entire goldset that every `unrelated` pair joins two facts with different contents, different
-source slots, and different aspects — while `coexist` pairs need only different slots (sharing an
-aspect is what coexist means; see the discriminator note above).
+the WHOLE label vocabulary over it: multi-fact draws that would violate a label's conditions are
+deterministically rejected and redrawn, and a post-generation sweep (`_check_aspect_disjointness`,
+also part of `--check`) asserts over the entire goldset that every `unrelated` pair joins two
+facts with different contents, different source slots, and different aspects, that every `coexist`
+pair SHARES one aspect while occupying two different slots (the biconditional in the discriminator
+note above), and that every `supersede` pair shares one slot.

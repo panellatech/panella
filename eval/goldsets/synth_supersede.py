@@ -21,9 +21,11 @@ generators reject-and-redraw any draw that would label two same-aspect (or same-
 same-content) facts `unrelated` (redraw = the next rng draw in fixed order, bounded attempts, then
 a deterministic linear probe over the pool). After generation `_check_aspect_disjointness` sweeps
 the ENTIRE goldset — standalone AND multi cases — asserting every `unrelated` pair joins two facts
-with different contents AND different source slots AND different aspects, every `coexist` pair two
-different slots, and every `supersede` pair one shared slot; any violation exits 2. Coexist pairs
-MAY share an aspect (that is what coexist means); unrelated pairs MUST NOT.
+with different contents AND different source slots AND different aspects, every `coexist` pair one
+SHARED aspect and two different slots, and every `supersede` pair one shared slot; any violation
+exits 2. The coexist-vs-unrelated boundary is a mechanical BICONDITIONAL over the aspect tags
+(GH-bot r3): same aspect + different slot + both-true <=> `coexist`; different aspect <=>
+`unrelated`. Same aspect + same slot is `supersede` territory, never coexist.
 
 Beyond schema validity, the generated goldset must also clear a set of hard CONTENT bars (computed
 from the generated data, not hand-counted) — see `_check_bars`: total cases >= 90, total pairs >=
@@ -133,36 +135,56 @@ _HR_SUPERSEDE_SLOTS: list[UpdateTemplate] = [
     UpdateTemplate("secondary_physician", "health", "sees Dr. Kavita Lindqvist for specialist care", "was referred to Dr. Tobias Renner for specialist care after a practice change"),
 ]
 
-# Synthetic independent-fact templates for `coexist` pairs — two facts about DIFFERENT slots that
-# both remain true at once (never update one another). Halves MAY share an aspect (coexist is the
-# related-aspects label — see SCHEMA.md's coexist-vs-unrelated discriminator) but MUST have
-# different slots.
+# Synthetic templates for `coexist` pairs — the label is a mechanical BICONDITIONAL (GH-bot r3):
+# coexist <=> SAME aspect (life domain) AND DIFFERENT slot AND both facts remain true. These are
+# the anti-false-supersede probes: two same-cluster facts a naive updater might wrongly treat as a
+# slot update of one another (morning coffee style vs evening drink; chess vs weekend soccer),
+# where neither actually updates the other. Every half below resolves through CONTENT_META, and
+# `_check_aspect_disjointness` mechanically asserts each pair shares its aspect and splits slots —
+# a cross-aspect pair can never be labeled coexist (that shape is `unrelated` by definition).
 _COEXIST_PAIRS: list[tuple[str, str]] = [
-    ("avoids gluten in their diet", "enjoys ambient electronic music"),
-    ("prefers window seats when traveling", "keeps a succulent on their desk"),
-    ("reads mostly historical fiction", "plays badminton on weekends"),
-    ("dislikes spicy food", "collects vintage postage stamps"),
-    ("works a hybrid schedule", "volunteers at a community garden monthly"),
-    ("uses a standing desk", "subscribes to a weekly astronomy newsletter"),
-    ("prefers tea over coffee in the evening", "practices calligraphy as a hobby"),
-    ("keeps a bullet journal", "follows a strict Tuesday gym routine"),
-    ("is left-handed", "enjoys documentary films"),
-    ("has two houseplants named after constellations", "bikes to the farmers market on Saturdays"),
-    # --- v1 additions ---
-    ("keeps a small herb garden on the balcony", "enjoys long-distance trail running"),
-    ("prefers aisle seats on short flights", "collects retro video game cartridges"),
-    ("journals every morning before work", "plays chess online in the evenings"),
-    ("is a night owl who works best after 9pm", "volunteers at a local animal shelter twice a month"),
-    ("enjoys painting watercolor landscapes", "follows a weekly meal-prep routine on Sundays"),
-    ("prefers podcasts over music while commuting", "keeps an aquarium with two goldfish"),
-    ("practices yoga twice a week", "reads science fiction novels on weekends"),
-    ("prefers a minimalist desk setup", "enjoys birdwatching on weekend hikes"),
-    ("collects vinyl records from the 1990s", "attends a monthly board game night"),
-    ("is training for a half-marathon", "prefers historical documentaries over dramas"),
-    ("grows tomatoes in a backyard garden", "keeps a list of favorite hiking trails"),
-    ("prefers text messages over phone calls", "enjoys home-brewing coffee on weekends"),
-    ("prefers window seats on long flights", "bakes sourdough bread on weekends"),
-    ("keeps a running gratitude list each night", "enjoys building model trains as a hobby"),
+    # beverage
+    ("drinks black coffee, no sugar", "prefers tea over coffee in the evening"),
+    ("enjoys home-brewing coffee on weekends", "prefers tea over coffee in the evening"),
+    # sport
+    ("plays chess online in the evenings", "plays recreational soccer on weekends"),
+    ("plays badminton on weekends", "practices yoga twice a week"),
+    ("follows a strict Tuesday gym routine", "enjoys long-distance trail running"),
+    ("is training for a half-marathon", "plays badminton on weekends"),
+    # media
+    ("reads science fiction novels on weekends", "streams shows on Lumen Play"),
+    ("reads mostly historical fiction", "subscribes to a weekly astronomy newsletter"),
+    ("prefers podcasts over music while commuting", "enjoys documentary films"),
+    # music
+    ("enjoys ambient electronic music", "collects vinyl records from the 1990s"),
+    # hobby
+    ("practices calligraphy as a hobby", "collects vintage postage stamps"),
+    ("enjoys painting watercolor landscapes", "enjoys building model trains as a hobby"),
+    ("keeps a small herb garden on the balcony", "grows tomatoes in a backyard garden"),
+    ("enjoys birdwatching on weekend hikes", "keeps a list of favorite hiking trails"),
+    ("keeps an aquarium with two goldfish", "collects retro video game cartridges"),
+    # home
+    ("keeps a succulent on their desk", "has two houseplants named after constellations"),
+    ("uses a standing desk", "keeps a succulent on their desk"),
+    # routine
+    ("keeps a bullet journal", "journals every morning before work"),
+    ("is a night owl who works best after 9pm", "keeps a running gratitude list each night"),
+    # dining
+    ("avoids gluten in their diet", "dislikes spicy food"),
+    ("follows a weekly meal-prep routine on Sundays", "bakes sourdough bread on weekends"),
+    # transport
+    ("prefers window seats when traveling", "bikes to the farmers market on Saturdays"),
+    # social
+    ("volunteers at a community garden monthly", "attends a monthly board game night"),
+    # work
+    ("works a hybrid schedule", "works out of the Meridian Tower office"),
+    # tech_tools
+    ("writes mostly Solstice-lang", "codes in Nimbus Editor"),
+    ("uses Aurora Browser", "takes notes in Quill Notes"),
+    # devices
+    ("carries a Solstice X12", "sketches on a Halcyon Pad Mini"),
+    # services
+    ("backs up files to Driftbox Cloud", "has home internet through Fenwick Broadband"),
 ]
 
 # Synthetic unrelated-fact templates for `unrelated` pairs — two facts sharing NO slot/subject AND
@@ -204,6 +226,32 @@ _UNRELATED_PAIRS: list[tuple[str, str]] = [
     ("upgraded to a Drift Cycles Apex", "prefers text messages over phone calls"),
     ("switched to recreational tennis on weekends", "prefers window seats on long flights"),
     ("upgraded to a Halcyon Pad Pro", "keeps a running gratitude list each night"),
+    # --- r3: repurposed from the pre-biconditional coexist pool. These pairs are cross-aspect by
+    # construction (that is exactly why they could no longer be labeled coexist), which makes each
+    # a valid different-aspect/different-slot `unrelated` trap verbatim. ---
+    ("avoids gluten in their diet", "enjoys ambient electronic music"),
+    ("prefers window seats when traveling", "keeps a succulent on their desk"),
+    ("reads mostly historical fiction", "plays badminton on weekends"),
+    ("dislikes spicy food", "collects vintage postage stamps"),
+    ("works a hybrid schedule", "volunteers at a community garden monthly"),
+    ("uses a standing desk", "subscribes to a weekly astronomy newsletter"),
+    ("prefers tea over coffee in the evening", "practices calligraphy as a hobby"),
+    ("keeps a bullet journal", "follows a strict Tuesday gym routine"),
+    ("is left-handed", "enjoys documentary films"),
+    ("has two houseplants named after constellations", "bikes to the farmers market on Saturdays"),
+    ("keeps a small herb garden on the balcony", "enjoys long-distance trail running"),
+    ("prefers aisle seats on short flights", "collects retro video game cartridges"),
+    ("journals every morning before work", "plays chess online in the evenings"),
+    ("is a night owl who works best after 9pm", "volunteers at a local animal shelter twice a month"),
+    ("enjoys painting watercolor landscapes", "follows a weekly meal-prep routine on Sundays"),
+    ("prefers podcasts over music while commuting", "keeps an aquarium with two goldfish"),
+    ("practices yoga twice a week", "reads science fiction novels on weekends"),
+    ("prefers a minimalist desk setup", "enjoys birdwatching on weekend hikes"),
+    ("collects vinyl records from the 1990s", "attends a monthly board game night"),
+    ("is training for a half-marathon", "prefers historical documentaries over dramas"),
+    ("prefers text messages over phone calls", "enjoys home-brewing coffee on weekends"),
+    ("prefers window seats on long flights", "bakes sourdough bread on weekends"),
+    ("keeps a running gratitude list each night", "enjoys building model trains as a hobby"),
 ]
 
 # High-risk-flavored `unrelated` pairs — an hr fact (from `_HR_SUPERSEDE_SLOTS`'s families, in
@@ -398,8 +446,8 @@ def _case_coexist(idx: int, val_a: str, val_b: str, base: datetime) -> dict[str,
     ]
     pairs = [{"earlier_id": "f-a", "later_id": "f-b", "label": "coexist"}]
     current_truth = [
-        {"fact_id": "f-a", "rationale": "independent fact, not updated by any later pair"},
-        {"fact_id": "f-b", "rationale": "independent fact, coexists with f-a"},
+        {"fact_id": "f-a", "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"},
+        {"fact_id": "f-b", "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"},
     ]
     return {"case_id": case_id, "facts": facts, "pairs": pairs, "current_truth": current_truth}
 
@@ -489,28 +537,28 @@ def _case_multi_fact(idx: int, rng: random.Random, base: datetime) -> dict[str, 
     equals any already-drawn fact's content, its source slot equals any already-drawn fact's slot,
     or its aspect equals the aspect of any already-drawn fact it will be labeled `unrelated` with —
     so no same-cluster (or verbatim-duplicate) pair can ever be labeled `unrelated` here. The f5/f3
-    coexist pair may share an aspect (coexist is the related-aspects label) but never a slot."""
+    coexist pair follows the coexist BICONDITIONAL: it must share exactly one aspect (same life
+    domain) while occupying different slots."""
     case_id = f"sc-multi-{idx:04d}"
     include_coexist = idx % 2 == 0
     slot_t = _SUPERSEDE_SLOTS[rng.randrange(len(_SUPERSEDE_SLOTS))]
 
     def accept_coexist(pair: tuple[str, str]) -> bool:
         a_txt, b_txt = pair
+        a_slot, a_aspect = CONTENT_META[a_txt]
         b_slot, b_aspect = CONTENT_META[b_txt]
+        # The tuple itself must satisfy the coexist biconditional — same aspect, different slots,
+        # distinct contents (pool-curated; re-checked here so a bad template can never generate).
+        if a_aspect != b_aspect or a_slot == b_slot or a_txt == b_txt:
+            return False
         # f3 = b_txt: content/slot-unique vs f1/f2, aspect-disjoint from them (pair (f1,f3) is
-        # labeled unrelated; f2 shares f1's slot template, so one aspect check covers both).
+        # labeled unrelated; f2 shares f1's slot template, so one aspect check covers both — and
+        # because the tuple shares ONE aspect, it also covers f5's (f1,f5) pair on even idx).
         if b_txt in (slot_t.earlier, slot_t.later) or b_slot == slot_t.slot or b_aspect == slot_t.aspect:
             return False
-        if include_coexist:
-            a_slot, a_aspect = CONTENT_META[a_txt]
-            # f5 = a_txt: content/slot-unique vs f1/f2 AND vs f3 (the (f5,f3) coexist pair needs
-            # different slots), aspect-disjoint from f1 (pair (f1,f5) is labeled unrelated). f5's
-            # aspect MAY equal f3's — that pair is labeled coexist.
-            if a_txt in (slot_t.earlier, slot_t.later, b_txt):
-                return False
-            if a_slot in (slot_t.slot, b_slot) or a_aspect == slot_t.aspect:
-                return False
-        return True
+        # f5 = a_txt (drawn only on even idx): content/slot-unique vs f1/f2 (its aspect-
+        # disjointness from f1 follows from the shared tuple aspect already checked above).
+        return not (include_coexist and (a_txt in (slot_t.earlier, slot_t.later) or a_slot == slot_t.slot))
 
     coexist_a, coexist_b = _draw(rng, _COEXIST_PAIRS, accept_coexist)
     drawn_contents = {slot_t.earlier, slot_t.later, coexist_b}
@@ -550,7 +598,7 @@ def _case_multi_fact(idx: int, rng: random.Random, base: datetime) -> dict[str, 
         pairs.append({"earlier_id": "f5", "later_id": "f3", "label": "coexist"})
         pairs.append({"earlier_id": "f1", "later_id": "f5", "label": "unrelated"})
         pairs.append({"earlier_id": "f5", "later_id": "f4", "label": "unrelated"})
-        current_truth.append({"fact_id": "f5", "rationale": "independent fact, coexists with f3"})
+        current_truth.append({"fact_id": "f5", "rationale": "same life domain as f3 but a distinct slot; coexists with f3"})
     return {"case_id": case_id, "facts": facts, "pairs": pairs, "current_truth": current_truth}
 
 
@@ -747,11 +795,11 @@ def _check_bars(data: dict[str, Any]) -> list[str]:
 def _check_aspect_disjointness(data: dict[str, Any]) -> list[str]:
     """The generator-enforced relatedness invariant, swept over the ENTIRE goldset (standalone AND
     multi cases): every `unrelated` pair joins two facts with different contents AND different
-    source slots AND different aspects; every `coexist` pair joins two different slots (a shared
-    aspect is allowed — that is what coexist means); every `supersede` pair joins one shared slot.
-    Fact contents resolve through the exported `CONTENT_META` map; an unresolvable content is
-    itself a violation (the map must cover every generated value). Returns failure messages
-    (empty = clean)."""
+    source slots AND different aspects; every `coexist` pair SHARES one aspect and joins two
+    different slots (the coexist biconditional — same life domain, distinct slots); every
+    `supersede` pair joins one shared slot. Fact contents resolve through the exported
+    `CONTENT_META` map; an unresolvable content is itself a violation (the map must cover every
+    generated value). Returns failure messages (empty = clean)."""
     errors: list[str] = []
     for case in data.get("cases", []):
         cid = case.get("case_id", "<missing case_id>")
@@ -776,6 +824,8 @@ def _check_aspect_disjointness(data: dict[str, Any]) -> list[str]:
             elif label == "coexist":
                 if e_meta[0] == l_meta[0]:
                     errors.append(f"case {cid}: coexist pair shares slot {e_meta[0]!r} ({e_txt!r} x {l_txt!r})")
+                if e_meta[1] != l_meta[1]:
+                    errors.append(f"case {cid}: coexist pair spans aspects {e_meta[1]!r} != {l_meta[1]!r} ({e_txt!r} x {l_txt!r})")
             elif label == "supersede":
                 if e_meta[0] != l_meta[0]:
                     errors.append(f"case {cid}: supersede pair spans slots {e_meta[0]!r} != {l_meta[0]!r}")

@@ -5,21 +5,21 @@
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
         {
-          "content": "avoids gluten in their diet",
+          "content": "drinks black coffee, no sugar",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
         {
-          "content": "enjoys ambient electronic music",
+          "content": "prefers tea over coffee in the evening",
           "date": "2024-02-07T09:00:00Z",
           "fact_id": "f-b"
         }
@@ -37,21 +37,21 @@
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
         {
-          "content": "prefers window seats when traveling",
+          "content": "enjoys home-brewing coffee on weekends",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
         {
-          "content": "keeps a succulent on their desk",
+          "content": "prefers tea over coffee in the evening",
           "date": "2024-02-07T09:00:00Z",
           "fact_id": "f-b"
         }
@@ -69,16 +69,112 @@
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
         {
-          "content": "reads mostly historical fiction",
+          "content": "plays chess online in the evenings",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "plays recreational soccer on weekends",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0003",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "plays badminton on weekends",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "practices yoga twice a week",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0004",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "follows a strict Tuesday gym routine",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys long-distance trail running",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0005",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "is training for a half-marathon",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
@@ -97,25 +193,25 @@
       ]
     },
     {
-      "case_id": "sc-coexist-0003",
+      "case_id": "sc-coexist-0006",
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
         {
-          "content": "dislikes spicy food",
+          "content": "reads science fiction novels on weekends",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
         {
-          "content": "collects vintage postage stamps",
+          "content": "streams shows on Lumen Play",
           "date": "2024-02-07T09:00:00Z",
           "fact_id": "f-b"
         }
@@ -129,52 +225,20 @@
       ]
     },
     {
-      "case_id": "sc-coexist-0004",
+      "case_id": "sc-coexist-0007",
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
         {
-          "content": "works a hybrid schedule",
-          "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
-        },
-        {
-          "content": "volunteers at a community garden monthly",
-          "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
-        }
-      ],
-      "pairs": [
-        {
-          "earlier_id": "f-a",
-          "label": "coexist",
-          "later_id": "f-b"
-        }
-      ]
-    },
-    {
-      "case_id": "sc-coexist-0005",
-      "current_truth": [
-        {
-          "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
-        },
-        {
-          "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
-        }
-      ],
-      "facts": [
-        {
-          "content": "uses a standing desk",
+          "content": "reads mostly historical fiction",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
@@ -193,84 +257,20 @@
       ]
     },
     {
-      "case_id": "sc-coexist-0006",
-      "current_truth": [
-        {
-          "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
-        },
-        {
-          "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
-        }
-      ],
-      "facts": [
-        {
-          "content": "prefers tea over coffee in the evening",
-          "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
-        },
-        {
-          "content": "practices calligraphy as a hobby",
-          "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
-        }
-      ],
-      "pairs": [
-        {
-          "earlier_id": "f-a",
-          "label": "coexist",
-          "later_id": "f-b"
-        }
-      ]
-    },
-    {
-      "case_id": "sc-coexist-0007",
-      "current_truth": [
-        {
-          "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
-        },
-        {
-          "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
-        }
-      ],
-      "facts": [
-        {
-          "content": "keeps a bullet journal",
-          "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
-        },
-        {
-          "content": "follows a strict Tuesday gym routine",
-          "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
-        }
-      ],
-      "pairs": [
-        {
-          "earlier_id": "f-a",
-          "label": "coexist",
-          "later_id": "f-b"
-        }
-      ]
-    },
-    {
       "case_id": "sc-coexist-0008",
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
         {
-          "content": "is left-handed",
+          "content": "prefers podcasts over music while commuting",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
@@ -293,21 +293,21 @@
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
         {
-          "content": "has two houseplants named after constellations",
+          "content": "enjoys ambient electronic music",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
         {
-          "content": "bikes to the farmers market on Saturdays",
+          "content": "collects vinyl records from the 1990s",
           "date": "2024-02-07T09:00:00Z",
           "fact_id": "f-b"
         }
@@ -325,21 +325,21 @@
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
         {
-          "content": "keeps a small herb garden on the balcony",
+          "content": "practices calligraphy as a hobby",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
         {
-          "content": "enjoys long-distance trail running",
+          "content": "collects vintage postage stamps",
           "date": "2024-02-07T09:00:00Z",
           "fact_id": "f-b"
         }
@@ -357,21 +357,21 @@
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
         {
-          "content": "prefers aisle seats on short flights",
+          "content": "enjoys painting watercolor landscapes",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
         {
-          "content": "collects retro video game cartridges",
+          "content": "enjoys building model trains as a hobby",
           "date": "2024-02-07T09:00:00Z",
           "fact_id": "f-b"
         }
@@ -389,21 +389,21 @@
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
         {
-          "content": "journals every morning before work",
+          "content": "keeps a small herb garden on the balcony",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
         {
-          "content": "plays chess online in the evenings",
+          "content": "grows tomatoes in a backyard garden",
           "date": "2024-02-07T09:00:00Z",
           "fact_id": "f-b"
         }
@@ -421,240 +421,16 @@
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
-        {
-          "content": "is a night owl who works best after 9pm",
-          "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
-        },
-        {
-          "content": "volunteers at a local animal shelter twice a month",
-          "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
-        }
-      ],
-      "pairs": [
-        {
-          "earlier_id": "f-a",
-          "label": "coexist",
-          "later_id": "f-b"
-        }
-      ]
-    },
-    {
-      "case_id": "sc-coexist-0014",
-      "current_truth": [
-        {
-          "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
-        },
-        {
-          "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
-        }
-      ],
-      "facts": [
-        {
-          "content": "enjoys painting watercolor landscapes",
-          "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
-        },
-        {
-          "content": "follows a weekly meal-prep routine on Sundays",
-          "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
-        }
-      ],
-      "pairs": [
-        {
-          "earlier_id": "f-a",
-          "label": "coexist",
-          "later_id": "f-b"
-        }
-      ]
-    },
-    {
-      "case_id": "sc-coexist-0015",
-      "current_truth": [
-        {
-          "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
-        },
-        {
-          "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
-        }
-      ],
-      "facts": [
-        {
-          "content": "prefers podcasts over music while commuting",
-          "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
-        },
-        {
-          "content": "keeps an aquarium with two goldfish",
-          "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
-        }
-      ],
-      "pairs": [
-        {
-          "earlier_id": "f-a",
-          "label": "coexist",
-          "later_id": "f-b"
-        }
-      ]
-    },
-    {
-      "case_id": "sc-coexist-0016",
-      "current_truth": [
-        {
-          "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
-        },
-        {
-          "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
-        }
-      ],
-      "facts": [
-        {
-          "content": "practices yoga twice a week",
-          "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
-        },
-        {
-          "content": "reads science fiction novels on weekends",
-          "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
-        }
-      ],
-      "pairs": [
-        {
-          "earlier_id": "f-a",
-          "label": "coexist",
-          "later_id": "f-b"
-        }
-      ]
-    },
-    {
-      "case_id": "sc-coexist-0017",
-      "current_truth": [
-        {
-          "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
-        },
-        {
-          "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
-        }
-      ],
-      "facts": [
-        {
-          "content": "prefers a minimalist desk setup",
-          "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
-        },
         {
           "content": "enjoys birdwatching on weekend hikes",
-          "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
-        }
-      ],
-      "pairs": [
-        {
-          "earlier_id": "f-a",
-          "label": "coexist",
-          "later_id": "f-b"
-        }
-      ]
-    },
-    {
-      "case_id": "sc-coexist-0018",
-      "current_truth": [
-        {
-          "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
-        },
-        {
-          "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
-        }
-      ],
-      "facts": [
-        {
-          "content": "collects vinyl records from the 1990s",
-          "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
-        },
-        {
-          "content": "attends a monthly board game night",
-          "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
-        }
-      ],
-      "pairs": [
-        {
-          "earlier_id": "f-a",
-          "label": "coexist",
-          "later_id": "f-b"
-        }
-      ]
-    },
-    {
-      "case_id": "sc-coexist-0019",
-      "current_truth": [
-        {
-          "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
-        },
-        {
-          "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
-        }
-      ],
-      "facts": [
-        {
-          "content": "is training for a half-marathon",
-          "date": "2024-01-08T09:00:00Z",
-          "fact_id": "f-a"
-        },
-        {
-          "content": "prefers historical documentaries over dramas",
-          "date": "2024-02-07T09:00:00Z",
-          "fact_id": "f-b"
-        }
-      ],
-      "pairs": [
-        {
-          "earlier_id": "f-a",
-          "label": "coexist",
-          "later_id": "f-b"
-        }
-      ]
-    },
-    {
-      "case_id": "sc-coexist-0020",
-      "current_truth": [
-        {
-          "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
-        },
-        {
-          "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
-        }
-      ],
-      "facts": [
-        {
-          "content": "grows tomatoes in a backyard garden",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
@@ -673,25 +449,25 @@
       ]
     },
     {
-      "case_id": "sc-coexist-0021",
+      "case_id": "sc-coexist-0014",
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
         {
-          "content": "prefers text messages over phone calls",
+          "content": "keeps an aquarium with two goldfish",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
         {
-          "content": "enjoys home-brewing coffee on weekends",
+          "content": "collects retro video game cartridges",
           "date": "2024-02-07T09:00:00Z",
           "fact_id": "f-b"
         }
@@ -705,20 +481,180 @@
       ]
     },
     {
-      "case_id": "sc-coexist-0022",
+      "case_id": "sc-coexist-0015",
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
         {
-          "content": "prefers window seats on long flights",
+          "content": "keeps a succulent on their desk",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "has two houseplants named after constellations",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0016",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "uses a standing desk",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "keeps a succulent on their desk",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0017",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "keeps a bullet journal",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "journals every morning before work",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0018",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "is a night owl who works best after 9pm",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "keeps a running gratitude list each night",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0019",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "avoids gluten in their diet",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "dislikes spicy food",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0020",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "follows a weekly meal-prep routine on Sundays",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
@@ -737,25 +673,217 @@
       ]
     },
     {
-      "case_id": "sc-coexist-0023",
+      "case_id": "sc-coexist-0021",
       "current_truth": [
         {
           "fact_id": "f-a",
-          "rationale": "independent fact, not updated by any later pair"
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
         },
         {
           "fact_id": "f-b",
-          "rationale": "independent fact, coexists with f-a"
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
         }
       ],
       "facts": [
         {
-          "content": "keeps a running gratitude list each night",
+          "content": "prefers window seats when traveling",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f-a"
         },
         {
-          "content": "enjoys building model trains as a hobby",
+          "content": "bikes to the farmers market on Saturdays",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0022",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "volunteers at a community garden monthly",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "attends a monthly board game night",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0023",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works a hybrid schedule",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "works out of the Meridian Tower office",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0024",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "writes mostly Solstice-lang",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "codes in Nimbus Editor",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0025",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "uses Aurora Browser",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "takes notes in Quill Notes",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0026",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "carries a Solstice X12",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "sketches on a Halcyon Pad Mini",
+          "date": "2024-02-07T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "coexist",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-coexist-0027",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "same life domain as f-b but a distinct slot; not updated by any later pair"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "same life domain as f-a but a distinct slot; coexists with f-a"
+        }
+      ],
+      "facts": [
+        {
+          "content": "backs up files to Driftbox Cloud",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "has home internet through Fenwick Broadband",
           "date": "2024-02-07T09:00:00Z",
           "fact_id": "f-b"
         }
@@ -997,7 +1125,7 @@
       "current_truth": [
         {
           "fact_id": "f2",
-          "rationale": "latest food_allergy fact, not superseded by any later pair"
+          "rationale": "latest legal_name fact, not superseded by any later pair"
         },
         {
           "fact_id": "f3",
@@ -1010,22 +1138,22 @@
       ],
       "facts": [
         {
-          "content": "manages a mild tree-nut sensitivity flagged by their care team",
+          "content": "goes by the legal name Marlowe Kestrel",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "was diagnosed with a severe tree-nut allergy after follow-up testing",
+          "content": "legally changed their name to Marlowe Ashgrove last spring",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "lives in Rivertown",
+          "content": "switched to Cirrus Vault",
           "date": "2024-01-23T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "codes in Nimbus Editor",
+          "content": "is a night owl who works best after 9pm",
           "date": "2024-08-05T09:00:00Z",
           "fact_id": "f4"
         }
@@ -1061,7 +1189,7 @@
       "current_truth": [
         {
           "fact_id": "f2",
-          "rationale": "latest secondary_medication fact, not superseded by any later pair"
+          "rationale": "latest dietary_restriction fact, not superseded by any later pair"
         },
         {
           "fact_id": "f3",
@@ -1074,22 +1202,22 @@
       ],
       "facts": [
         {
-          "content": "takes Halbrivan for a chronic migraine condition",
+          "content": "follows a low-sodium diet ordered by their care team",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to Quenavir after their neurologist changed the plan",
+          "content": "moved to a gluten-free diet after a recent diagnosis",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "upgraded to a Comet Voyager",
+          "content": "collects vinyl records from the 1990s",
           "date": "2024-01-23T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "grows tomatoes in a backyard garden",
+          "content": "attends a monthly board game night",
           "date": "2024-08-05T09:00:00Z",
           "fact_id": "f4"
         }
@@ -1125,7 +1253,7 @@
       "current_truth": [
         {
           "fact_id": "f2",
-          "rationale": "latest emergency_contact fact, not superseded by any later pair"
+          "rationale": "latest legal_name fact, not superseded by any later pair"
         },
         {
           "fact_id": "f3",
@@ -1138,22 +1266,22 @@
       ],
       "facts": [
         {
-          "content": "lists Priya Osgood as their emergency contact",
+          "content": "goes by the legal name Marlowe Kestrel",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "updated their emergency contact to Devon Achebe last month",
+          "content": "legally changed their name to Marlowe Ashgrove last spring",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "takes notes in Quill Notes",
+          "content": "switched to a Dvorak keyboard layout",
           "date": "2024-01-23T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "types on a QWERTY keyboard layout",
+          "content": "prefers a minimalist desk setup",
           "date": "2024-08-05T09:00:00Z",
           "fact_id": "f4"
         }
@@ -1189,7 +1317,7 @@
       "current_truth": [
         {
           "fact_id": "f2",
-          "rationale": "latest secondary_physician fact, not superseded by any later pair"
+          "rationale": "latest medication fact, not superseded by any later pair"
         },
         {
           "fact_id": "f3",
@@ -1202,22 +1330,22 @@
       ],
       "facts": [
         {
-          "content": "sees Dr. Kavita Lindqvist for specialist care",
+          "content": "takes Veltrazine daily for hypertension",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "was referred to Dr. Tobias Renner for specialist care after a practice change",
+          "content": "switched to Norvexol last month",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "was promoted to engineering lead",
+          "content": "prefers window seats on long flights",
           "date": "2024-01-23T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "keeps a succulent on their desk",
+          "content": "bakes sourdough bread on weekends",
           "date": "2024-08-05T09:00:00Z",
           "fact_id": "f4"
         }
@@ -1276,12 +1404,12 @@
           "fact_id": "f2"
         },
         {
-          "content": "now plays for the Driftwood Otters",
+          "content": "commutes by bicycle",
           "date": "2024-01-23T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "keeps a small herb garden on the balcony",
+          "content": "reads mostly historical fiction",
           "date": "2024-08-05T09:00:00Z",
           "fact_id": "f4"
         }
@@ -1317,7 +1445,7 @@
       "current_truth": [
         {
           "fact_id": "f2",
-          "rationale": "latest secondary_physician fact, not superseded by any later pair"
+          "rationale": "latest food_allergy fact, not superseded by any later pair"
         },
         {
           "fact_id": "f3",
@@ -1330,22 +1458,22 @@
       ],
       "facts": [
         {
-          "content": "sees Dr. Kavita Lindqvist for specialist care",
+          "content": "manages a mild tree-nut sensitivity flagged by their care team",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "was referred to Dr. Tobias Renner for specialist care after a practice change",
+          "content": "was diagnosed with a severe tree-nut allergy after follow-up testing",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "moved to Lakeside last month",
+          "content": "upgraded to a Comet Voyager",
           "date": "2024-01-23T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "practices calligraphy as a hobby",
+          "content": "grows tomatoes in a backyard garden",
           "date": "2024-08-05T09:00:00Z",
           "fact_id": "f4"
         }
@@ -2475,7 +2603,7 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
@@ -2490,17 +2618,17 @@
           "fact_id": "f2"
         },
         {
-          "content": "plays chess online in the evenings",
+          "content": "grows tomatoes in a backyard garden",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "switched to oat-milk lattes",
+          "content": "plays recreational soccer on weekends",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "journals every morning before work",
+          "content": "keeps a small herb garden on the balcony",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -2561,22 +2689,22 @@
       ],
       "facts": [
         {
-          "content": "writes mostly Solstice-lang",
+          "content": "lives in Rivertown",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "writes mostly Umbra-lang now",
+          "content": "moved to Lakeside last month",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "bakes sourdough bread on weekends",
+          "content": "codes in Nimbus Editor",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "lives in Rivertown",
+          "content": "prefers a minimalist desk setup",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -2621,32 +2749,32 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
         {
-          "content": "drinks black coffee, no sugar",
+          "content": "writes mostly Solstice-lang",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to oat-milk lattes",
+          "content": "writes mostly Umbra-lang now",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "follows a weekly meal-prep routine on Sundays",
+          "content": "practices yoga twice a week",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "lives in Rivertown",
+          "content": "journals every morning before work",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "enjoys painting watercolor landscapes",
+          "content": "plays badminton on weekends",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -2707,22 +2835,22 @@
       ],
       "facts": [
         {
-          "content": "has home internet through Fenwick Broadband",
+          "content": "works at Northwind Traders",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to Northgate Fiber",
+          "content": "now works at Contoso Labs",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "keeps a succulent on their desk",
+          "content": "enjoys long-distance trail running",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "moved to the Cascadia Point office",
+          "content": "upgraded to a Drift Cycles Apex",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -2767,32 +2895,32 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
         {
-          "content": "works out of the Meridian Tower office",
+          "content": "follows a strength-training gym routine",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "moved to the Cascadia Point office",
+          "content": "switched to a running-focused training routine",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "enjoys home-brewing coffee on weekends",
+          "content": "prefers tea over coffee in the evening",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "codes on a Fenwick Slate 13",
+          "content": "keeps a bullet journal",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "prefers text messages over phone calls",
+          "content": "drinks black coffee, no sugar",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -2853,22 +2981,22 @@
       ],
       "facts": [
         {
-          "content": "streams shows on Lumen Play",
+          "content": "lives in Rivertown",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to Orbit Screen",
+          "content": "moved to Lakeside last month",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "bikes to the farmers market on Saturdays",
+          "content": "codes in Nimbus Editor",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "shifted to mostly Southeast-Asian-inspired meals",
+          "content": "prefers text messages over phone calls",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -2913,32 +3041,32 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
         {
-          "content": "works at Northwind Traders",
+          "content": "listens to music on Auria Sound",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "now works at Contoso Labs",
+          "content": "switched to Wavelength Audio",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "volunteers at a local animal shelter twice a month",
+          "content": "has two houseplants named after constellations",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "drives a Comet Roadster",
+          "content": "prefers aisle seats on short flights",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "is a night owl who works best after 9pm",
+          "content": "keeps a succulent on their desk",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -2999,22 +3127,22 @@
       ],
       "facts": [
         {
-          "content": "sketches on a Halcyon Pad Mini",
+          "content": "works as a systems analyst",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "upgraded to a Halcyon Pad Pro",
+          "content": "was promoted to engineering lead",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "practices calligraphy as a hobby",
+          "content": "keeps a succulent on their desk",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "moved to the Cascadia Point office",
+          "content": "shifted to mostly Southeast-Asian-inspired meals",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -3059,32 +3187,32 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
         {
-          "content": "types on a QWERTY keyboard layout",
+          "content": "works at Northwind Traders",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to a Dvorak keyboard layout",
+          "content": "now works at Contoso Labs",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "enjoys ambient electronic music",
+          "content": "keeps a list of favorite hiking trails",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "switched to Lattice Notes",
+          "content": "prefers podcasts over music while commuting",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "avoids gluten in their diet",
+          "content": "enjoys birdwatching on weekend hikes",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -3145,22 +3273,22 @@
       ],
       "facts": [
         {
-          "content": "has home internet through Fenwick Broadband",
+          "content": "works as a systems analyst",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to Northgate Fiber",
+          "content": "was promoted to engineering lead",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "bikes to the farmers market on Saturdays",
+          "content": "keeps a list of favorite hiking trails",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "moved to the Cascadia Point office",
+          "content": "listens to music on Auria Sound",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -3205,7 +3333,7 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
@@ -3220,17 +3348,17 @@
           "fact_id": "f2"
         },
         {
-          "content": "reads science fiction novels on weekends",
+          "content": "collects vinyl records from the 1990s",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "switched to Lattice Notes",
+          "content": "practices yoga twice a week",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "practices yoga twice a week",
+          "content": "enjoys ambient electronic music",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -3291,22 +3419,22 @@
       ],
       "facts": [
         {
-          "content": "takes a pottery class on Thursdays",
+          "content": "works at Northwind Traders",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to a woodworking class on Thursdays",
+          "content": "now works at Contoso Labs",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "subscribes to a weekly astronomy newsletter",
+          "content": "journals every morning before work",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "upgraded to a Drift Cycles Apex",
+          "content": "collects vinyl records from the 1990s",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -3351,32 +3479,32 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
         {
-          "content": "has a membership at Ironclad Gym",
+          "content": "carries a Solstice X12",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to Summit Fitness",
+          "content": "upgraded to a Solstice X14",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "bakes sourdough bread on weekends",
+          "content": "works out of the Meridian Tower office",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "takes notes in Quill Notes",
+          "content": "keeps a running gratitude list each night",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "prefers window seats on long flights",
+          "content": "works a hybrid schedule",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -3437,22 +3565,22 @@
       ],
       "facts": [
         {
-          "content": "works out of the Meridian Tower office",
+          "content": "cooks mostly Mediterranean-inspired meals",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "moved to the Cascadia Point office",
+          "content": "shifted to mostly Southeast-Asian-inspired meals",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "collects retro video game cartridges",
+          "content": "grows tomatoes in a backyard garden",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "writes mostly Solstice-lang",
+          "content": "switched to Lattice Notes",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -3497,32 +3625,32 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
         {
-          "content": "takes a pottery class on Thursdays",
+          "content": "has home internet through Fenwick Broadband",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to a woodworking class on Thursdays",
+          "content": "switched to Northgate Fiber",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "volunteers at a local animal shelter twice a month",
+          "content": "collects vinyl records from the 1990s",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "cooks mostly Mediterranean-inspired meals",
+          "content": "keeps a bullet journal",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "is a night owl who works best after 9pm",
+          "content": "enjoys ambient electronic music",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -3583,22 +3711,22 @@
       ],
       "facts": [
         {
-          "content": "drinks black coffee, no sugar",
+          "content": "has a membership at Ironclad Gym",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to oat-milk lattes",
+          "content": "switched to Summit Fitness",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "prefers historical documentaries over dramas",
+          "content": "takes notes in Quill Notes",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "moved to the Cascadia Point office",
+          "content": "prefers window seats when traveling",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -3643,32 +3771,32 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
         {
-          "content": "types on a QWERTY keyboard layout",
+          "content": "carries a Solstice X12",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to a Dvorak keyboard layout",
+          "content": "upgraded to a Solstice X14",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "follows a strict Tuesday gym routine",
+          "content": "bakes sourdough bread on weekends",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "commutes by bicycle",
+          "content": "practices yoga twice a week",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "keeps a bullet journal",
+          "content": "follows a weekly meal-prep routine on Sundays",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -3729,22 +3857,22 @@
       ],
       "facts": [
         {
-          "content": "works at Northwind Traders",
+          "content": "has a membership at Ironclad Gym",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "now works at Contoso Labs",
+          "content": "switched to Summit Fitness",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "enjoys ambient electronic music",
+          "content": "grows tomatoes in a backyard garden",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "switched to a running-focused training routine",
+          "content": "journals every morning before work",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -3789,32 +3917,32 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
         {
-          "content": "sketches on a Halcyon Pad Mini",
+          "content": "rides a Drift Cycles Meridian",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "upgraded to a Halcyon Pad Pro",
+          "content": "upgraded to a Drift Cycles Apex",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "plays chess online in the evenings",
+          "content": "has home internet through Fenwick Broadband",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "uses Aurora Browser",
+          "content": "now plays for the Driftwood Otters",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "journals every morning before work",
+          "content": "backs up files to Driftbox Cloud",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -3875,22 +4003,22 @@
       ],
       "facts": [
         {
-          "content": "rides a Drift Cycles Meridian",
+          "content": "takes a pottery class on Thursdays",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "upgraded to a Drift Cycles Apex",
+          "content": "switched to a woodworking class on Thursdays",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "collects retro video game cartridges",
+          "content": "subscribes to a weekly astronomy newsletter",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "cooks mostly Mediterranean-inspired meals",
+          "content": "switched to recreational tennis on weekends",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -3935,7 +4063,7 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
@@ -3950,17 +4078,17 @@
           "fact_id": "f2"
         },
         {
-          "content": "volunteers at a community garden monthly",
+          "content": "practices yoga twice a week",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "takes notes in Quill Notes",
+          "content": "journals every morning before work",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "works a hybrid schedule",
+          "content": "plays badminton on weekends",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -4021,22 +4149,22 @@
       ],
       "facts": [
         {
-          "content": "drives a Comet Roadster",
+          "content": "carries a Solstice X12",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "upgraded to a Comet Voyager",
+          "content": "upgraded to a Solstice X14",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "volunteers at a community garden monthly",
+          "content": "codes in Nimbus Editor",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "listens to music on Auria Sound",
+          "content": "switched to a running-focused training routine",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -4081,32 +4209,32 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
         {
-          "content": "codes on a Fenwick Slate 13",
+          "content": "cooks mostly Mediterranean-inspired meals",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "upgraded to a Fenwick Slate 15",
+          "content": "shifted to mostly Southeast-Asian-inspired meals",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "collects vintage postage stamps",
+          "content": "enjoys documentary films",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "switched to Northgate Fiber",
+          "content": "moved to Lakeside last month",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "dislikes spicy food",
+          "content": "prefers podcasts over music while commuting",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -4167,22 +4295,22 @@
       ],
       "facts": [
         {
-          "content": "lives in Rivertown",
+          "content": "has home internet through Fenwick Broadband",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "moved to Lakeside last month",
+          "content": "switched to Northgate Fiber",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "enjoys ambient electronic music",
+          "content": "collects vinyl records from the 1990s",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "upgraded to a Comet Voyager",
+          "content": "prefers a minimalist desk setup",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -4227,32 +4355,32 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
         {
-          "content": "lives in Rivertown",
+          "content": "cooks mostly Mediterranean-inspired meals",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "moved to Lakeside last month",
+          "content": "shifted to mostly Southeast-Asian-inspired meals",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "enjoys building model trains as a hobby",
+          "content": "subscribes to a weekly astronomy newsletter",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "rides a Drift Cycles Meridian",
+          "content": "commutes by bicycle",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "keeps a running gratitude list each night",
+          "content": "reads mostly historical fiction",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -4313,22 +4441,22 @@
       ],
       "facts": [
         {
-          "content": "works out of the Meridian Tower office",
+          "content": "works at Northwind Traders",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "moved to the Cascadia Point office",
+          "content": "now works at Contoso Labs",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "follows a strict Tuesday gym routine",
+          "content": "prefers tea over coffee in the evening",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "cooks mostly Mediterranean-inspired meals",
+          "content": "switched to a running-focused training routine",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -4373,32 +4501,32 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
         {
-          "content": "plays recreational soccer on weekends",
+          "content": "sketches on a Halcyon Pad Mini",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to recreational tennis on weekends",
+          "content": "upgraded to a Halcyon Pad Pro",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "practices calligraphy as a hobby",
+          "content": "grows tomatoes in a backyard garden",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "writes mostly Solstice-lang",
+          "content": "uses Aurora Browser",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "prefers tea over coffee in the evening",
+          "content": "keeps a small herb garden on the balcony",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -4459,22 +4587,22 @@
       ],
       "facts": [
         {
-          "content": "uses Aurora Browser",
+          "content": "rides a Drift Cycles Meridian",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to Meridian Browser",
+          "content": "upgraded to a Drift Cycles Apex",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "attends a monthly board game night",
+          "content": "enjoys building model trains as a hobby",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "shifted to mostly Southeast-Asian-inspired meals",
+          "content": "cooks mostly Mediterranean-inspired meals",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -4519,17 +4647,17 @@
         },
         {
           "fact_id": "f5",
-          "rationale": "independent fact, coexists with f3"
+          "rationale": "same life domain as f3 but a distinct slot; coexists with f3"
         }
       ],
       "facts": [
         {
-          "content": "drives a Comet Roadster",
+          "content": "rides a Drift Cycles Meridian",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "upgraded to a Comet Voyager",
+          "content": "upgraded to a Drift Cycles Apex",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
@@ -4539,12 +4667,12 @@
           "fact_id": "f3"
         },
         {
-          "content": "moved to the Cascadia Point office",
+          "content": "has two houseplants named after constellations",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         },
         {
-          "content": "keeps a small herb garden on the balcony",
+          "content": "follows a strict Tuesday gym routine",
           "date": "2024-01-13T09:00:00Z",
           "fact_id": "f5"
         }
@@ -4605,22 +4733,22 @@
       ],
       "facts": [
         {
-          "content": "types on a QWERTY keyboard layout",
+          "content": "backs up files to Driftbox Cloud",
           "date": "2024-01-08T09:00:00Z",
           "fact_id": "f1"
         },
         {
-          "content": "switched to a Dvorak keyboard layout",
+          "content": "switched to Cirrus Vault",
           "date": "2024-04-07T09:00:00Z",
           "fact_id": "f2"
         },
         {
-          "content": "bikes to the farmers market on Saturdays",
+          "content": "works out of the Meridian Tower office",
           "date": "2024-01-18T09:00:00Z",
           "fact_id": "f3"
         },
         {
-          "content": "writes mostly Solstice-lang",
+          "content": "collects vinyl records from the 1990s",
           "date": "2024-07-26T09:00:00Z",
           "fact_id": "f4"
         }
@@ -6388,6 +6516,742 @@
         },
         {
           "content": "keeps a running gratitude list each night",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0032",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "avoids gluten in their diet",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys ambient electronic music",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0033",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers window seats when traveling",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "keeps a succulent on their desk",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0034",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "reads mostly historical fiction",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "plays badminton on weekends",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0035",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "dislikes spicy food",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "collects vintage postage stamps",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0036",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "works a hybrid schedule",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "volunteers at a community garden monthly",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0037",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "uses a standing desk",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "subscribes to a weekly astronomy newsletter",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0038",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers tea over coffee in the evening",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "practices calligraphy as a hobby",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0039",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "keeps a bullet journal",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "follows a strict Tuesday gym routine",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0040",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "is left-handed",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys documentary films",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0041",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "has two houseplants named after constellations",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "bikes to the farmers market on Saturdays",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0042",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "keeps a small herb garden on the balcony",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys long-distance trail running",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0043",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers aisle seats on short flights",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "collects retro video game cartridges",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0044",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "journals every morning before work",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "plays chess online in the evenings",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0045",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "is a night owl who works best after 9pm",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "volunteers at a local animal shelter twice a month",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0046",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "enjoys painting watercolor landscapes",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "follows a weekly meal-prep routine on Sundays",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0047",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers podcasts over music while commuting",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "keeps an aquarium with two goldfish",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0048",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "practices yoga twice a week",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "reads science fiction novels on weekends",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0049",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers a minimalist desk setup",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys birdwatching on weekend hikes",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0050",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "collects vinyl records from the 1990s",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "attends a monthly board game night",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0051",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "is training for a half-marathon",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "prefers historical documentaries over dramas",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0052",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers text messages over phone calls",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys home-brewing coffee on weekends",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0053",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "prefers window seats on long flights",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "bakes sourdough bread on weekends",
+          "date": "2024-02-22T09:00:00Z",
+          "fact_id": "f-b"
+        }
+      ],
+      "pairs": [
+        {
+          "earlier_id": "f-a",
+          "label": "unrelated",
+          "later_id": "f-b"
+        }
+      ]
+    },
+    {
+      "case_id": "sc-unrelated-0054",
+      "current_truth": [
+        {
+          "fact_id": "f-a",
+          "rationale": "no shared slot with f-b; both stand as independently true"
+        },
+        {
+          "fact_id": "f-b",
+          "rationale": "no shared slot with f-a; both stand as independently true"
+        }
+      ],
+      "facts": [
+        {
+          "content": "keeps a running gratitude list each night",
+          "date": "2024-01-08T09:00:00Z",
+          "fact_id": "f-a"
+        },
+        {
+          "content": "enjoys building model trains as a hobby",
           "date": "2024-02-22T09:00:00Z",
           "fact_id": "f-b"
         }

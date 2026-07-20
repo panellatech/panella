@@ -79,13 +79,14 @@ def test_generate_clears_per_label_and_hr_pair_bars() -> None:
 
 
 def test_shipped_goldset_pairs_are_aspect_slot_content_disjoint() -> None:
-    """The blind-judge-finding invariant, recomputed INDEPENDENTLY of the generator's own
+    """The label-vocabulary invariant, recomputed INDEPENDENTLY of the generator's own
     `_check_aspect_disjointness` sweep: load the COMMITTED supersede_v1.json and, via the exported
     `CONTENT_META` aspect map, assert every `unrelated` pair (standalone AND multi) joins two facts
     with different contents AND different source slots AND different aspects, and every `coexist`
-    pair two different slots. This is what makes every `unrelated` label defensible: no pair of
-    same-cluster facts (two music facts, two gym facts, a fact and its verbatim duplicate) is ever
-    presented as sharing no subject."""
+    pair satisfies the BICONDITIONAL (GH-bot r3): one SHARED aspect AND two different slots. This
+    is what makes both labels defensible: no `unrelated` pair joins same-cluster facts (two music
+    facts, two gym facts, a verbatim duplicate), and no `coexist` pair spans life domains (a
+    cross-aspect pair is unrelated by definition, not coexist)."""
     data = json.loads(DEFAULT_OUT.read_text(encoding="utf-8"))
     unrelated_checked = coexist_checked = 0
     for case in data["cases"]:
@@ -105,6 +106,7 @@ def test_shipped_goldset_pairs_are_aspect_slot_content_disjoint() -> None:
             elif pair["label"] == "coexist":
                 coexist_checked += 1
                 assert e_slot != l_slot, (case["case_id"], e_slot, e_txt, l_txt)
+                assert e_aspect == l_aspect, (case["case_id"], e_aspect, l_aspect, e_txt, l_txt)
             else:  # supersede: one shared slot, by construction
                 assert e_slot == l_slot, (case["case_id"], e_slot, l_slot, e_txt, l_txt)
     # The invariant must have real coverage, not a vacuous pass over an empty file.
