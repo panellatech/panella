@@ -14,7 +14,7 @@ import pytest
 
 from eval.goldsets.resolver_calibration import DEFAULT_PROBES, _load, fake_provider, run
 from eval.goldsets.resolver_eval import extraction_face, reduce_item
-from eval.goldsets.resolver_gate import _worktree_binding, canonical_hash, consume_ticket, gate_metrics, run_ticket
+from eval.goldsets.resolver_gate import _load_evaluator, _worktree_binding, canonical_hash, consume_ticket, gate_metrics, run_ticket
 from eval.goldsets.resolver_gate import main as gate_main
 from eval.goldsets.key_correctness_eval import GoldItem
 from eval.goldsets.preference_extraction import PreferenceCandidate
@@ -673,3 +673,40 @@ def test_gate_config_must_pin_in_tree_evaluator(tmp_path: Path, monkeypatch: pyt
     with pytest.raises(ValueError, match="inside the repository tree"):
         gate_main()
     assert ticket_path.exists()
+
+
+def test_evaluator_origin_checked_before_any_import_executes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    sentinel = tmp_path / "executed.flag"
+    (tmp_path / "booby_mod.py").write_text(
+        'from pathlib import Path\nPath(__file__).with_name("executed.flag").write_text("ran")\n\ndef passing():\n    return {}\n',
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    with pytest.raises(ValueError, match="inside the repository tree"):
+        _load_evaluator("booby_mod:passing")
+
+    assert not sentinel.exists()
+
+
+def test_dotted_attacker_package_rejected_without_executing_init(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    package = tmp_path / "booby_pkg"
+    package.mkdir()
+    sentinel = package / "executed.flag"
+    (package / "__init__.py").write_text(
+        'from pathlib import Path\nPath(__file__).with_name("executed.flag").write_text("ran")\n',
+        encoding="utf-8",
+    )
+    (package / "inner.py").write_text("def passing():\n    return {}\n", encoding="utf-8")
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    with pytest.raises(ValueError, match="inside the repository tree"):
+        _load_evaluator("booby_pkg.inner:passing")
+
+    assert not sentinel.exists()
+def test_builtin_and_frozen_origins_rejected_even_from_repo_root() -> None:
+    # "built-in" is a bare string origin; a naive Path.resolve() would anchor it at the
+    # current working directory and wrongly accept it when CWD == ROOT (Terra fix8 stop
+    # report). The loader must reject non-absolute / non-file origins fail-closed.
+    with pytest.raises(ValueError, match="no resolvable source file"):
+        _load_evaluator("sys:exit")

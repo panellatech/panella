@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib
-import inspect
+import importlib.util
 import json
 import math
 import os
@@ -346,18 +346,30 @@ def _load_evaluator(reference: str) -> Callable[[], dict[str, Any]]:
     module_name, separator, attribute = reference.partition(":")
     if not separator or not module_name or not attribute:
         raise ValueError("evaluator reference must be module:callable")
+    # Verify every package prefix shallowest-first BEFORE any import executes:
+    # find_spec("a.b") implicitly imports parent "a", so proving "a" in-tree first
+    # guarantees implicit parent imports only ever run verified in-tree code.
+    parts = module_name.split(".")
+    for depth in range(1, len(parts) + 1):
+        prefix = ".".join(parts[:depth])
+        try:
+            spec = importlib.util.find_spec(prefix)
+        except (ImportError, ValueError) as exc:
+            raise ValueError(f"evaluator module cannot be resolved: {prefix}") from exc
+        if spec is None or not isinstance(spec.origin, str) or not spec.origin:
+            raise ValueError("evaluator module has no resolvable source file")
+        origin = Path(spec.origin)
+        # Origin must be an absolute, existing file: built-in/frozen modules report
+        # bare strings like "built-in", which Path.resolve() would otherwise anchor
+        # at the current working directory and wrongly accept when CWD == ROOT.
+        if not origin.is_absolute() or not origin.is_file():
+            raise ValueError("evaluator module has no resolvable source file")
+        if not origin.resolve().is_relative_to(ROOT):
+            raise ValueError("evaluator module must live inside the repository tree")
     module = importlib.import_module(module_name)
     evaluator = getattr(module, attribute, None)
     if not callable(evaluator):
         raise ValueError("evaluator reference is not callable")
-    try:
-        module_file = Path(inspect.getfile(module)).resolve()
-    except TypeError as exc:
-        raise ValueError("evaluator module has no resolvable source file") from exc
-    # In-tree + clean worktree pins evaluator code identity to the ticket's public commit.
-    # Out-of-tree evaluators are rejected fail-closed.
-    if not module_file.is_relative_to(ROOT):
-        raise ValueError("evaluator module must live inside the repository tree")
     return evaluator
 
 
