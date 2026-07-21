@@ -99,6 +99,13 @@ class FallbackProvider:
         so it never delays interpreter shutdown) and the retry gets a fresh thread instead
         of queueing behind the stuck one; the production shim's subprocess timeout remains
         the real hard bound.
+
+        Abandoned threads are bounded per process, not unbounded: the engine gates every
+        provider call on the caller's RunBudget before suggest() runs, so a run leaves at
+        most 2 * max_calls threads even under total outage, and K1's only consumers are
+        single-run offline harnesses (no production wiring exists — enforced by the
+        no-store-imports test). A long-lived consumer must add an explicit cap; that is a
+        K2 wiring concern, tracked by the K1 spec's RunBudget/concurrency revisit clause.
         """
         started = time.monotonic()
         outcome: dict[str, object] = {}
