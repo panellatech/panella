@@ -53,7 +53,7 @@ def _bootstrap_manifest(provider: FallbackProvider) -> tuple[object, str]:
 
 
 def run(
-    probes: list[dict[str, Any]], *, provider: FallbackProvider, git_commit: str, evidence_path: Path, manifest_path: Path,
+    probes: list[dict[str, Any]], *, provider: FallbackProvider, git_commit: str, evidence_path: Path, manifest_path: Path, probe_path: Path,
 ) -> tuple[Path, Path]:
     by_uid = {probe["probe_uid"]: probe for probe in probes}
     if len(by_uid) != len(probes):
@@ -96,11 +96,11 @@ def run(
         prompt_template_hash=provider.prompt_template_hash,
         fitted_on_evidence_hash=evidence_digest,
         fitted_on_git_commit=git_commit,
-        fitted_on_goldset_hashes=(_file_hash(DEFAULT_PROBES),),
+        fitted_on_goldset_hashes=(_file_hash(probe_path),),
         slices=fit(observations),
     )
     dump_manifest(manifest_path, manifest)
-    verify(evidence_path, manifest_path, probe_path=DEFAULT_PROBES)
+    verify(evidence_path, manifest_path, probe_path=probe_path)
     return evidence_path, manifest_path
 
 
@@ -126,7 +126,7 @@ def main() -> int:
         raise SystemExit("real ChatFn binding is chief-run by design; use --fake only for hermetic verification")
     probes = _load(args.probes)
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    run(probes, provider=fake_provider(probes), git_commit=args.git_commit, evidence_path=args.out_dir / "calibration_evidence.jsonl", manifest_path=args.out_dir / "calibration_manifest.json")
+    run(probes, provider=fake_provider(probes), git_commit=args.git_commit, evidence_path=args.out_dir / "calibration_evidence.jsonl", manifest_path=args.out_dir / "calibration_manifest.json", probe_path=args.probes)
     print(f"wrote calibration artifacts under {args.out_dir}")
     return 0
 

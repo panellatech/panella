@@ -75,7 +75,7 @@ def test_fit_reference_vectors() -> None:
 
 def test_calibration_fake_run_verifies_and_tamper_fails(tmp_path: Path) -> None:
     probes = _load(DEFAULT_PROBES)
-    evidence, manifest = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json")
+    evidence, manifest = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json", probe_path=DEFAULT_PROBES)
     verify(evidence, manifest)
     lines = evidence.read_text(encoding="utf-8").splitlines()
     lines[0] = lines[0].replace('"raw_confidence":1.0', '"raw_confidence":0.0')
@@ -100,7 +100,7 @@ def test_committed_calibration_probes_declare_the_live_blocking_slice() -> None:
 @pytest.mark.parametrize("tamper", ["sample", "mapping", "tau", "swapped_evidence", "component_hash", "duplicate_uid", "coverage_gap"])
 def test_calibration_verifier_rejects_each_tamper_class(tmp_path: Path, tamper: str) -> None:
     probes = _load(DEFAULT_PROBES)
-    evidence, manifest_path = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json")
+    evidence, manifest_path = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json", probe_path=DEFAULT_PROBES)
     probe_path = tmp_path / "probes.json"
     probe_path.write_text(json.dumps({"version": "v1", "probes": probes}), encoding="utf-8")
     if tamper in {"sample", "swapped_evidence"}:
@@ -134,7 +134,7 @@ def test_calibration_verifier_rejects_each_tamper_class(tmp_path: Path, tamper: 
 
 def test_calibration_verifier_rejects_evidence_slice_drift(tmp_path: Path) -> None:
     probes = _load(DEFAULT_PROBES)
-    evidence, manifest = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json")
+    evidence, manifest = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json", probe_path=DEFAULT_PROBES)
     rows = evidence.read_text(encoding="utf-8").splitlines()
     row = json.loads(rows[0])
     row["slice"] = "hr" if row["slice"] == "benign" else "benign"
@@ -338,3 +338,93 @@ def test_ticket_head_clean_order_and_per_file_tamper_burns(tmp_path: Path, monke
     with pytest.raises(ValueError, match="clean-worktree"):
         consume_ticket(ticket_path, live_config_hash=ticket["config_hash"], ledger_path=ledger)
     assert ticket_path.exists() and not (tmp_path / "consumed-n3.json").exists()
+
+
+def _gate_ticket_harness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, nonce: str) -> dict[str, object]:
+    sums, provenance = tmp_path / "SHA256SUMS", tmp_path / "PROVENANCE"
+    holdout = tmp_path / "holdout.json"
+    holdout.write_text("sealed", encoding="utf-8")
+    sums.write_text(f"{hashlib.sha256(holdout.read_bytes()).hexdigest()}  {holdout.name}\n", encoding="utf-8")
+    provenance.write_text("toy provenance", encoding="utf-8")
+    config = {"llm_enabled": False}
+    head = "a" * 64
+    monkeypatch.setattr("eval.goldsets.resolver_gate._worktree_binding", lambda: {"actual_commit": head, "dirty": False})
+    ticket = {
+        "nonce": nonce,
+        "public_commit": head,
+        "holdout_sums_sha256": hashlib.sha256(sums.read_bytes()).hexdigest(),
+        "holdout_provenance_sha256": hashlib.sha256(provenance.read_bytes()).hexdigest(),
+        "config_hash": canonical_hash({"config": config, "goldset_path": "toy", "runner_version": "v1"}),
+        "manifest_hash": None,
+        "evidence_hash": None,
+        "created": "now",
+    }
+    ticket_path, ledger = tmp_path / "ticket.json", tmp_path / "ledger.jsonl"
+    ticket_path.write_text(json.dumps(ticket, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+    ledger.write_text(json.dumps({"nonce": nonce, "ticket_sha256": hashlib.sha256(ticket_path.read_bytes()).hexdigest()}) + "\n", encoding="utf-8")
+    return {
+        "ticket_path": ticket_path,
+        "config": config,
+        "holdout_sums": sums,
+        "provenance": provenance,
+        "holdout_counts": {
+            "pairs": {"total": 80, "supersede": 25, "hr_supersede": 10, "coexist": 9, "unrelated": 46},
+            "items": {"total": 24, "hr_positives": 10, "benign_positives": 6, "update_pairs": 6},
+        },
+        "ledger_path": ledger,
+    }
+
+
+def _run_gate_ticket(harness: dict[str, object], evaluator: object, out_dir: Path) -> dict[str, object]:
+    return run_ticket(
+        harness["ticket_path"], config=harness["config"], goldset_path="toy", runner_version="v1",
+        holdout_sums=harness["holdout_sums"], provenance=harness["provenance"], holdout_counts=harness["holdout_counts"],
+        manifest_path=None, evidence_path=None, evaluator=evaluator, ledger_path=harness["ledger_path"], out_dir=out_dir,
+    )
+
+
+def test_gate_fail_writes_failed_receipt_consumes_ticket_and_flags_nonzero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    nonce = "n-gate-fail"
+    harness = _gate_ticket_harness(tmp_path, monkeypatch, nonce)
+    pairs, extraction, frozen, validity = _passing_gate_inputs()
+    pairs["public"]["confusion"]["supersede"] = {"supersede": 0, "coexist": 0, "unrelated": 80, "missing": 0}
+    receipt = _run_gate_ticket(harness, lambda: {"pair_report": pairs, "extraction_report": extraction, "frozen": frozen, "run_validity": validity, "n_llm_calls": 0}, tmp_path / "out")
+    receipt_path = tmp_path / "out" / f"k1-gate-receipt-{nonce}.json"
+    assert receipt["status"] == "FAILED" and receipt["gate_verdict"]["pass"] is False and receipt["gate_verdict"]["gates"]["G5"] is False
+    assert receipt_path.exists() and json.loads(receipt_path.read_text(encoding="utf-8"))["gate_verdict"] == receipt["gate_verdict"]
+    assert (tmp_path / f"consumed-{nonce}.json").exists() and not harness["ticket_path"].exists()
+
+
+def test_gate_pass_writes_passed_receipt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    nonce = "n-gate-pass"
+    harness = _gate_ticket_harness(tmp_path, monkeypatch, nonce)
+    pairs, extraction, frozen, validity = _passing_gate_inputs()
+    receipt = _run_gate_ticket(harness, lambda: {"pair_report": pairs, "extraction_report": extraction, "frozen": frozen, "run_validity": validity, "n_llm_calls": 0}, tmp_path / "out")
+    assert receipt["status"] == "PASSED" and receipt["gate_verdict"]["pass"] is True
+    assert (tmp_path / "out" / f"k1-gate-receipt-{nonce}.json").exists() and receipt["n_llm_calls"] == 0
+
+
+@pytest.mark.parametrize("result", [{"n_llm_calls": 0}, {}, {"pair_report": {}, "extraction_report": {}, "frozen": {}, "run_validity": "invalid", "n_llm_calls": 0}])
+def test_structurally_invalid_evaluator_result_errors_before_receipt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, result: dict[str, object]) -> None:
+    nonce = "n-invalid"
+    harness = _gate_ticket_harness(tmp_path, monkeypatch, nonce)
+    out_dir = tmp_path / "out"
+    with pytest.raises(ValueError):
+        _run_gate_ticket(harness, lambda: result, out_dir)
+    assert not list(out_dir.glob("k1-gate-receipt-*.json"))
+    assert (tmp_path / f"consumed-{nonce}.json").exists()
+
+
+def test_calibration_binds_selected_probe_file(tmp_path: Path) -> None:
+    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
+    custom = tmp_path / "custom_probes.json"
+    custom.write_text(json.dumps(document, indent=1), encoding="utf-8")
+    custom_hash = hashlib.sha256(custom.read_bytes()).hexdigest()
+    default_hash = hashlib.sha256(DEFAULT_PROBES.read_bytes()).hexdigest()
+    assert custom_hash != default_hash
+    probes = _load(custom)
+    evidence, manifest = run(probes, provider=fake_provider(probes), git_commit="t", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json", probe_path=custom)
+    assert json.loads(manifest.read_text(encoding="utf-8"))["fitted_on_goldset_hashes"] == [custom_hash]
+    verify(evidence, manifest, probe_path=custom)
+    with pytest.raises(ValueError):
+        verify(evidence, manifest, probe_path=DEFAULT_PROBES)

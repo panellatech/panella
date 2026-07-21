@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""One-shot K1 gate ticket handling and fail-closed metric checks."""
+"""One-shot K1 gate ticket handling and fail-closed metric checks.
+
+Receipts embed the full gate verdict: gate failure writes a receipt and exits non-zero,
+while structurally invalid evaluator output errors before a receipt is written.
+"""
 
 from __future__ import annotations
 
@@ -292,8 +296,13 @@ def gate_metrics(pair_report: dict[str, Any], extraction_report: dict[str, Any],
 def run_ticket(
     ticket_path: Path, *, config: dict[str, Any], goldset_path: str, runner_version: str, holdout_sums: Path,
     provenance: Path, holdout_counts: dict[str, Any], manifest_path: Path | None, evidence_path: Path | None,
-    evaluator: Callable[[], dict[str, Any]], ledger_path: Path = LEDGER_PATH,
+    evaluator: Callable[[], dict[str, Any]], ledger_path: Path = LEDGER_PATH, out_dir: Path = OUT_DIR,
 ) -> dict[str, Any]:
+    """Run a burned ticket and write a receipt embedding the full gate verdict.
+
+    Gate failure writes a receipt and returns it for a non-zero CLI exit; structurally
+    invalid evaluator output raises before a receipt is written, preserving burned-run semantics.
+    """
     ticket, consumed, ledger_line = consume_ticket(ticket_path, live_config_hash=config_hash(config, goldset_path=goldset_path, runner_version=runner_version), ledger_path=ledger_path)
     # From this point forward every exception means the sealed input was consumed/burned.
     validate_sealed_inputs(ticket, holdout_sums=holdout_sums, provenance=provenance)
@@ -305,9 +314,21 @@ def run_ticket(
         if digest != ticket["manifest_hash"] or file_hash(evidence_path) != ticket["evidence_hash"]:
             raise ValueError("ticket calibration pin mismatch")
     result = evaluator()
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    receipt = {"ticket": ticket, "ledger_line": ledger_line, "worktree_binding": ledger_line["worktree_binding"], "consumed_ticket": str(consumed), "result": result, "n_llm_calls": result.get("n_llm_calls", 0)}
-    (OUT_DIR / f"k1-gate-receipt-{ticket['nonce']}.json").write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+    if not isinstance(result, dict):
+        raise ValueError("evaluator result must be a dict")
+    for section in ("pair_report", "extraction_report", "frozen", "run_validity"):
+        if section not in result:
+            raise ValueError(f"evaluator result is missing required gate sections: {section}")
+        if not isinstance(result[section], dict):
+            raise ValueError(f"evaluator result has malformed required gate sections: {section}")
+    if "n_llm_calls" not in result:
+        raise ValueError("evaluator result is missing required field: n_llm_calls")
+    if isinstance(result["n_llm_calls"], bool) or not isinstance(result["n_llm_calls"], int) or result["n_llm_calls"] < 0:
+        raise ValueError("evaluator result has malformed required field: n_llm_calls")
+    verdict = gate_metrics(result["pair_report"], result["extraction_report"], frozen=result["frozen"], run_validity=result["run_validity"])
+    out_dir.mkdir(parents=True, exist_ok=True)
+    receipt = {"ticket": ticket, "ledger_line": ledger_line, "worktree_binding": ledger_line["worktree_binding"], "consumed_ticket": str(consumed), "result": result, "n_llm_calls": result["n_llm_calls"], "gate_verdict": verdict, "status": "PASSED" if verdict["pass"] else "FAILED"}
+    (out_dir / f"k1-gate-receipt-{ticket['nonce']}.json").write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     return receipt
 
 
@@ -337,8 +358,10 @@ def main() -> int:
         raise SystemExit("--manifest and --evidence must be supplied together")
     config = json.loads(args.config.read_text(encoding="utf-8"))
     counts = json.loads(args.holdout_counts.read_text(encoding="utf-8"))
-    run_ticket(args.ticket, config=config, goldset_path=args.goldset, runner_version="k1-gate-v1", holdout_sums=args.holdout_sums, provenance=args.provenance, holdout_counts=counts, manifest_path=args.manifest, evidence_path=args.evidence, evaluator=_load_evaluator(args.evaluator))
-    return 0
+    receipt = run_ticket(args.ticket, config=config, goldset_path=args.goldset, runner_version="k1-gate-v1", holdout_sums=args.holdout_sums, provenance=args.provenance, holdout_counts=counts, manifest_path=args.manifest, evidence_path=args.evidence, evaluator=_load_evaluator(args.evaluator))
+    receipt_path = OUT_DIR / f"k1-gate-receipt-{receipt['ticket']['nonce']}.json"
+    print(f"gate {receipt['status']} — receipt: {receipt_path}")
+    return 0 if receipt["gate_verdict"]["pass"] else 1
 
 
 if __name__ == "__main__":
