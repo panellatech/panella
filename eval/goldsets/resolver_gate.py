@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import importlib
 import importlib.util
+import inspect
 import json
 import math
 import os
@@ -349,6 +350,23 @@ def run_ticket(
     return receipt
 
 
+def _require_zero_arg_evaluator(evaluator: Any) -> Callable[[], dict[str, Any]]:
+    """Reject a factory product that cannot be called with zero arguments, pre-consumption.
+
+    callable() alone is not enough: a returned callable requiring positional arguments
+    would raise TypeError only inside run_ticket, after the ticket is burned.
+    """
+    if not callable(evaluator):
+        raise SystemExit("evaluator factory must return a zero-argument evaluator")
+    try:
+        inspect.signature(evaluator).bind()
+    except TypeError:
+        raise SystemExit("evaluator factory must return a zero-argument evaluator") from None
+    except ValueError:
+        raise SystemExit("evaluator factory returned a callable without an introspectable signature") from None
+    return evaluator
+
+
 def _load_evaluator(reference: str) -> Callable[..., Any]:
     module_name, separator, attribute = reference.partition(":")
     if not separator or not module_name or not attribute:
@@ -413,17 +431,17 @@ def main() -> int:
             raise SystemExit("this ticket pins calibration artifacts; --manifest and --evidence are required")
         if not has_pins and (args.manifest is not None or args.evidence is not None):
             raise SystemExit("this ticket has no calibration pins; omit --manifest/--evidence")
-    evaluator = evaluator_factory(
-        holdout_sums=args.holdout_sums,
-        provenance=args.provenance,
-        holdout_counts=args.holdout_counts,
-        probe_path=args.probe_path,
-        manifest_path=args.manifest,
-        evidence_path=args.evidence,
-        config=config,
+    evaluator = _require_zero_arg_evaluator(
+        evaluator_factory(
+            holdout_sums=args.holdout_sums,
+            provenance=args.provenance,
+            holdout_counts=args.holdout_counts,
+            probe_path=args.probe_path,
+            manifest_path=args.manifest,
+            evidence_path=args.evidence,
+            config=config,
+        )
     )
-    if not callable(evaluator):
-        raise SystemExit("evaluator factory must return a zero-argument evaluator")
     receipt = run_ticket(args.ticket, config=config, goldset_path=args.goldset, runner_version="k1-gate-v1", holdout_sums=args.holdout_sums, provenance=args.provenance, holdout_counts=args.holdout_counts, manifest_path=args.manifest, evidence_path=args.evidence, evaluator=evaluator, evaluator_ref=evaluator_ref, probe_path=args.probe_path)
     receipt_path = OUT_DIR / f"k1-gate-receipt-{receipt['ticket']['nonce']}.json"
     print(f"gate {receipt['status']} — receipt: {receipt_path}")

@@ -15,7 +15,15 @@ import pytest
 from eval.goldsets.resolver_calibration import DEFAULT_PROBES, _load, fake_provider, run
 from eval.goldsets import resolver_eval
 from eval.goldsets.resolver_eval import extraction_face, make_gate_evaluator, reduce_item
-from eval.goldsets.resolver_gate import _load_evaluator, _worktree_binding, canonical_hash, consume_ticket, gate_metrics, run_ticket
+from eval.goldsets.resolver_gate import (
+    _load_evaluator,
+    _require_zero_arg_evaluator,
+    _worktree_binding,
+    canonical_hash,
+    consume_ticket,
+    gate_metrics,
+    run_ticket,
+)
 from eval.goldsets.resolver_gate import main as gate_main
 from eval.goldsets.key_correctness_eval import GoldItem
 from eval.goldsets.preference_extraction import PreferenceCandidate
@@ -881,14 +889,22 @@ def test_make_gate_evaluator_composes_full_result(tmp_path: Path, monkeypatch: p
     def fake_chat(_: str, __: str) -> str:
         return '[{"kind":"fact","domain":"employer","value":"Northwind","confidence":1,"evidence":"Northwind"}]'
 
+    chat_invocations = {"n": 0}
+
+    def counted_fake_chat(system: str, user: str) -> str:
+        chat_invocations["n"] += 1
+        return fake_chat(system, user)
+
     evaluator = make_gate_evaluator(
         holdout_sums=paths["sums"], provenance=paths["provenance"], holdout_counts=paths["counts"],
         probe_path=paths["probes"], manifest_path=None, evidence_path=None,
-        config=_toy_factory_config(), chat_fn=fake_chat,
+        config=_toy_factory_config(), chat_fn=counted_fake_chat,
     )
     result = evaluator()
 
     assert set(result) == {"pair_report", "extraction_report", "frozen", "run_validity", "n_llm_calls"}
+    # n_llm_calls counts physical transport-boundary invocations — exactly what the fake saw.
+    assert result["n_llm_calls"] == chat_invocations["n"]
     assert result["frozen"] == _toy_factory_config()["frozen"]
     assert result["run_validity"]["targets"] == _toy_factory_config()["run_validity_targets"]
     assert set(result["run_validity"]["observed"]) == set(result["run_validity"]["targets"])
@@ -928,3 +944,35 @@ def test_factory_rejects_holdout_name_not_in_sums(tmp_path: Path, monkeypatch: p
             probe_path=paths["probes"], manifest_path=None, evidence_path=None, config=config,
             chat_fn=lambda _system, _user: "[]",
         )
+
+def test_returned_evaluator_arity_validated_pre_consumption() -> None:
+    # callable() alone let a positional-arg evaluator burn the ticket before failing.
+    assert _require_zero_arg_evaluator(lambda: {})() == {}
+    with pytest.raises(SystemExit, match="zero-argument evaluator"):
+        _require_zero_arg_evaluator(lambda x: x)
+    with pytest.raises(SystemExit, match="zero-argument evaluator"):
+        _require_zero_arg_evaluator(object())
+
+
+def test_resolver_fallback_retries_are_physical_transport_calls() -> None:
+    calls = {"n": 0}
+
+    def flaky(system: str, user: str) -> str:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("transport down")
+        return json.dumps({"choice": "ABSTAIN", "confidence": 0.5})
+
+    registry = load_registry()
+    slot = registry.slots[0]
+    provider = FallbackProvider(flaky, model_id="counting-test")
+    suggestion = provider.suggest(
+        ResolveRequest("counting/1", "fact", "nonsense_domain", "value", "evidence counting/1"),
+        (SlotView(slot.slot_id, slot.description, slot.high_risk, None),),
+        "benign", "value", "evidence counting/1", 1000,
+    )
+    outcomes = tuple(attempt.outcome for attempt in suggestion.attempts)
+    assert outcomes == ("transport_error", "ok")
+    # Two physical transport invocations for one logical fallback call — the gate
+    # evaluator's n_llm_calls boundary counts both.
+    assert calls["n"] == 2

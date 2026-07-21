@@ -173,49 +173,52 @@ def make_gate_evaluator(
         manifest, manifest_digest = load_manifest(_require_file(manifest_path, name="manifest_path"))
         evidence_digest = hashlib.sha256(_require_file(evidence_path, name="evidence_path").read_bytes()).hexdigest()
 
-    def new_engine() -> ResolverEngine:
+    def new_engine(chat: ChatFn) -> ResolverEngine:
         if not llm_enabled:
             return ResolverEngine(ResolverConfig(False, timeout_ms, None, None, None))
         assert manifest is not None and manifest_digest is not None and evidence_digest is not None
         return ResolverEngine(
             ResolverConfig(True, timeout_ms, manifest, manifest_digest, evidence_digest),
-            provider=FallbackProvider(transport, model_id=manifest.model_id),
+            provider=FallbackProvider(chat, model_id=manifest.model_id),
         )
 
-    def evaluate_split(pairs_path: Path, items_path: Path, fixture_path: Path, *, count_extractor_call: Callable[[str, str], str]) -> tuple[dict[str, Any], dict[str, Any], int]:
-        pair_result = pair_face(json.loads(pairs_path.read_text(encoding="utf-8")), new_engine())
+    def evaluate_split(pairs_path: Path, items_path: Path, fixture_path: Path, *, chat: ChatFn) -> tuple[dict[str, Any], dict[str, Any]]:
+        pair_result = pair_face(json.loads(pairs_path.read_text(encoding="utf-8")), new_engine(chat))
         items = key_correctness_eval.load_items(items_path, fixture_path)
         extracted: dict[str, list[PreferenceCandidate]] = {}
         parse_stats: dict[str, dict[str, int]] = {}
         for item in items:
             stats: dict[str, int] = {}
-            extracted[item.item_id] = extract_preferences(item.text, item.item_id, chat_fn=count_extractor_call, stats=stats)
+            extracted[item.item_id] = extract_preferences(item.text, item.item_id, chat_fn=chat, stats=stats)
             parse_stats[item.item_id] = stats
-        extraction_result = extraction_face(items, extracted, new_engine())
+        extraction_result = extraction_face(items, extracted, new_engine(chat))
         extraction_result.update(_extraction_score_report(items, extracted, parse_stats))
-        return pair_result, extraction_result, pair_result["n_llm_calls"] + extraction_result["n_llm_calls"]
+        return pair_result, extraction_result
 
     def evaluator() -> dict[str, Any]:
-        extractor_calls = 0
+        """Run both faces over both splits.
+
+        n_llm_calls counts PHYSICAL transport-boundary invocations: extractor calls and
+        resolver fallback attempts (including suggest-level retries) all pass through the
+        same counting wrapper. Retries inside the injected ChatFn itself (e.g. the codex
+        subprocess transport's internal retries) are below this boundary by design.
+        """
+        transport_calls = 0
 
         def counting_chat(system: str, user: str) -> str:
-            nonlocal extractor_calls
-            extractor_calls += 1
+            nonlocal transport_calls
+            transport_calls += 1
             return transport(system, user)
 
-        public_pair, public_extraction, public_resolver_calls = evaluate_split(
-            public_pairs, public_items, public_fixture, count_extractor_call=counting_chat
-        )
-        holdout_pair, holdout_extraction, holdout_resolver_calls = evaluate_split(
-            holdout_pairs, holdout_items, holdout_fixture, count_extractor_call=counting_chat
-        )
+        public_pair, public_extraction = evaluate_split(public_pairs, public_items, public_fixture, chat=counting_chat)
+        holdout_pair, holdout_extraction = evaluate_split(holdout_pairs, holdout_items, holdout_fixture, chat=counting_chat)
         observed = {name: public_extraction[name] for name in targets}
         return {
             "pair_report": {"public": public_pair["report"], "holdout": holdout_pair["report"]},
             "extraction_report": {"public": public_extraction, "holdout": holdout_extraction},
             "frozen": frozen,
             "run_validity": {"observed": observed, "targets": targets},
-            "n_llm_calls": extractor_calls + public_resolver_calls + holdout_resolver_calls,
+            "n_llm_calls": transport_calls,
         }
 
     return evaluator
