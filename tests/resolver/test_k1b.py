@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 import subprocess
+import threading
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -456,6 +457,56 @@ def test_copied_ticket_cannot_be_consumed_twice(tmp_path: Path, monkeypatch: pyt
     assert ticket_b.exists()
 
 
+def test_concurrent_copies_yield_exactly_one_consumption(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ledger_dir = tmp_path / "ledger"
+    ledger_dir.mkdir()
+    harness = _gate_ticket_harness(ledger_dir, monkeypatch, "n-concurrent")
+    ticket_a, ticket_b = tmp_path / "a" / "ticket.json", tmp_path / "b" / "ticket.json"
+    ticket_a.parent.mkdir()
+    ticket_b.parent.mkdir()
+    ticket_bytes = Path(harness["ticket_path"]).read_bytes()
+    ticket_a.write_bytes(ticket_bytes)
+    ticket_b.write_bytes(ticket_bytes)
+    live_config_hash = canonical_hash({"config": harness["config"], "goldset_path": "toy", "runner_version": "v1"})
+    barrier = threading.Barrier(2)
+    outcomes: list[object] = []
+
+    def consume_copy(ticket_path: Path) -> None:
+        barrier.wait()
+        try:
+            consume_ticket(ticket_path, live_config_hash=live_config_hash, ledger_path=Path(harness["ledger_path"]))
+        except ValueError as exc:
+            outcomes.append(exc)
+        else:
+            outcomes.append("success")
+
+    threads = [threading.Thread(target=consume_copy, args=(ticket_path,)) for ticket_path in (ticket_a, ticket_b)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert outcomes.count("success") == 1
+    failures = [outcome for outcome in outcomes if isinstance(outcome, ValueError)]
+    assert len(failures) == 1 and "already consumed" in str(failures[0])
+    assert (ledger_dir / "consumed-n-concurrent.json").read_bytes() == ticket_bytes
+
+
+def test_partially_claimed_marker_blocks_consumption(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    nonce = "n-partial-claim"
+    harness = _gate_ticket_harness(tmp_path, monkeypatch, nonce)
+    ticket_path = Path(harness["ticket_path"])
+    (tmp_path / f"consumed-{nonce}.json").touch()
+
+    with pytest.raises(ValueError, match="already consumed"):
+        consume_ticket(
+            ticket_path,
+            live_config_hash=canonical_hash({"config": harness["config"], "goldset_path": "toy", "runner_version": "v1"}),
+            ledger_path=Path(harness["ledger_path"]),
+        )
+    assert ticket_path.exists()
+
+
 def test_gate_accepts_custom_probe_calibration_and_default_binding_burns(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -508,3 +559,62 @@ def test_gate_accepts_custom_probe_calibration_and_default_binding_burns(
             ledger_path=burned["ledger_path"], out_dir=tmp_path / "out",
         )
     assert (tmp_path / f"consumed-{burned_nonce}.json").exists()
+
+
+def test_ticket_pins_require_artifact_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    probes = _load(DEFAULT_PROBES)
+    evidence, manifest = run(
+        probes,
+        provider=fake_provider(probes),
+        git_commit="t",
+        evidence_path=tmp_path / "evidence.jsonl",
+        manifest_path=tmp_path / "manifest.json",
+        probe_path=DEFAULT_PROBES,
+    )
+    nonce = "n-pins-require-paths"
+    harness = _gate_ticket_harness(
+        tmp_path,
+        monkeypatch,
+        nonce,
+        manifest_hash=verify(evidence, manifest)[1],
+        evidence_hash=hashlib.sha256(evidence.read_bytes()).hexdigest(),
+    )
+    pairs, extraction, frozen, validity = _passing_gate_inputs()
+    out_dir = tmp_path / "out"
+
+    with pytest.raises(ValueError, match="incomplete calibration ticket pins"):
+        run_ticket(
+            harness["ticket_path"], config=harness["config"], goldset_path="toy", runner_version="v1",
+            holdout_sums=harness["holdout_sums"], provenance=harness["provenance"], holdout_counts=harness["holdout_counts"],
+            manifest_path=None, evidence_path=None,
+            evaluator=lambda: {"pair_report": pairs, "extraction_report": extraction, "frozen": frozen, "run_validity": validity, "n_llm_calls": 0},
+            ledger_path=harness["ledger_path"], out_dir=out_dir,
+        )
+    assert (tmp_path / f"consumed-{nonce}.json").exists()
+    assert not list(out_dir.glob("k1-gate-receipt-*.json"))
+
+
+def test_one_sided_ticket_pin_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    probes = _load(DEFAULT_PROBES)
+    evidence, manifest = run(
+        probes,
+        provider=fake_provider(probes),
+        git_commit="t",
+        evidence_path=tmp_path / "evidence.jsonl",
+        manifest_path=tmp_path / "manifest.json",
+        probe_path=DEFAULT_PROBES,
+    )
+    nonce = "n-one-sided-pin"
+    harness = _gate_ticket_harness(
+        tmp_path, monkeypatch, nonce, manifest_hash=verify(evidence, manifest)[1], evidence_hash=None
+    )
+    pairs, extraction, frozen, validity = _passing_gate_inputs()
+
+    with pytest.raises(ValueError, match="incomplete calibration ticket pins"):
+        run_ticket(
+            harness["ticket_path"], config=harness["config"], goldset_path="toy", runner_version="v1",
+            holdout_sums=harness["holdout_sums"], provenance=harness["provenance"], holdout_counts=harness["holdout_counts"],
+            manifest_path=manifest, evidence_path=evidence,
+            evaluator=lambda: {"pair_report": pairs, "extraction_report": extraction, "frozen": frozen, "run_validity": validity, "n_llm_calls": 0},
+            ledger_path=harness["ledger_path"], out_dir=tmp_path / "out",
+        )

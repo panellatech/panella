@@ -85,9 +85,14 @@ def consume_ticket(ticket_path: Path | str, *, live_config_hash: str, ledger_pat
         raise ValueError("ticket public-commit/clean-worktree binding failed")
     # The authenticated ledger's directory is global nonce state, so copied tickets cannot burn twice.
     consumed = Path(ledger_path).parent / f"consumed-{ticket['nonce']}.json"
-    if consumed.exists():
-        raise ValueError("ticket nonce was already consumed")
-    os.replace(source, consumed)
+    # O_EXCL is the consumption point: one concurrent winner; crashes or unlink failures leave the marker fail-closed.
+    try:
+        claim = os.open(consumed, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        raise ValueError("ticket nonce was already consumed") from None
+    with os.fdopen(claim, "wb") as marker:
+        marker.write(raw)
+    source.unlink()
     ledger_line["worktree_binding"] = binding
     return ticket, consumed, ledger_line
 
@@ -309,7 +314,7 @@ def run_ticket(
     # From this point forward every exception means the sealed input was consumed/burned.
     validate_sealed_inputs(ticket, holdout_sums=holdout_sums, provenance=provenance)
     validate_holdout_minima(holdout_counts)
-    if manifest_path is not None or evidence_path is not None:
+    if manifest_path is not None or evidence_path is not None or ticket["manifest_hash"] is not None or ticket["evidence_hash"] is not None:
         if manifest_path is None or evidence_path is None or ticket["manifest_hash"] is None or ticket["evidence_hash"] is None:
             raise ValueError("incomplete calibration ticket pins")
         _, digest = verify(evidence_path, manifest_path, probe_path=probe_path)
@@ -360,6 +365,17 @@ def main() -> int:
     if (args.manifest is None) != (args.evidence is None):
         raise SystemExit("--manifest and --evidence must be supplied together")
     config = json.loads(args.config.read_text(encoding="utf-8"))
+    # This pre-flight is convenience only; run_ticket remains the authoritative check.
+    try:
+        pinned = json.loads(args.ticket.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        pinned = None
+    if isinstance(pinned, dict):
+        has_pins = pinned.get("manifest_hash") is not None or pinned.get("evidence_hash") is not None
+        if has_pins and (args.manifest is None or args.evidence is None):
+            raise SystemExit("this ticket pins calibration artifacts; --manifest and --evidence are required")
+        if not has_pins and (args.manifest is not None or args.evidence is not None):
+            raise SystemExit("this ticket has no calibration pins; omit --manifest/--evidence")
     counts = json.loads(args.holdout_counts.read_text(encoding="utf-8"))
     receipt = run_ticket(args.ticket, config=config, goldset_path=args.goldset, runner_version="k1-gate-v1", holdout_sums=args.holdout_sums, provenance=args.provenance, holdout_counts=counts, manifest_path=args.manifest, evidence_path=args.evidence, evaluator=_load_evaluator(args.evaluator), probe_path=args.probe_path)
     receipt_path = OUT_DIR / f"k1-gate-receipt-{receipt['ticket']['nonce']}.json"
