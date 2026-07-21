@@ -329,14 +329,15 @@ def test_worktree_binding_reads_live_sha1_head_and_dirty_flag() -> None:
 
 def test_ticket_head_clean_order_and_per_file_tamper_burns(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     sums, provenance = tmp_path / "SHA256SUMS", tmp_path / "PROVENANCE"
-    holdout = tmp_path / "holdout.json"
+    holdout, holdout_counts = tmp_path / "holdout.json", tmp_path / "holdout_counts.json"
     holdout.write_text("sealed", encoding="utf-8")
     sums.write_text(f"{hashlib.sha256(holdout.read_bytes()).hexdigest()}  {holdout.name}\n", encoding="utf-8")
     provenance.write_text("toy provenance", encoding="utf-8")
+    holdout_counts.write_text(json.dumps({"pairs": {"total": 80, "supersede": 25, "hr_supersede": 10, "coexist": 9, "unrelated": 46}, "items": {"total": 24, "hr_positives": 10, "benign_positives": 6, "update_pairs": 6}}), encoding="utf-8")
     config = {"llm_enabled": False}
     head = "a" * 64
     monkeypatch.setattr("eval.goldsets.resolver_gate._worktree_binding", lambda: {"actual_commit": head, "dirty": False})
-    ticket = {"nonce": "n1", "public_commit": head, "holdout_sums_sha256": hashlib.sha256(sums.read_bytes()).hexdigest(), "holdout_provenance_sha256": hashlib.sha256(provenance.read_bytes()).hexdigest(), "config_hash": canonical_hash({"config": config, "goldset_path": "toy", "runner_version": "v1"}), "manifest_hash": None, "evidence_hash": None, "created": "now"}
+    ticket = {"nonce": "n1", "public_commit": head, "holdout_sums_sha256": hashlib.sha256(sums.read_bytes()).hexdigest(), "holdout_provenance_sha256": hashlib.sha256(provenance.read_bytes()).hexdigest(), "holdout_counts_sha256": hashlib.sha256(holdout_counts.read_bytes()).hexdigest(), "config_hash": canonical_hash({"config": config, "goldset_path": "toy", "runner_version": "v1"}), "manifest_hash": None, "evidence_hash": None, "created": "now"}
     ticket_path, ledger = tmp_path / "ticket.json", tmp_path / "ledger.jsonl"
     ticket_path.write_text(json.dumps(ticket, sort_keys=True, separators=(",", ":")), encoding="utf-8")
     ledger.write_text(json.dumps({"nonce": "n1", "ticket_sha256": hashlib.sha256(ticket_path.read_bytes()).hexdigest()}) + "\n", encoding="utf-8")
@@ -352,7 +353,7 @@ def test_ticket_head_clean_order_and_per_file_tamper_burns(tmp_path: Path, monke
     ledger.write_text(json.dumps({"nonce": "n2", "ticket_sha256": hashlib.sha256(ticket_path.read_bytes()).hexdigest()}) + "\n", encoding="utf-8")
     holdout.write_text("tampered", encoding="utf-8")
     with pytest.raises(ValueError, match="sealed holdout file mismatch"):
-        run_ticket(ticket_path, config=config, goldset_path="toy", runner_version="v1", holdout_sums=sums, provenance=provenance, holdout_counts={"pairs": {"total": 80, "supersede": 25, "hr_supersede": 10, "coexist": 9, "unrelated": 46}, "items": {"total": 24, "hr_positives": 10, "benign_positives": 6, "update_pairs": 6}}, manifest_path=None, evidence_path=None, evaluator=lambda: {"n_llm_calls": 0}, ledger_path=ledger)
+        run_ticket(ticket_path, config=config, goldset_path="toy", runner_version="v1", holdout_sums=sums, provenance=provenance, holdout_counts=holdout_counts, manifest_path=None, evidence_path=None, evaluator=lambda: {"n_llm_calls": 0}, ledger_path=ledger)
     assert (tmp_path / "consumed-n2.json").exists()
 
     # HEAD/clean validation happens before the atomic rename, so an invalid binding is not burned.
@@ -374,10 +375,11 @@ def _gate_ticket_harness(
     evidence_hash: str | None = None,
 ) -> dict[str, object]:
     sums, provenance = tmp_path / "SHA256SUMS", tmp_path / "PROVENANCE"
-    holdout = tmp_path / "holdout.json"
+    holdout, holdout_counts = tmp_path / "holdout.json", tmp_path / "holdout_counts.json"
     holdout.write_text("sealed", encoding="utf-8")
     sums.write_text(f"{hashlib.sha256(holdout.read_bytes()).hexdigest()}  {holdout.name}\n", encoding="utf-8")
     provenance.write_text("toy provenance", encoding="utf-8")
+    holdout_counts.write_text(json.dumps({"pairs": {"total": 80, "supersede": 25, "hr_supersede": 10, "coexist": 9, "unrelated": 46}, "items": {"total": 24, "hr_positives": 10, "benign_positives": 6, "update_pairs": 6}}), encoding="utf-8")
     config = {"llm_enabled": False}
     head = "a" * 64
     monkeypatch.setattr("eval.goldsets.resolver_gate._worktree_binding", lambda: {"actual_commit": head, "dirty": False})
@@ -386,6 +388,7 @@ def _gate_ticket_harness(
         "public_commit": head,
         "holdout_sums_sha256": hashlib.sha256(sums.read_bytes()).hexdigest(),
         "holdout_provenance_sha256": hashlib.sha256(provenance.read_bytes()).hexdigest(),
+        "holdout_counts_sha256": hashlib.sha256(holdout_counts.read_bytes()).hexdigest(),
         "config_hash": canonical_hash({"config": config, "goldset_path": "toy", "runner_version": "v1"}),
         "manifest_hash": manifest_hash,
         "evidence_hash": evidence_hash,
@@ -399,10 +402,7 @@ def _gate_ticket_harness(
         "config": config,
         "holdout_sums": sums,
         "provenance": provenance,
-        "holdout_counts": {
-            "pairs": {"total": 80, "supersede": 25, "hr_supersede": 10, "coexist": 9, "unrelated": 46},
-            "items": {"total": 24, "hr_positives": 10, "benign_positives": 6, "update_pairs": 6},
-        },
+        "holdout_counts": holdout_counts,
         "ledger_path": ledger,
     }
 
@@ -416,6 +416,41 @@ def _run_gate_ticket(
         manifest_path=None, evidence_path=None, evaluator=evaluator, evaluator_ref=evaluator_ref,
         ledger_path=harness["ledger_path"], out_dir=out_dir,
     )
+
+
+def test_counts_file_tamper_burns(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    nonce = "n-counts-tamper"
+    harness = _gate_ticket_harness(tmp_path, monkeypatch, nonce)
+    counts_path = Path(harness["holdout_counts"])
+    counts_path.write_text(
+        json.dumps(
+            {
+                "pairs": {"total": 81, "supersede": 25, "hr_supersede": 10, "coexist": 9, "unrelated": 46},
+                "items": {"total": 24, "hr_positives": 10, "benign_positives": 6, "update_pairs": 6},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="sealed holdout pin mismatch"):
+        _run_gate_ticket(harness, lambda: {"n_llm_calls": 0}, tmp_path / "out")
+    assert (tmp_path / f"consumed-{nonce}.json").exists()
+
+
+def test_ticket_without_counts_pin_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    harness = _gate_ticket_harness(tmp_path, monkeypatch, "n-missing-counts-pin")
+    ticket_path = Path(harness["ticket_path"])
+    ticket = json.loads(ticket_path.read_text(encoding="utf-8"))
+    del ticket["holdout_counts_sha256"]
+    ticket_path.write_text(json.dumps(ticket, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="invalid gate ticket schema"):
+        consume_ticket(
+            ticket_path,
+            live_config_hash=canonical_hash({"config": harness["config"], "goldset_path": "toy", "runner_version": "v1"}),
+            ledger_path=Path(harness["ledger_path"]),
+        )
+    assert ticket_path.exists()
 
 
 def test_gate_fail_writes_failed_receipt_consumes_ticket_and_flags_nonzero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

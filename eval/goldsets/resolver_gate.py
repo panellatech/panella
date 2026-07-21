@@ -77,7 +77,7 @@ def consume_ticket(ticket_path: Path | str, *, live_config_hash: str, ledger_pat
         ticket = json.loads(raw)
     except json.JSONDecodeError as exc:
         raise ValueError("invalid gate ticket JSON") from exc
-    required = {"nonce", "public_commit", "holdout_sums_sha256", "holdout_provenance_sha256", "config_hash", "manifest_hash", "evidence_hash", "created"}
+    required = {"nonce", "public_commit", "holdout_sums_sha256", "holdout_provenance_sha256", "holdout_counts_sha256", "config_hash", "manifest_hash", "evidence_hash", "created"}
     if not isinstance(ticket, dict) or set(ticket) != required or not isinstance(ticket["nonce"], str) or not _NONCE.fullmatch(ticket["nonce"]):
         raise ValueError("invalid gate ticket schema")
     digest = hashlib.sha256(raw).hexdigest()
@@ -121,9 +121,13 @@ def _sealed_files(holdout_sums: Path) -> list[tuple[str, Path]]:
     return rows
 
 
-def validate_sealed_inputs(ticket: dict[str, Any], *, holdout_sums: Path, provenance: Path) -> None:
-    """Run after consume_ticket only: any later failure is intentionally a burned run."""
-    if file_hash(holdout_sums) != ticket["holdout_sums_sha256"] or file_hash(provenance) != ticket["holdout_provenance_sha256"]:
+def validate_sealed_inputs(ticket: dict[str, Any], *, holdout_sums: Path, provenance: Path, holdout_counts: Path) -> None:
+    """Run after consume_ticket only: sums, provenance, and counts failures intentionally burn the run."""
+    if (
+        file_hash(holdout_sums) != ticket["holdout_sums_sha256"]
+        or file_hash(provenance) != ticket["holdout_provenance_sha256"]
+        or file_hash(holdout_counts) != ticket["holdout_counts_sha256"]
+    ):
         raise ValueError("sealed holdout pin mismatch")
     for expected, path in _sealed_files(holdout_sums):
         if not path.is_file() or file_hash(path) != expected:
@@ -307,7 +311,7 @@ def gate_metrics(pair_report: dict[str, Any], extraction_report: dict[str, Any],
 
 def run_ticket(
     ticket_path: Path, *, config: dict[str, Any], goldset_path: str, runner_version: str, holdout_sums: Path,
-    provenance: Path, holdout_counts: dict[str, Any], manifest_path: Path | None, evidence_path: Path | None,
+    provenance: Path, holdout_counts: Path, manifest_path: Path | None, evidence_path: Path | None,
     evaluator: Callable[[], dict[str, Any]], evaluator_ref: str | None = None, probe_path: Path | str = DEFAULT_PROBE_PATH,
     ledger_path: Path = LEDGER_PATH, out_dir: Path = OUT_DIR,
 ) -> dict[str, Any]:
@@ -318,8 +322,8 @@ def run_ticket(
     """
     ticket, consumed, ledger_line = consume_ticket(ticket_path, live_config_hash=config_hash(config, goldset_path=goldset_path, runner_version=runner_version), ledger_path=ledger_path)
     # From this point forward every exception means the sealed input was consumed/burned.
-    validate_sealed_inputs(ticket, holdout_sums=holdout_sums, provenance=provenance)
-    validate_holdout_minima(holdout_counts)
+    validate_sealed_inputs(ticket, holdout_sums=holdout_sums, provenance=provenance, holdout_counts=holdout_counts)
+    validate_holdout_minima(json.loads(holdout_counts.read_text(encoding="utf-8")))
     if manifest_path is not None or evidence_path is not None or ticket["manifest_hash"] is not None or ticket["evidence_hash"] is not None:
         if manifest_path is None or evidence_path is None or ticket["manifest_hash"] is None or ticket["evidence_hash"] is None:
             raise ValueError("incomplete calibration ticket pins")
@@ -409,8 +413,7 @@ def main() -> int:
             raise SystemExit("this ticket pins calibration artifacts; --manifest and --evidence are required")
         if not has_pins and (args.manifest is not None or args.evidence is not None):
             raise SystemExit("this ticket has no calibration pins; omit --manifest/--evidence")
-    counts = json.loads(args.holdout_counts.read_text(encoding="utf-8"))
-    receipt = run_ticket(args.ticket, config=config, goldset_path=args.goldset, runner_version="k1-gate-v1", holdout_sums=args.holdout_sums, provenance=args.provenance, holdout_counts=counts, manifest_path=args.manifest, evidence_path=args.evidence, evaluator=evaluator, evaluator_ref=evaluator_ref, probe_path=args.probe_path)
+    receipt = run_ticket(args.ticket, config=config, goldset_path=args.goldset, runner_version="k1-gate-v1", holdout_sums=args.holdout_sums, provenance=args.provenance, holdout_counts=args.holdout_counts, manifest_path=args.manifest, evidence_path=args.evidence, evaluator=evaluator, evaluator_ref=evaluator_ref, probe_path=args.probe_path)
     receipt_path = OUT_DIR / f"k1-gate-receipt-{receipt['ticket']['nonce']}.json"
     print(f"gate {receipt['status']} — receipt: {receipt_path}")
     return 0 if receipt["gate_verdict"]["pass"] else 1
