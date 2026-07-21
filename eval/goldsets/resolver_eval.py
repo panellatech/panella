@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from collections import Counter, defaultdict
 from dataclasses import replace
 from pathlib import Path
@@ -69,7 +70,17 @@ def _repo_file(value: str, *, key: str) -> Path:
     path = Path(value)
     if path.is_absolute():
         raise ValueError(f"config path must be relative to the repository root: {key}")
-    return _require_file(ROOT / path, name=key)
+    root_resolved = Path(ROOT).resolve()
+    resolved = (root_resolved / path).resolve()
+    if not resolved.is_relative_to(root_resolved):
+        raise ValueError(f"config path escapes the repository root: {key}")
+    # A gitignored in-tree file is invisible to the clean-worktree binding and therefore
+    # swappable after ticket issuance; reject it. Non-repo ROOTs (hermetic tests) make
+    # check-ignore return non-zero and pass through.
+    ignored = subprocess.run(["git", "check-ignore", "-q", str(resolved)], cwd=root_resolved, capture_output=True)
+    if ignored.returncode == 0:
+        raise ValueError(f"config path is gitignored and unpinned by the worktree binding: {key}")
+    return _require_file(resolved, name=key)
 
 
 def _holdout_file(value: str, *, key: str, sealed: dict[str, Path]) -> Path:
@@ -124,8 +135,8 @@ def make_gate_evaluator(
     timeout_ms = config.get("timeout_ms")
     if "timeout_ms" not in config:
         raise ValueError("missing config key: timeout_ms")
-    if isinstance(timeout_ms, bool) or not isinstance(timeout_ms, int):
-        raise ValueError("config key must be an int: timeout_ms")
+    if isinstance(timeout_ms, bool) or not isinstance(timeout_ms, int) or timeout_ms < 1:
+        raise ValueError("config key must be a positive int: timeout_ms")
 
     public_pairs = _repo_file(_required_string(public, "pairs_goldset", parent="public"), key="public.pairs_goldset")
     public_items = _repo_file(_required_string(public, "items_goldset", parent="public"), key="public.items_goldset")
@@ -155,13 +166,13 @@ def make_gate_evaluator(
     timeout_s = chat.get("timeout_s")
     if "timeout_s" not in chat:
         raise ValueError("missing config key: chat.timeout_s")
-    if isinstance(timeout_s, bool) or not isinstance(timeout_s, (int, float)):
-        raise ValueError("config key must be a number: chat.timeout_s")
+    if isinstance(timeout_s, bool) or not isinstance(timeout_s, (int, float)) or timeout_s <= 0:
+        raise ValueError("config key must be a positive number: chat.timeout_s")
     retries = chat.get("retries")
     if "retries" not in chat:
         raise ValueError("missing config key: chat.retries")
-    if isinstance(retries, bool) or not isinstance(retries, int):
-        raise ValueError("config key must be an int: chat.retries")
+    if isinstance(retries, bool) or not isinstance(retries, int) or retries < 1:
+        raise ValueError("config key must be a positive int: chat.retries")
 
     transport = chat_fn or key_correctness_eval._codex_chat_fn(model=model, timeout=float(timeout_s), retries=retries)
     manifest = manifest_digest = evidence_digest = None

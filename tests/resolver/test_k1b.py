@@ -976,3 +976,55 @@ def test_resolver_fallback_retries_are_physical_transport_calls() -> None:
     # Two physical transport invocations for one logical fallback call — the gate
     # evaluator's n_llm_calls boundary counts both.
     assert calls["n"] == 2
+@pytest.mark.parametrize(
+    ("mutation", "needle"),
+    [
+        ({"chat": {"model": None, "timeout_s": 1.0, "retries": 0}}, "positive int: chat.retries"),
+        ({"chat": {"model": None, "timeout_s": 0, "retries": 1}}, "positive number: chat.timeout_s"),
+        ({"timeout_ms": 0}, "positive int: timeout_ms"),
+    ],
+)
+def test_factory_rejects_nonpositive_transport_settings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: dict, needle: str
+) -> None:
+    # A zero-retry/zero-timeout config previously blew up only at evaluation time,
+    # after the one-shot ticket was consumed.
+    paths = _write_toy_gate_inputs(tmp_path)
+    monkeypatch.setattr(resolver_eval, "ROOT", tmp_path)
+    config = _toy_factory_config()
+    config.update(mutation)
+    with pytest.raises(ValueError, match=needle):
+        make_gate_evaluator(
+            holdout_sums=paths["sums"], provenance=paths["provenance"], holdout_counts=paths["counts"],
+            probe_path=paths["probes"], manifest_path=None, evidence_path=None, config=config,
+            chat_fn=lambda _system, _user: "[]",
+        )
+
+
+def test_factory_rejects_public_path_escape(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    paths = _write_toy_gate_inputs(tmp_path)
+    monkeypatch.setattr(resolver_eval, "ROOT", tmp_path)
+    outside = tmp_path.parent / "escaped-public.json"
+    outside.write_text("{}", encoding="utf-8")
+    config = _toy_factory_config()
+    config["public"] = dict(config["public"], pairs_goldset="../escaped-public.json")
+    with pytest.raises(ValueError, match="escapes the repository root"):
+        make_gate_evaluator(
+            holdout_sums=paths["sums"], provenance=paths["provenance"], holdout_counts=paths["counts"],
+            probe_path=paths["probes"], manifest_path=None, evidence_path=None, config=config,
+            chat_fn=lambda _system, _user: "[]",
+        )
+
+
+def test_factory_rejects_gitignored_public_path(tmp_path: Path) -> None:
+    # eval/out is gitignored: an in-tree but ignored file is invisible to the
+    # clean-worktree binding and therefore swappable after ticket issuance.
+    config = _toy_factory_config()
+    config["public"] = dict(config["public"], pairs_goldset="eval/out/compose.env")
+    with pytest.raises(ValueError, match="gitignored"):
+        make_gate_evaluator(
+            holdout_sums=tmp_path / "missing-sums", provenance=tmp_path / "missing-prov",
+            holdout_counts=tmp_path / "missing-counts", probe_path=tmp_path / "missing-probes",
+            manifest_path=None, evidence_path=None, config=config,
+            chat_fn=lambda _system, _user: "[]",
+        )
