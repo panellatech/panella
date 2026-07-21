@@ -15,6 +15,7 @@ import pytest
 from eval.goldsets.resolver_calibration import DEFAULT_PROBES, _load, fake_provider, run
 from eval.goldsets import resolver_eval
 from eval.goldsets.resolver_eval import extraction_face, make_gate_evaluator, reduce_item
+from eval.goldsets.synth_calibration_probes import _sweep
 from eval.goldsets.resolver_gate import (
     _load_evaluator,
     _require_zero_arg_evaluator,
@@ -154,6 +155,54 @@ def test_committed_calibration_probes_declare_the_live_blocking_slice() -> None:
         assert probe["slice"] == routed.receipt.slice
         counts[routed.receipt.slice] += 1
     assert counts["benign"] >= 60 and counts["hr"] >= 36
+
+
+def test_calibration_probe_lint_rejects_expected_domain_ngram() -> None:
+    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
+    document["probes"][0]["value"] = "My legal name is Marin Cole"
+    with pytest.raises(ValueError, match="expected domain token sequence"):
+        _sweep(document)
+
+
+def test_calibration_probe_lint_rejects_scaffold_word() -> None:
+    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
+    document["probes"][0]["evidence_text"] = "This is a synthetic sentence cal-0001"
+    with pytest.raises(ValueError, match="scaffold word"):
+        _sweep(document)
+
+
+def test_calibration_probe_lint_rejects_single_template_universe() -> None:
+    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
+    registry = load_registry()
+    for probe in document["probes"]:
+        target = registry.by_id[probe["expected_slot_id"]]
+        risk_word = target.hr_lexicon[0] if target.high_risk else "detail"
+        probe["evidence_text"] = f"My notes keep one detail {risk_word} {probe['probe_uid']}"
+    with pytest.raises(ValueError, match="evidence prefixes"):
+        _sweep(document)
+
+
+def test_calibration_probe_lint_rejects_hard_band_floor() -> None:
+    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
+    registry = load_registry()
+    for index, probe in enumerate(document["probes"]):
+        target = registry.by_id[probe["expected_slot_id"]]
+        probe["evidence_text"] = f"Record {index} names the {target.domain.replace('_', ' ')} {probe['probe_uid']}"
+    with pytest.raises(ValueError, match="hard-band floor"):
+        _sweep(document)
+
+
+def test_calibration_probe_lint_rejects_duplicate_surface_pairs() -> None:
+    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
+    for probe in document["probes"][:8]:
+        probe["raw_domain"] = "repeat_surface"
+        probe["value"] = "repeat value"
+    with pytest.raises(ValueError, match="distinct surface pairs"):
+        _sweep(document)
+
+
+def test_shipped_calibration_probe_document_passes_generator_sweep() -> None:
+    _sweep(json.loads(DEFAULT_PROBES.read_text(encoding="utf-8")))
 
 
 @pytest.mark.parametrize("tamper", ["sample", "mapping", "tau", "swapped_evidence", "component_hash", "duplicate_uid", "coverage_gap"])

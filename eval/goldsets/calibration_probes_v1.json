@@ -1,869 +1,869 @@
 {
   "probes": [
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0001",
+      "evidence_text": "My full name on the passport is Marin Cole cal-0001",
       "expected_slot_id": "fact:legal_name",
       "kind": "fact",
       "probe_uid": "cal-0001",
-      "raw_domain": "",
+      "raw_domain": "official_identity_words",
       "slice": "hr",
-      "value": "fictional legal_name calibration value cal-0001"
+      "value": "Marin Cole"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0002",
+      "evidence_text": "At the cafe, everyone uses my nickname Nia cal-0002",
       "expected_slot_id": "fact:chosen_name",
       "kind": "fact",
       "probe_uid": "cal-0002",
-      "raw_domain": "latent_chosen_name_signal",
-      "slice": "hr",
-      "value": "fictional chosen_name calibration value cal-0002"
+      "raw_domain": "everyday_calling_words",
+      "slice": "benign",
+      "value": "Nia"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0003",
+      "evidence_text": "I'm this user; use they/them when referring to me cal-0003",
       "expected_slot_id": "fact:pronoun",
       "kind": "fact",
       "probe_uid": "cal-0003",
-      "raw_domain": "unmapped_pronoun_attribute",
-      "slice": "benign",
-      "value": "fictional pronoun calibration value cal-0003"
+      "raw_domain": "self_reference_words",
+      "slice": "hr",
+      "value": "they/them"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0004",
+      "evidence_text": "I grew up in Port Alder, my hometown cal-0004",
       "expected_slot_id": "fact:home_city",
       "kind": "fact",
       "probe_uid": "cal-0004",
-      "raw_domain": "home_city_contextual_marker",
-      "slice": "hr",
-      "value": "fictional home_city calibration value cal-0004"
+      "raw_domain": "hometown_place_label",
+      "slice": "benign",
+      "value": "Port Alder"
     },
     {
-      "evidence_text": "fictional calibration evidence allergic cal-0005",
+      "evidence_text": "I am allergic to cashews, so I avoid them cal-0005",
       "expected_slot_id": "fact:medical_allergy",
       "kind": "fact",
       "probe_uid": "cal-0005",
-      "raw_domain": "",
+      "raw_domain": "adverse_reaction_detail",
       "slice": "hr",
-      "value": "fictional medical_allergy calibration value cal-0005"
+      "value": "cashews"
     },
     {
-      "evidence_text": "fictional calibration evidence diagnos cal-0006",
+      "evidence_text": "My chronic migraines are managed with rest cal-0006",
       "expected_slot_id": "fact:medical_condition",
       "kind": "fact",
       "probe_uid": "cal-0006",
-      "raw_domain": "latent_medical_condition_signal",
+      "raw_domain": "long_term_health_detail",
       "slice": "hr",
-      "value": "fictional medical_condition calibration value cal-0006"
+      "value": "migraine"
     },
     {
-      "evidence_text": "fictional calibration evidence medicat cal-0007",
+      "evidence_text": "I follow a prescription for Luminara after breakfast cal-0007",
       "expected_slot_id": "fact:medication",
       "kind": "fact",
       "probe_uid": "cal-0007",
-      "raw_domain": "unmapped_medication_attribute",
+      "raw_domain": "daily_prescription_detail",
       "slice": "hr",
-      "value": "fictional medication calibration value cal-0007"
+      "value": "Luminara"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0008",
+      "evidence_text": "Most meals I choose follow a plant-forward eating style cal-0008",
       "expected_slot_id": "preference:diet",
       "kind": "preference",
       "probe_uid": "cal-0008",
-      "raw_domain": "diet_contextual_marker",
+      "raw_domain": "everyday_meal_pattern",
       "slice": "benign",
-      "value": "fictional diet calibration value cal-0008"
+      "value": "plant-forward"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0009",
+      "evidence_text": "I keep shellfish off my plate because it is restricted food cal-0009",
       "expected_slot_id": "constraint:dietary_restriction",
       "kind": "constraint",
       "probe_uid": "cal-0009",
-      "raw_domain": "",
+      "raw_domain": "ingredient_avoidance_rule",
       "slice": "hr",
-      "value": "fictional dietary_restriction calibration value cal-0009"
+      "value": "no shellfish"
     },
     {
-      "evidence_text": "fictional calibration evidence address cal-0010",
+      "evidence_text": "Please send letters to 14 Harbor Lane, my street address cal-0010",
       "expected_slot_id": "fact:home_address",
       "kind": "fact",
       "probe_uid": "cal-0010",
-      "raw_domain": "latent_home_address_signal",
+      "raw_domain": "where_mail_reaches_me",
       "slice": "hr",
-      "value": "fictional home_address calibration value cal-0010"
+      "value": "14 Harbor Lane"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0011",
+      "evidence_text": "Rae is my housemate at the moment cal-0011",
       "expected_slot_id": "fact:household_member",
       "kind": "fact",
       "probe_uid": "cal-0011",
-      "raw_domain": "unmapped_household_member_attribute",
+      "raw_domain": "people_under_my_roof",
       "slice": "benign",
-      "value": "fictional household_member calibration value cal-0011"
+      "value": "Rae, my cousin"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0012",
+      "evidence_text": "I live in a loft, the kind of residence I like cal-0012",
       "expected_slot_id": "fact:home_type",
       "kind": "fact",
       "probe_uid": "cal-0012",
-      "raw_domain": "home_type_contextual_marker",
-      "slice": "hr",
-      "value": "fictional home_type calibration value cal-0012"
+      "raw_domain": "dwelling_shape_detail",
+      "slice": "benign",
+      "value": "a loft apartment"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0013",
+      "evidence_text": "A sunny balcony is the house feature I would miss most cal-0013",
       "expected_slot_id": "preference:home_amenity",
       "kind": "preference",
       "probe_uid": "cal-0013",
-      "raw_domain": "",
-      "slice": "hr",
-      "value": "fictional home_amenity calibration value cal-0013"
+      "raw_domain": "room_feature_wish",
+      "slice": "benign",
+      "value": "sunny balcony"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0014",
+      "evidence_text": "Northline Labs is the company whose door I badge into every morning cal-0014",
       "expected_slot_id": "fact:employer",
       "kind": "fact",
       "probe_uid": "cal-0014",
-      "raw_domain": "latent_employer_signal",
+      "raw_domain": "weekday_badge_destination",
       "slice": "benign",
-      "value": "fictional employer calibration value cal-0014"
+      "value": "Northline Labs"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0015",
+      "evidence_text": "On the org chart, my position is product researcher cal-0015",
       "expected_slot_id": "fact:job_title",
       "kind": "fact",
       "probe_uid": "cal-0015",
-      "raw_domain": "unmapped_job_title_attribute",
+      "raw_domain": "role_on_org_chart",
       "slice": "benign",
-      "value": "fictional job_title calibration value cal-0015"
+      "value": "product researcher"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0016",
+      "evidence_text": "I usually work from the office location called Harbor Tower cal-0016",
       "expected_slot_id": "fact:work_location",
       "kind": "fact",
       "probe_uid": "cal-0016",
-      "raw_domain": "work_location_contextual_marker",
+      "raw_domain": "where_i_do_my_shift",
       "slice": "benign",
-      "value": "fictional work_location calibration value cal-0016"
+      "value": "Harbor Tower"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0017",
+      "evidence_text": "For collaboration, I prefer quiet focus blocks cal-0017",
       "expected_slot_id": "preference:work_style",
       "kind": "preference",
       "probe_uid": "cal-0017",
-      "raw_domain": "",
+      "raw_domain": "how_teamwork_feels",
       "slice": "benign",
-      "value": "fictional work_style calibration value cal-0017"
+      "value": "quiet focus blocks"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0018",
+      "evidence_text": "My professional goal is to lead a research team cal-0018",
       "expected_slot_id": "preference:career_goal",
       "kind": "preference",
       "probe_uid": "cal-0018",
-      "raw_domain": "latent_career_goal_signal",
+      "raw_domain": "future_work_aim",
       "slice": "benign",
-      "value": "fictional career_goal calibration value cal-0018"
+      "value": "lead a research team"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0019",
+      "evidence_text": "My main car is a blue Kestrel hatchback cal-0019",
       "expected_slot_id": "fact:vehicle",
       "kind": "fact",
       "probe_uid": "cal-0019",
-      "raw_domain": "unmapped_vehicle_attribute",
+      "raw_domain": "daily_road_transport",
       "slice": "benign",
-      "value": "fictional vehicle calibration value cal-0019"
+      "value": "blue Kestrel hatchback"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0020",
+      "evidence_text": "The tram is my preferred commute cal-0020",
       "expected_slot_id": "preference:commute_mode",
       "kind": "preference",
       "probe_uid": "cal-0020",
-      "raw_domain": "commute_mode_contextual_marker",
+      "raw_domain": "getting_to_work_way",
       "slice": "benign",
-      "value": "fictional commute_mode calibration value cal-0020"
+      "value": "tram"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0021",
+      "evidence_text": "For long flights, I book premium economy cabin class cal-0021",
       "expected_slot_id": "preference:travel_class",
       "kind": "preference",
       "probe_uid": "cal-0021",
-      "raw_domain": "",
+      "raw_domain": "seat_comfort_tier",
       "slice": "benign",
-      "value": "fictional travel_class calibration value cal-0021"
+      "value": "premium economy"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0022",
+      "evidence_text": "A covered garage is where I like to leave my car cal-0022",
       "expected_slot_id": "preference:parking_preference",
       "kind": "preference",
       "probe_uid": "cal-0022",
-      "raw_domain": "latent_parking_preference_signal",
+      "raw_domain": "car_storage_preference",
       "slice": "benign",
-      "value": "fictional parking_preference calibration value cal-0022"
+      "value": "covered garage"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0023",
+      "evidence_text": "My smartphone is an Aster One cal-0023",
       "expected_slot_id": "fact:phone_model",
       "kind": "fact",
       "probe_uid": "cal-0023",
-      "raw_domain": "unmapped_phone_model_attribute",
+      "raw_domain": "handheld_device_model",
       "slice": "benign",
-      "value": "fictional phone_model calibration value cal-0023"
+      "value": "Aster One"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0024",
+      "evidence_text": "The laptop on my desk is an Orchid 14 cal-0024",
       "expected_slot_id": "fact:computer_model",
       "kind": "fact",
       "probe_uid": "cal-0024",
-      "raw_domain": "computer_model_contextual_marker",
+      "raw_domain": "desk_machine_model",
       "slice": "benign",
-      "value": "fictional computer_model calibration value cal-0024"
+      "value": "Orchid 14"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0025",
+      "evidence_text": "Zed is the editor open when I write code cal-0025",
       "expected_slot_id": "preference:code_editor",
       "kind": "preference",
       "probe_uid": "cal-0025",
-      "raw_domain": "",
+      "raw_domain": "coding_tool_choice",
       "slice": "benign",
-      "value": "fictional code_editor calibration value cal-0025"
+      "value": "Zed"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0026",
+      "evidence_text": "Firefox is what I use to browse the web cal-0026",
       "expected_slot_id": "preference:browser",
       "kind": "preference",
       "probe_uid": "cal-0026",
-      "raw_domain": "latent_browser_signal",
+      "raw_domain": "web_reading_tool",
       "slice": "benign",
-      "value": "fictional browser calibration value cal-0026"
+      "value": "Firefox"
     },
     {
-      "evidence_text": "fictional calibration evidence email cal-0027",
+      "evidence_text": "Messages reach my inbox at marin@postlane.test cal-0027",
       "expected_slot_id": "fact:email",
       "kind": "fact",
       "probe_uid": "cal-0027",
-      "raw_domain": "unmapped_email_attribute",
+      "raw_domain": "inbox_account_detail",
       "slice": "hr",
-      "value": "fictional email calibration value cal-0027"
+      "value": "marin@postlane.test"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0028",
+      "evidence_text": "Postlane is the mail provider I rely on cal-0028",
       "expected_slot_id": "preference:email_service",
       "kind": "preference",
       "probe_uid": "cal-0028",
-      "raw_domain": "email_service_contextual_marker",
-      "slice": "hr",
-      "value": "fictional email_service calibration value cal-0028"
+      "raw_domain": "mail_handling_platform",
+      "slice": "benign",
+      "value": "Postlane"
     },
     {
-      "evidence_text": "fictional calibration evidence handle cal-0029",
+      "evidence_text": "Friends can find my username as marin_on_the_move cal-0029",
       "expected_slot_id": "fact:messaging_handle",
       "kind": "fact",
       "probe_uid": "cal-0029",
-      "raw_domain": "",
+      "raw_domain": "chat_identity_label",
       "slice": "hr",
-      "value": "fictional messaging_handle calibration value cal-0029"
+      "value": "marin_on_the_move"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0030",
+      "evidence_text": "Signal is the chat service I use with friends cal-0030",
       "expected_slot_id": "preference:messaging_service",
       "kind": "preference",
       "probe_uid": "cal-0030",
-      "raw_domain": "latent_messaging_service_signal",
+      "raw_domain": "conversation_platform_choice",
       "slice": "hr",
-      "value": "fictional messaging_service calibration value cal-0030"
+      "value": "Signal"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0031",
+      "evidence_text": "My morning habit starts with tea and a walk cal-0031",
       "expected_slot_id": "fact:morning_routine",
       "kind": "fact",
       "probe_uid": "cal-0031",
-      "raw_domain": "unmapped_morning_routine_attribute",
+      "raw_domain": "first_hours_habit",
       "slice": "benign",
-      "value": "fictional morning_routine calibration value cal-0031"
+      "value": "tea and a walk"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0032",
+      "evidence_text": "My usual bedtime is 11:00 pm cal-0032",
       "expected_slot_id": "fact:sleep_schedule",
       "kind": "fact",
       "probe_uid": "cal-0032",
-      "raw_domain": "sleep_schedule_contextual_marker",
+      "raw_domain": "nightly_rest_timing",
       "slice": "benign",
-      "value": "fictional sleep_schedule calibration value cal-0032"
+      "value": "11:00 pm"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0033",
+      "evidence_text": "Tuesday afternoons are my preferred meeting schedule cal-0033",
       "expected_slot_id": "preference:meeting_time",
       "kind": "preference",
       "probe_uid": "cal-0033",
-      "raw_domain": "",
+      "raw_domain": "calendar_slot_choice",
       "slice": "benign",
-      "value": "fictional meeting_time calibration value cal-0033"
+      "value": "Tuesday afternoons"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0034",
+      "evidence_text": "My free time begins after 3 on weekdays cal-0034",
       "expected_slot_id": "constraint:availability_window",
       "kind": "constraint",
       "probe_uid": "cal-0034",
-      "raw_domain": "latent_availability_window_signal",
+      "raw_domain": "times_i_can_join",
       "slice": "benign",
-      "value": "fictional availability_window calibration value cal-0034"
+      "value": "weekdays after 3"
     },
     {
-      "evidence_text": "fictional calibration evidence partner cal-0035",
+      "evidence_text": "My spouse is Jordan Lee cal-0035",
       "expected_slot_id": "fact:partner_name",
       "kind": "fact",
       "probe_uid": "cal-0035",
-      "raw_domain": "unmapped_partner_name_attribute",
+      "raw_domain": "person_i_share_life_with",
       "slice": "hr",
-      "value": "fictional partner_name calibration value cal-0035"
+      "value": "Jordan Lee"
     },
     {
-      "evidence_text": "fictional calibration evidence married cal-0036",
+      "evidence_text": "I am married, and that is my current status cal-0036",
       "expected_slot_id": "fact:relationship_status",
       "kind": "fact",
       "probe_uid": "cal-0036",
-      "raw_domain": "relationship_status_contextual_marker",
+      "raw_domain": "current_partnership_state",
       "slice": "hr",
-      "value": "fictional relationship_status calibration value cal-0036"
+      "value": "married"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0037",
+      "evidence_text": "The Tuesday climbers are my friend group cal-0037",
       "expected_slot_id": "fact:social_circle",
       "kind": "fact",
       "probe_uid": "cal-0037",
-      "raw_domain": "",
+      "raw_domain": "people_i_spend_time_with",
       "slice": "benign",
-      "value": "fictional social_circle calibration value cal-0037"
+      "value": "the Tuesday climbers"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0038",
+      "evidence_text": "Board games are my favorite group activity cal-0038",
       "expected_slot_id": "preference:social_activity",
       "kind": "preference",
       "probe_uid": "cal-0038",
-      "raw_domain": "latent_social_activity_signal",
+      "raw_domain": "group_fun_choice",
       "slice": "benign",
-      "value": "fictional social_activity calibration value cal-0038"
+      "value": "board games"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0039",
+      "evidence_text": "Miso is my pet's name cal-0039",
       "expected_slot_id": "fact:pet_name",
       "kind": "fact",
       "probe_uid": "cal-0039",
-      "raw_domain": "unmapped_pet_name_attribute",
+      "raw_domain": "animal_calling_word",
       "slice": "hr",
-      "value": "fictional pet_name calibration value cal-0039"
+      "value": "Miso"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0040",
+      "evidence_text": "A greyhound is the pet species I share my home with cal-0040",
       "expected_slot_id": "fact:pet_type",
       "kind": "fact",
       "probe_uid": "cal-0040",
-      "raw_domain": "pet_type_contextual_marker",
-      "slice": "benign",
-      "value": "fictional pet_type calibration value cal-0040"
+      "raw_domain": "animal_species_detail",
+      "slice": "hr",
+      "value": "greyhound"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0041",
+      "evidence_text": "An evening brush is the pet routine that works best cal-0041",
       "expected_slot_id": "preference:pet_care",
       "kind": "preference",
       "probe_uid": "cal-0041",
-      "raw_domain": "",
+      "raw_domain": "animal_daily_care",
       "slice": "benign",
-      "value": "fictional pet_care calibration value cal-0041"
+      "value": "evening brush"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0042",
+      "evidence_text": "Levantine is the food preference I crave on weekends cal-0042",
       "expected_slot_id": "preference:cuisine",
       "kind": "preference",
       "probe_uid": "cal-0042",
-      "raw_domain": "latent_cuisine_signal",
-      "slice": "benign",
-      "value": "fictional cuisine calibration value cal-0042"
+      "raw_domain": "food_region_flavor",
+      "slice": "hr",
+      "value": "Levantine"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0043",
+      "evidence_text": "Jazz is my favorite music when I am cooking cal-0043",
       "expected_slot_id": "preference:music_genre",
       "kind": "preference",
       "probe_uid": "cal-0043",
-      "raw_domain": "unmapped_music_genre_attribute",
+      "raw_domain": "sound_mood_choice",
       "slice": "benign",
-      "value": "fictional music_genre calibration value cal-0043"
+      "value": "jazz"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0044",
+      "evidence_text": "My workout goal is to run a 10K cal-0044",
       "expected_slot_id": "preference:fitness_goal",
       "kind": "preference",
       "probe_uid": "cal-0044",
-      "raw_domain": "fitness_goal_contextual_marker",
+      "raw_domain": "movement_outcome_aim",
       "slice": "benign",
-      "value": "fictional fitness_goal calibration value cal-0044"
+      "value": "run 10K"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0045",
+      "evidence_text": "Evening journaling is my self care after busy days cal-0045",
       "expected_slot_id": "preference:wellness_routine",
       "kind": "preference",
       "probe_uid": "cal-0045",
-      "raw_domain": "",
+      "raw_domain": "personal_recharge_habit",
       "slice": "benign",
-      "value": "fictional wellness_routine calibration value cal-0045"
+      "value": "evening journaling"
     },
     {
-      "evidence_text": "fictional calibration evidence income cal-0046",
+      "evidence_text": "My salary falls between $90,000 and $110,000 cal-0046",
       "expected_slot_id": "fact:income_range",
       "kind": "fact",
       "probe_uid": "cal-0046",
-      "raw_domain": "latent_income_range_signal",
+      "raw_domain": "earnings_band_detail",
       "slice": "hr",
-      "value": "fictional income_range calibration value cal-0046"
+      "value": "$90,000-$110,000"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0047",
+      "evidence_text": "For headphones, my spending budget is under $80 cal-0047",
       "expected_slot_id": "preference:budget_preference",
       "kind": "preference",
       "probe_uid": "cal-0047",
-      "raw_domain": "unmapped_budget_preference_attribute",
-      "slice": "benign",
-      "value": "fictional budget_preference calibration value cal-0047"
+      "raw_domain": "purchase_spending_limit",
+      "slice": "hr",
+      "value": "under $80"
     },
     {
-      "evidence_text": "fictional calibration evidence credit_card cal-0048",
+      "evidence_text": "At checkout, payment is by debit card cal-0048",
       "expected_slot_id": "fact:payment_method",
       "kind": "fact",
       "probe_uid": "cal-0048",
-      "raw_domain": "payment_method_contextual_marker",
+      "raw_domain": "checkout_tender_choice",
       "slice": "hr",
-      "value": "fictional payment_method calibration value cal-0048"
+      "value": "Visa debit"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0049",
+      "evidence_text": "I compare reviews first; it is my buying style cal-0049",
       "expected_slot_id": "preference:shopping_style",
       "kind": "preference",
       "probe_uid": "cal-0049",
-      "raw_domain": "",
+      "raw_domain": "buying_decision_habit",
       "slice": "benign",
-      "value": "fictional shopping_style calibration value cal-0049"
+      "value": "compare reviews first"
     },
     {
-      "evidence_text": "fictional calibration evidence emergency cal-0050",
+      "evidence_text": "In an emergency, call Rae Cole at 555-0148 cal-0050",
       "expected_slot_id": "constraint:emergency_contact",
       "kind": "constraint",
       "probe_uid": "cal-0050",
-      "raw_domain": "latent_emergency_contact_signal",
+      "raw_domain": "who_to_call_first",
       "slice": "hr",
-      "value": "fictional emergency_contact calibration value cal-0050"
+      "value": "Rae Cole, 555-0148"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0051",
+      "evidence_text": "A text message is the contact method I answer fastest cal-0051",
       "expected_slot_id": "preference:contact_preference",
       "kind": "preference",
       "probe_uid": "cal-0051",
-      "raw_domain": "unmapped_contact_preference_attribute",
+      "raw_domain": "how_to_reach_me",
       "slice": "hr",
-      "value": "fictional contact_preference calibration value cal-0051"
+      "value": "text message"
     },
     {
-      "evidence_text": "fictional calibration evidence accessib cal-0052",
+      "evidence_text": "Captions are the accommodation I need during video calls cal-0052",
       "expected_slot_id": "constraint:accessibility_need",
       "kind": "constraint",
       "probe_uid": "cal-0052",
-      "raw_domain": "accessibility_need_contextual_marker",
+      "raw_domain": "support_for_daily_tasks",
       "slice": "hr",
-      "value": "fictional accessibility_need calibration value cal-0052"
+      "value": "captions"
     },
     {
-      "evidence_text": "fictional calibration evidence unsafe cal-0053",
+      "evidence_text": "Unexpected visits feel unsafe, so I need advance notice cal-0053",
       "expected_slot_id": "constraint:safety_boundary",
       "kind": "constraint",
       "probe_uid": "cal-0053",
-      "raw_domain": "",
+      "raw_domain": "personal_harm_limit",
       "slice": "hr",
-      "value": "fictional safety_boundary calibration value cal-0053"
+      "value": "no surprise visits"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0054",
+      "evidence_text": "The passport lists my full identity as Amina Rios cal-0054",
       "expected_slot_id": "fact:legal_name",
       "kind": "fact",
       "probe_uid": "cal-0054",
-      "raw_domain": "latent_legal_name_signal",
-      "slice": "hr",
-      "value": "fictional legal_name calibration value cal-0054"
+      "raw_domain": "legal_identity_record",
+      "slice": "benign",
+      "value": "Amina Rios"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0055",
+      "evidence_text": "Friends use Zee when they greet me cal-0055",
       "expected_slot_id": "fact:chosen_name",
       "kind": "fact",
       "probe_uid": "cal-0055",
-      "raw_domain": "unmapped_chosen_name_attribute",
-      "slice": "hr",
-      "value": "fictional chosen_name calibration value cal-0055"
+      "raw_domain": "everyday_calling_label",
+      "slice": "benign",
+      "value": "Zee"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0056",
+      "evidence_text": "Use she/her when referring to this user cal-0056",
       "expected_slot_id": "fact:pronoun",
       "kind": "fact",
       "probe_uid": "cal-0056",
-      "raw_domain": "pronoun_contextual_marker",
+      "raw_domain": "user_reference_style",
       "slice": "benign",
-      "value": "fictional pronoun calibration value cal-0056"
+      "value": "she/her"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0057",
+      "evidence_text": "Cedar Bay is where I put down roots cal-0057",
       "expected_slot_id": "fact:home_city",
       "kind": "fact",
       "probe_uid": "cal-0057",
-      "raw_domain": "",
+      "raw_domain": "place_i_call_home",
       "slice": "hr",
-      "value": "fictional home_city calibration value cal-0057"
+      "value": "Cedar Bay"
     },
     {
-      "evidence_text": "fictional calibration evidence allergic cal-0058",
+      "evidence_text": "Pecans make me allergic, so I avoid them cal-0058",
       "expected_slot_id": "fact:medical_allergy",
       "kind": "fact",
       "probe_uid": "cal-0058",
-      "raw_domain": "latent_medical_allergy_signal",
+      "raw_domain": "medical_reaction_note",
       "slice": "hr",
-      "value": "fictional medical_allergy calibration value cal-0058"
+      "value": "pecans"
     },
     {
-      "evidence_text": "fictional calibration evidence diagnos cal-0059",
+      "evidence_text": "Tinnitus is a chronic issue I manage with rest cal-0059",
       "expected_slot_id": "fact:medical_condition",
       "kind": "fact",
       "probe_uid": "cal-0059",
-      "raw_domain": "unmapped_medical_condition_attribute",
+      "raw_domain": "ongoing_medical_note",
       "slice": "hr",
-      "value": "fictional medical_condition calibration value cal-0059"
+      "value": "tinnitus"
     },
     {
-      "evidence_text": "fictional calibration evidence medicat cal-0060",
+      "evidence_text": "My daily pill is Velora after breakfast cal-0060",
       "expected_slot_id": "fact:medication",
       "kind": "fact",
       "probe_uid": "cal-0060",
-      "raw_domain": "medication_contextual_marker",
+      "raw_domain": "daily_treatment_note",
       "slice": "hr",
-      "value": "fictional medication calibration value cal-0060"
+      "value": "Velora"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0061",
+      "evidence_text": "I mostly eat pescatarian meals cal-0061",
       "expected_slot_id": "preference:diet",
       "kind": "preference",
       "probe_uid": "cal-0061",
-      "raw_domain": "",
+      "raw_domain": "usual_meal_pattern",
       "slice": "benign",
-      "value": "fictional diet calibration value cal-0061"
+      "value": "pescatarian"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0062",
+      "evidence_text": "Sesame stays off my plate cal-0062",
       "expected_slot_id": "constraint:dietary_restriction",
       "kind": "constraint",
       "probe_uid": "cal-0062",
-      "raw_domain": "latent_dietary_restriction_signal",
+      "raw_domain": "dietary_choice_limit",
       "slice": "hr",
-      "value": "fictional dietary_restriction calibration value cal-0062"
+      "value": "no sesame"
     },
     {
-      "evidence_text": "fictional calibration evidence address cal-0063",
+      "evidence_text": "Mail comes to 88 Juniper Road on my street cal-0063",
       "expected_slot_id": "fact:home_address",
       "kind": "fact",
       "probe_uid": "cal-0063",
-      "raw_domain": "unmapped_home_address_attribute",
+      "raw_domain": "where_parcels_arrive",
       "slice": "hr",
-      "value": "fictional home_address calibration value cal-0063"
+      "value": "88 Juniper Road"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0064",
+      "evidence_text": "Mara shares my living space cal-0064",
       "expected_slot_id": "fact:household_member",
       "kind": "fact",
       "probe_uid": "cal-0064",
-      "raw_domain": "household_member_contextual_marker",
+      "raw_domain": "household_roster_note",
       "slice": "benign",
-      "value": "fictional household_member calibration value cal-0064"
+      "value": "Mara, my aunt"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0065",
+      "evidence_text": "I live in a townhouse cal-0065",
       "expected_slot_id": "fact:home_type",
       "kind": "fact",
       "probe_uid": "cal-0065",
-      "raw_domain": "",
-      "slice": "hr",
-      "value": "fictional home_type calibration value cal-0065"
+      "raw_domain": "dwelling_type_detail",
+      "slice": "benign",
+      "value": "a townhouse"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0066",
+      "evidence_text": "A reading nook makes a place feel right cal-0066",
       "expected_slot_id": "preference:home_amenity",
       "kind": "preference",
       "probe_uid": "cal-0066",
-      "raw_domain": "latent_home_amenity_signal",
-      "slice": "hr",
-      "value": "fictional home_amenity calibration value cal-0066"
+      "raw_domain": "amenity_wish",
+      "slice": "benign",
+      "value": "reading nook"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0067",
+      "evidence_text": "I badge into Northwind Robotics every workday cal-0067",
       "expected_slot_id": "fact:employer",
       "kind": "fact",
       "probe_uid": "cal-0067",
-      "raw_domain": "unmapped_employer_attribute",
+      "raw_domain": "organization_i_badge_into",
       "slice": "benign",
-      "value": "fictional employer calibration value cal-0067"
+      "value": "Northwind Robotics"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0068",
+      "evidence_text": "I serve as a service designer cal-0068",
       "expected_slot_id": "fact:job_title",
       "kind": "fact",
       "probe_uid": "cal-0068",
-      "raw_domain": "job_title_contextual_marker",
+      "raw_domain": "org_chart_role",
       "slice": "benign",
-      "value": "fictional job_title calibration value cal-0068"
+      "value": "service designer"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0069",
+      "evidence_text": "My desk is in Riverside Annex cal-0069",
       "expected_slot_id": "fact:work_location",
       "kind": "fact",
       "probe_uid": "cal-0069",
-      "raw_domain": "",
+      "raw_domain": "usual_location",
       "slice": "benign",
-      "value": "fictional work_location calibration value cal-0069"
+      "value": "Riverside Annex"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0070",
+      "evidence_text": "Asynchronous updates help me collaborate cal-0070",
       "expected_slot_id": "preference:work_style",
       "kind": "preference",
       "probe_uid": "cal-0070",
-      "raw_domain": "latent_work_style_signal",
+      "raw_domain": "working_rhythm",
       "slice": "benign",
-      "value": "fictional work_style calibration value cal-0070"
+      "value": "asynchronous updates"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0071",
+      "evidence_text": "I hope to direct a design studio cal-0071",
       "expected_slot_id": "preference:career_goal",
       "kind": "preference",
       "probe_uid": "cal-0071",
-      "raw_domain": "unmapped_career_goal_attribute",
+      "raw_domain": "future_aspiration",
       "slice": "benign",
-      "value": "fictional career_goal calibration value cal-0071"
+      "value": "direct a design studio"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0072",
+      "evidence_text": "This transport is used by this user each day cal-0072",
       "expected_slot_id": "fact:vehicle",
       "kind": "fact",
       "probe_uid": "cal-0072",
-      "raw_domain": "vehicle_contextual_marker",
-      "slice": "benign",
-      "value": "fictional vehicle calibration value cal-0072"
+      "raw_domain": "daily_road_transport",
+      "slice": "hr",
+      "value": "silver Ardent wagon"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0073",
+      "evidence_text": "I take the ferry to get to work cal-0073",
       "expected_slot_id": "preference:commute_mode",
       "kind": "preference",
       "probe_uid": "cal-0073",
-      "raw_domain": "",
-      "slice": "benign",
-      "value": "fictional commute_mode calibration value cal-0073"
+      "raw_domain": "travel_mode_choice",
+      "slice": "hr",
+      "value": "ferry"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0074",
+      "evidence_text": "For long flights, I book business cal-0074",
       "expected_slot_id": "preference:travel_class",
       "kind": "preference",
       "probe_uid": "cal-0074",
-      "raw_domain": "latent_travel_class_signal",
+      "raw_domain": "preferred_flight_seating",
       "slice": "benign",
-      "value": "fictional travel_class calibration value cal-0074"
+      "value": "business"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0075",
+      "evidence_text": "I need a shaded carport for my vehicle cal-0075",
       "expected_slot_id": "preference:parking_preference",
       "kind": "preference",
       "probe_uid": "cal-0075",
-      "raw_domain": "unmapped_parking_preference_attribute",
-      "slice": "benign",
-      "value": "fictional parking_preference calibration value cal-0075"
+      "raw_domain": "required_garage_cover",
+      "slice": "hr",
+      "value": "shaded carport"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0076",
+      "evidence_text": "I carry a Nova 7 each day cal-0076",
       "expected_slot_id": "fact:phone_model",
       "kind": "fact",
       "probe_uid": "cal-0076",
-      "raw_domain": "phone_model_contextual_marker",
+      "raw_domain": "handset_model_detail",
       "slice": "benign",
-      "value": "fictional phone_model calibration value cal-0076"
+      "value": "Nova 7"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0077",
+      "evidence_text": "Juniper 16 runs my projects cal-0077",
       "expected_slot_id": "fact:computer_model",
       "kind": "fact",
       "probe_uid": "cal-0077",
-      "raw_domain": "",
+      "raw_domain": "primary_machine_model",
       "slice": "benign",
-      "value": "fictional computer_model calibration value cal-0077"
+      "value": "Juniper 16"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0078",
+      "evidence_text": "Helix is open when I write code cal-0078",
       "expected_slot_id": "preference:code_editor",
       "kind": "preference",
       "probe_uid": "cal-0078",
-      "raw_domain": "latent_code_editor_signal",
+      "raw_domain": "code_workspace_tool",
       "slice": "benign",
-      "value": "fictional code_editor calibration value cal-0078"
+      "value": "Helix"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0079",
+      "evidence_text": "Orion opens the sites I visit cal-0079",
       "expected_slot_id": "preference:browser",
       "kind": "preference",
       "probe_uid": "cal-0079",
-      "raw_domain": "unmapped_browser_attribute",
+      "raw_domain": "web_navigation_tool",
       "slice": "benign",
-      "value": "fictional browser calibration value cal-0079"
+      "value": "Orion"
     },
     {
-      "evidence_text": "fictional calibration evidence email cal-0080",
+      "evidence_text": "Notes reach amina@relay.test in my inbox cal-0080",
       "expected_slot_id": "fact:email",
       "kind": "fact",
       "probe_uid": "cal-0080",
-      "raw_domain": "email_contextual_marker",
+      "raw_domain": "inbox_destination",
       "slice": "hr",
-      "value": "fictional email calibration value cal-0080"
+      "value": "amina@relay.test"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0081",
+      "evidence_text": "Relay handles the messages I send cal-0081",
       "expected_slot_id": "preference:email_service",
       "kind": "preference",
       "probe_uid": "cal-0081",
-      "raw_domain": "",
+      "raw_domain": "mail_delivery_platform",
       "slice": "hr",
-      "value": "fictional email_service calibration value cal-0081"
+      "value": "Relay"
     },
     {
-      "evidence_text": "fictional calibration evidence handle cal-0082",
+      "evidence_text": "Friends find my handle as zee_road cal-0082",
       "expected_slot_id": "fact:messaging_handle",
       "kind": "fact",
       "probe_uid": "cal-0082",
-      "raw_domain": "latent_messaging_handle_signal",
+      "raw_domain": "account_handle_detail",
       "slice": "hr",
-      "value": "fictional messaging_handle calibration value cal-0082"
+      "value": "zee_road"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0084",
+      "evidence_text": "I use Wire to message friends cal-0083",
+      "expected_slot_id": "preference:messaging_service",
+      "kind": "preference",
+      "probe_uid": "cal-0083",
+      "raw_domain": "preferred_chat_network",
+      "slice": "hr",
+      "value": "Wire"
+    },
+    {
+      "evidence_text": "Stretching and tea start my day cal-0084",
       "expected_slot_id": "fact:morning_routine",
       "kind": "fact",
       "probe_uid": "cal-0084",
-      "raw_domain": "morning_routine_contextual_marker",
+      "raw_domain": "morning_dawn_pattern",
       "slice": "benign",
-      "value": "fictional morning_routine calibration value cal-0084"
+      "value": "stretching and tea"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0085",
+      "evidence_text": "Lights go out at 10:30 pm cal-0085",
       "expected_slot_id": "fact:sleep_schedule",
       "kind": "fact",
       "probe_uid": "cal-0085",
-      "raw_domain": "",
+      "raw_domain": "sleep_night_pattern",
       "slice": "benign",
-      "value": "fictional sleep_schedule calibration value cal-0085"
+      "value": "10:30 pm"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0086",
+      "evidence_text": "Thursday mornings work best for me cal-0086",
       "expected_slot_id": "preference:meeting_time",
       "kind": "preference",
       "probe_uid": "cal-0086",
-      "raw_domain": "latent_meeting_time_signal",
+      "raw_domain": "meeting_calendar_slot",
       "slice": "benign",
-      "value": "fictional meeting_time calibration value cal-0086"
+      "value": "Thursday mornings"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0087",
+      "evidence_text": "I can join before noon on weekends cal-0087",
       "expected_slot_id": "constraint:availability_window",
       "kind": "constraint",
       "probe_uid": "cal-0087",
-      "raw_domain": "unmapped_availability_window_attribute",
+      "raw_domain": "time_window_note",
       "slice": "benign",
-      "value": "fictional availability_window calibration value cal-0087"
+      "value": "weekends before noon"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0090",
+      "evidence_text": "Avery Moss is my spouse cal-0088",
+      "expected_slot_id": "fact:partner_name",
+      "kind": "fact",
+      "probe_uid": "cal-0088",
+      "raw_domain": "person_i_share_life_with",
+      "slice": "hr",
+      "value": "Avery Moss"
+    },
+    {
+      "evidence_text": "The Saturday runners are who I see most cal-0090",
       "expected_slot_id": "fact:social_circle",
       "kind": "fact",
       "probe_uid": "cal-0090",
-      "raw_domain": "latent_social_circle_signal",
+      "raw_domain": "friendship_circle",
       "slice": "benign",
-      "value": "fictional social_circle calibration value cal-0090"
+      "value": "the Saturday runners"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0091",
+      "evidence_text": "Community gardening is the group pastime I enjoy cal-0091",
       "expected_slot_id": "preference:social_activity",
       "kind": "preference",
       "probe_uid": "cal-0091",
-      "raw_domain": "unmapped_social_activity_attribute",
+      "raw_domain": "group_pastime_choice",
       "slice": "benign",
-      "value": "fictional social_activity calibration value cal-0091"
+      "value": "community gardening"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0093",
-      "expected_slot_id": "fact:pet_type",
+      "evidence_text": "Pip comes when I call cal-0092",
+      "expected_slot_id": "fact:pet_name",
       "kind": "fact",
-      "probe_uid": "cal-0093",
-      "raw_domain": "",
+      "probe_uid": "cal-0092",
+      "raw_domain": "animal_calling_word",
       "slice": "benign",
-      "value": "fictional pet_type calibration value cal-0093"
+      "value": "Pip"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0094",
+      "evidence_text": "Morning grooming works best for us cal-0094",
       "expected_slot_id": "preference:pet_care",
       "kind": "preference",
       "probe_uid": "cal-0094",
-      "raw_domain": "latent_pet_care_signal",
+      "raw_domain": "animal_daily_care",
       "slice": "benign",
-      "value": "fictional pet_care calibration value cal-0094"
+      "value": "morning grooming"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0095",
+      "evidence_text": "Ethiopian dishes are what I crave cal-0095",
       "expected_slot_id": "preference:cuisine",
       "kind": "preference",
       "probe_uid": "cal-0095",
-      "raw_domain": "unmapped_cuisine_attribute",
+      "raw_domain": "regional_style_note",
       "slice": "benign",
-      "value": "fictional cuisine calibration value cal-0095"
+      "value": "Ethiopian"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0096",
+      "evidence_text": "Ambient helps me focus while cooking cal-0096",
       "expected_slot_id": "preference:music_genre",
       "kind": "preference",
       "probe_uid": "cal-0096",
-      "raw_domain": "music_genre_contextual_marker",
+      "raw_domain": "preferred_sound_style",
       "slice": "benign",
-      "value": "fictional music_genre calibration value cal-0096"
+      "value": "ambient"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0097",
+      "evidence_text": "I am training to cycle 50 km cal-0097",
       "expected_slot_id": "preference:fitness_goal",
       "kind": "preference",
       "probe_uid": "cal-0097",
-      "raw_domain": "",
+      "raw_domain": "training_goal_aim",
       "slice": "benign",
-      "value": "fictional fitness_goal calibration value cal-0097"
+      "value": "cycle 50 km"
     },
     {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0098",
+      "evidence_text": "I write to reset after busy days cal-0098",
       "expected_slot_id": "preference:wellness_routine",
       "kind": "preference",
       "probe_uid": "cal-0098",
-      "raw_domain": "latent_wellness_routine_signal",
+      "raw_domain": "self_reflection_practice",
       "slice": "benign",
-      "value": "fictional wellness_routine calibration value cal-0098"
-    },
-    {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0100",
-      "expected_slot_id": "preference:budget_preference",
-      "kind": "preference",
-      "probe_uid": "cal-0100",
-      "raw_domain": "budget_preference_contextual_marker",
-      "slice": "benign",
-      "value": "fictional budget_preference calibration value cal-0100"
-    },
-    {
-      "evidence_text": "fictional calibration evidence ordinary synthetic preference cal-0102",
-      "expected_slot_id": "preference:shopping_style",
-      "kind": "preference",
-      "probe_uid": "cal-0102",
-      "raw_domain": "latent_shopping_style_signal",
-      "slice": "benign",
-      "value": "fictional shopping_style calibration value cal-0102"
+      "value": "sunset writing"
     }
   ],
-  "version": "v1"
+  "version": "v2"
 }
