@@ -18,8 +18,11 @@ import math
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any, Callable
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from panella.resolver.calibrate import DEFAULT_PROBE_PATH, verify
 

@@ -732,3 +732,11 @@ def test_builtin_and_frozen_origins_rejected_even_from_repo_root() -> None:
     # report). The loader must reject non-absolute / non-file origins fail-closed.
     with pytest.raises(ValueError, match="no resolvable source file"):
         _load_evaluator("sys:exit")
+def test_gate_runner_importable_from_any_cwd(tmp_path: Path) -> None:
+    # The runner is invoked by absolute path in operation; the sys.path shim (mirroring
+    # resolver_calibration.py) must make the panella package importable from any CWD.
+    gate_path = Path(__file__).resolve().parents[2] / "eval" / "goldsets" / "resolver_gate.py"
+    result = subprocess.run(
+        [sys.executable, str(gate_path), "--help"], cwd=tmp_path, capture_output=True, text=True
+    )
+    assert result.returncode == 0 and "--ticket" in result.stdout
