@@ -598,10 +598,17 @@ def _raise_on_transport_error(raw: str) -> str:
     return raw
 
 
-def _codex_chat_fn(model: str | None = None, *, timeout: float = 240.0, retries: int = 3) -> ChatFn:
+_CODEX_EFFORTS = ("minimal", "low", "medium", "high", "xhigh")
+
+
+def _codex_chat_fn(model: str | None = None, *, timeout: float = 240.0, retries: int = 3, effort: str | None = None) -> ChatFn:
     """DEFAULT real-run transport: a local `codex` CLI subprocess (device-auth SUBSCRIPTION -- no
     per-call API key, no cost if you have one configured). Reads the response from
     --output-last-message (codex stdout has banner/plugin noise).
+
+    ``effort`` pins the model_reasoning_effort for this workload; None inherits the user's
+    global codex config. An explicit tier matters for bulk mechanical calls: a global
+    high-effort default turns seconds-scale extraction into minutes per item.
 
     BOUNDED RETRY (transport resilience, NOT scoring): retry up to ``retries`` times, then FAIL
     CLOSED -- a persistent transport failure must NEVER become a fake verdict."""
@@ -609,9 +616,14 @@ def _codex_chat_fn(model: str | None = None, *, timeout: float = 240.0, retries:
     import tempfile
     import time
 
+    if effort is not None and effort not in _CODEX_EFFORTS:
+        raise ValueError(f"effort must be one of {_CODEX_EFFORTS} or None")
+
     def _chat(system: str, user: str) -> str:
         prompt = f"{system}\n\n---\n\n{user}"
         argv = ["codex", "exec", "--skip-git-repo-check", "--output-last-message", "", "-"]
+        if effort:
+            argv[2:2] = ["-c", f'model_reasoning_effort="{effort}"']
         if model:
             argv[2:2] = ["--model", model]
         last_err = ""

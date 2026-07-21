@@ -173,8 +173,11 @@ def make_gate_evaluator(
         raise ValueError("missing config key: chat.retries")
     if isinstance(retries, bool) or not isinstance(retries, int) or retries < 1:
         raise ValueError("config key must be a positive int: chat.retries")
+    effort = chat.get("effort")
+    if effort is not None and effort not in key_correctness_eval._CODEX_EFFORTS:
+        raise ValueError(f"config key chat.effort must be one of {key_correctness_eval._CODEX_EFFORTS} or absent")
 
-    transport = chat_fn or key_correctness_eval._codex_chat_fn(model=model, timeout=float(timeout_s), retries=retries)
+    transport = chat_fn or key_correctness_eval._codex_chat_fn(model=model, timeout=float(timeout_s), retries=retries, effort=effort)
     manifest = manifest_digest = evidence_digest = None
     if llm_enabled:
         if manifest_path is None:

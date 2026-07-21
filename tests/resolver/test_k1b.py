@@ -937,6 +937,50 @@ def test_make_gate_evaluator_composes_full_result(tmp_path: Path, monkeypatch: p
     assert set(result["extraction_report"]) == {"public", "holdout"}
 
 
+def test_codex_chat_fn_threads_effort_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    import subprocess as subprocess_module
+    from types import SimpleNamespace
+
+    from eval.goldsets.key_correctness_eval import _codex_chat_fn
+
+    captured: list[list[str]] = []
+
+    def fake_run(argv, **kwargs):  # noqa: ANN001, ANN003
+        captured.append(list(argv))
+        out_path = argv[argv.index("--output-last-message") + 1]
+        Path(out_path).write_text("ok", encoding="utf-8")
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(subprocess_module, "run", fake_run)
+    chat = _codex_chat_fn(model="toy-model", timeout=5.0, retries=1, effort="medium")
+    assert chat("system", "user") == "ok"
+    argv = captured[0]
+    index = argv.index("-c")
+    assert argv[index + 1] == 'model_reasoning_effort="medium"'
+    assert argv[argv.index("--model") + 1] == "toy-model"
+
+    with pytest.raises(ValueError, match="effort"):
+        _codex_chat_fn(effort="turbo")
+    # None inherits the user's global config: no -c flag is injected.
+    captured.clear()
+    assert _codex_chat_fn(model="toy-model", timeout=5.0, retries=1)("system", "user") == "ok"
+    assert "-c" not in captured[0]
+
+
+def test_gate_config_rejects_unknown_chat_effort(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    paths = _write_toy_gate_inputs(tmp_path)
+    monkeypatch.setattr(resolver_eval, "ROOT", tmp_path)
+    config = _toy_factory_config()
+    config["chat"]["effort"] = "turbo"
+
+    with pytest.raises(ValueError, match="chat.effort"):
+        make_gate_evaluator(
+            holdout_sums=paths["sums"], provenance=paths["provenance"], holdout_counts=paths["counts"],
+            probe_path=paths["probes"], manifest_path=None, evidence_path=None,
+            config=config, chat_fn=lambda system, user: "[]",
+        )
+
+
 def test_extraction_score_report_uses_resolver_adapted_keys(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # Regression for the §7.4a adapter wiring: two update-pair items whose extractor emits
     # UNSTABLE raw domains ("employer" vs alias "current_employer"). Raw keys differ, so
