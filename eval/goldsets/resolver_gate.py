@@ -2,7 +2,7 @@
 """One-shot K1 gate ticket handling and fail-closed metric checks.
 
 Receipts embed the full gate verdict: gate failure writes a receipt and exits non-zero,
-while structurally invalid evaluator output errors before a receipt is written; the evaluator
+while structurally invalid evaluator output errors before a receipt is written; the evaluator factory
 reference is config-pinned (ticket-bound) and must resolve inside the repository tree, while
 deliberate root-level tampering remains outside the protocol threat model.
 """
@@ -349,7 +349,7 @@ def run_ticket(
     return receipt
 
 
-def _load_evaluator(reference: str) -> Callable[[], dict[str, Any]]:
+def _load_evaluator(reference: str) -> Callable[..., Any]:
     module_name, separator, attribute = reference.partition(":")
     if not separator or not module_name or not attribute:
         raise ValueError("evaluator reference must be module:callable")
@@ -374,10 +374,10 @@ def _load_evaluator(reference: str) -> Callable[[], dict[str, Any]]:
         if not origin.resolve().is_relative_to(ROOT):
             raise ValueError("evaluator module must live inside the repository tree")
     module = importlib.import_module(module_name)
-    evaluator = getattr(module, attribute, None)
-    if not callable(evaluator):
+    evaluator_factory = getattr(module, attribute, None)
+    if not callable(evaluator_factory):
         raise ValueError("evaluator reference is not callable")
-    return evaluator
+    return evaluator_factory
 
 
 def main() -> int:
@@ -398,7 +398,7 @@ def main() -> int:
     evaluator_ref = config.get("evaluator")
     if not isinstance(evaluator_ref, str) or not evaluator_ref:
         raise SystemExit("config must pin the evaluator as 'module:callable'")
-    evaluator = _load_evaluator(evaluator_ref)
+    evaluator_factory = _load_evaluator(evaluator_ref)
     # This pre-flight is convenience only; run_ticket remains the authoritative check.
     try:
         pinned = json.loads(args.ticket.read_text(encoding="utf-8"))
@@ -413,6 +413,17 @@ def main() -> int:
             raise SystemExit("this ticket pins calibration artifacts; --manifest and --evidence are required")
         if not has_pins and (args.manifest is not None or args.evidence is not None):
             raise SystemExit("this ticket has no calibration pins; omit --manifest/--evidence")
+    evaluator = evaluator_factory(
+        holdout_sums=args.holdout_sums,
+        provenance=args.provenance,
+        holdout_counts=args.holdout_counts,
+        probe_path=args.probe_path,
+        manifest_path=args.manifest,
+        evidence_path=args.evidence,
+        config=config,
+    )
+    if not callable(evaluator):
+        raise SystemExit("evaluator factory must return a zero-argument evaluator")
     receipt = run_ticket(args.ticket, config=config, goldset_path=args.goldset, runner_version="k1-gate-v1", holdout_sums=args.holdout_sums, provenance=args.provenance, holdout_counts=args.holdout_counts, manifest_path=args.manifest, evidence_path=args.evidence, evaluator=evaluator, evaluator_ref=evaluator_ref, probe_path=args.probe_path)
     receipt_path = OUT_DIR / f"k1-gate-receipt-{receipt['ticket']['nonce']}.json"
     print(f"gate {receipt['status']} — receipt: {receipt_path}")

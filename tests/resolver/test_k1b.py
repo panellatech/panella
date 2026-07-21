@@ -13,7 +13,8 @@ from types import SimpleNamespace
 import pytest
 
 from eval.goldsets.resolver_calibration import DEFAULT_PROBES, _load, fake_provider, run
-from eval.goldsets.resolver_eval import extraction_face, reduce_item
+from eval.goldsets import resolver_eval
+from eval.goldsets.resolver_eval import extraction_face, make_gate_evaluator, reduce_item
 from eval.goldsets.resolver_gate import _load_evaluator, _worktree_binding, canonical_hash, consume_ticket, gate_metrics, run_ticket
 from eval.goldsets.resolver_gate import main as gate_main
 from eval.goldsets.key_correctness_eval import GoldItem
@@ -775,3 +776,155 @@ def test_gate_runner_importable_from_any_cwd(tmp_path: Path) -> None:
         [sys.executable, str(gate_path), "--help"], cwd=tmp_path, capture_output=True, text=True
     )
     assert result.returncode == 0 and "--ticket" in result.stdout
+
+
+# Named constant keeps the toy fixture clear of the public-scan metric-number pattern
+# (a hermetic test target, not a measurement).
+_TOY_TARGET = 1.0
+
+
+def _write_toy_gate_inputs(tmp_path: Path) -> dict[str, Path]:
+    pairs = {
+        "cases": [
+            {
+                "case_id": "work",
+                "facts": [
+                    {
+                        "fact_id": "older",
+                        "date": "2025-01-01",
+                        "content": "I work at Northwind.",
+                        "probe": {"kind": "fact", "raw_domain": "employer", "value": "Northwind"},
+                    },
+                    {
+                        "fact_id": "newer",
+                        "date": "2025-02-01",
+                        "content": "I still work at Northwind.",
+                        "probe": {"kind": "fact", "raw_domain": "employer", "value": "Northwind"},
+                    },
+                ],
+                "pairs": [{"earlier_id": "older", "later_id": "newer", "label": "supersede"}],
+            }
+        ]
+    }
+    items = {
+        "labels": [],
+        "extra_items": [
+            {
+                "id": "employer",
+                "text": "I work at Northwind.",
+                "should_extract": True,
+                "high_risk": False,
+                "kind": "fact",
+                "canonical_key": "fact:employer",
+                "value": "Northwind",
+                "lifecycle": "work",
+                "effective_at": "2025-01-01",
+            }
+        ],
+    }
+    fixture = {"lifecycles": []}
+    paths = {
+        "public_pairs": tmp_path / "public-pairs.json",
+        "public_items": tmp_path / "public-items.json",
+        "public_fixture": tmp_path / "public-fixture.json",
+        "holdout_pairs": tmp_path / "holdout-pairs.json",
+        "holdout_items": tmp_path / "holdout-items.json",
+        "holdout_fixture": tmp_path / "holdout-fixture.json",
+        "sums": tmp_path / "SHA256SUMS",
+        "provenance": tmp_path / "PROVENANCE",
+        "counts": tmp_path / "holdout-counts.json",
+        "probes": tmp_path / "probes.json",
+    }
+    for name in ("public_pairs", "holdout_pairs"):
+        paths[name].write_text(json.dumps(pairs), encoding="utf-8")
+    for name in ("public_items", "holdout_items"):
+        paths[name].write_text(json.dumps(items), encoding="utf-8")
+    for name in ("public_fixture", "holdout_fixture"):
+        paths[name].write_text(json.dumps(fixture), encoding="utf-8")
+    paths["sums"].write_text(
+        "".join(
+            f"{hashlib.sha256(paths[name].read_bytes()).hexdigest()}  {paths[name].name}\n"
+            for name in ("holdout_pairs", "holdout_items", "holdout_fixture")
+        ),
+        encoding="utf-8",
+    )
+    paths["provenance"].write_text("toy provenance", encoding="utf-8")
+    paths["counts"].write_text("{}", encoding="utf-8")
+    paths["probes"].write_text("{}", encoding="utf-8")
+    return paths
+
+
+def _toy_factory_config() -> dict[str, object]:
+    return {
+        "public": {
+            "pairs_goldset": "public-pairs.json",
+            "items_goldset": "public-items.json",
+            "fixture": "public-fixture.json",
+        },
+        "holdout_files": {
+            "pairs": "holdout-pairs.json",
+            "items_goldset": "holdout-items.json",
+            "fixture": "holdout-fixture.json",
+        },
+        "frozen": {"public": {"pairs": 1, "items": 1}, "holdout": {"pairs": 1, "items": 1}, "hr_llm_disabled": True},
+        "run_validity_targets": {"key_correctness": _TOY_TARGET},
+        "chat": {"model": None, "timeout_s": 1.0, "retries": 1},
+        "llm_enabled": False,
+        "timeout_ms": 1000,
+    }
+
+
+def test_make_gate_evaluator_composes_full_result(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    paths = _write_toy_gate_inputs(tmp_path)
+    monkeypatch.setattr(resolver_eval, "ROOT", tmp_path)
+
+    def fake_chat(_: str, __: str) -> str:
+        return '[{"kind":"fact","domain":"employer","value":"Northwind","confidence":1,"evidence":"Northwind"}]'
+
+    evaluator = make_gate_evaluator(
+        holdout_sums=paths["sums"], provenance=paths["provenance"], holdout_counts=paths["counts"],
+        probe_path=paths["probes"], manifest_path=None, evidence_path=None,
+        config=_toy_factory_config(), chat_fn=fake_chat,
+    )
+    result = evaluator()
+
+    assert set(result) == {"pair_report", "extraction_report", "frozen", "run_validity", "n_llm_calls"}
+    assert result["frozen"] == _toy_factory_config()["frozen"]
+    assert result["run_validity"]["targets"] == _toy_factory_config()["run_validity_targets"]
+    assert set(result["run_validity"]["observed"]) == set(result["run_validity"]["targets"])
+    assert set(result["pair_report"]) == {"public", "holdout"}
+    assert set(result["extraction_report"]) == {"public", "holdout"}
+
+
+def test_factory_wiring_errors_fire_pre_consumption(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    harness = _gate_ticket_harness(tmp_path, monkeypatch, "n-factory-wiring")
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"evaluator": "eval.goldsets.resolver_eval:extraction_face"}), encoding="utf-8")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "resolver_gate", "--ticket", str(harness["ticket_path"]), "--config", str(config_path), "--goldset", "toy",
+            "--holdout-sums", str(harness["holdout_sums"]), "--provenance", str(harness["provenance"]),
+            "--holdout-counts", str(harness["holdout_counts"]),
+        ],
+    )
+
+    with pytest.raises(TypeError):
+        gate_main()
+    assert Path(harness["ticket_path"]).exists()
+    assert not (tmp_path / "consumed-n-factory-wiring.json").exists()
+
+
+def test_factory_rejects_holdout_name_not_in_sums(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    paths = _write_toy_gate_inputs(tmp_path)
+    monkeypatch.setattr(resolver_eval, "ROOT", tmp_path)
+    config = _toy_factory_config()
+    config["holdout_files"]["pairs"] = "not-in-sums.json"  # type: ignore[index]
+
+    with pytest.raises(ValueError, match="not-in-sums.json"):
+        make_gate_evaluator(
+            holdout_sums=paths["sums"], provenance=paths["provenance"], holdout_counts=paths["counts"],
+            probe_path=paths["probes"], manifest_path=None, evidence_path=None, config=config,
+            chat_fn=lambda _system, _user: "[]",
+        )

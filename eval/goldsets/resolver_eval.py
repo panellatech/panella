@@ -2,15 +2,223 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections import Counter, defaultdict
 from dataclasses import replace
-from typing import Any
+from pathlib import Path
+from typing import Any, Callable
 
+from eval.goldsets import key_correctness_eval
 from eval.goldsets.key_correctness_eval import GoldItem, high_risk_value_match, value_match
-from eval.goldsets.preference_extraction import PreferenceCandidate
+from eval.goldsets.preference_extraction import ChatFn, PreferenceCandidate, extract_preferences
+from eval.goldsets.resolver_gate import _sealed_files
 from eval.goldsets.score_supersede import score as score_supersede
+from panella.resolver.calibrate import load_manifest
 from panella.resolver.engine import ResolverEngine
-from panella.resolver.types import ExistingSlot, ResolveRequest, ResolverContext, RunBudget, split_slot_id
+from panella.resolver.fallback import FallbackProvider
+from panella.resolver.types import ExistingSlot, ResolveRequest, ResolverConfig, ResolverContext, RunBudget, split_slot_id
+
+ROOT = Path(__file__).resolve().parents[2]
+
+_SCORE_METRIC_NAMES = (
+    "extraction_recall",
+    "value_match_rate",
+    "key_correctness",
+    "key_stability",
+    "supersede_precision",
+    "hr_supersede_precision",
+    "high_risk_recall",
+    "high_risk_value_recall",
+    "high_risk_slot_recall",
+    "high_risk_key_correctness",
+    "high_risk_update_pairs",
+    "high_risk_collisions",
+    "harmful_collisions",
+    "negative_false_positive_rate",
+    "negative_colliding_keys",
+    "schema_validity",
+)
+
+
+def _required_mapping(value: dict[str, Any], key: str) -> dict[str, Any]:
+    if key not in value:
+        raise ValueError(f"missing config key: {key}")
+    nested = value[key]
+    if not isinstance(nested, dict):
+        raise ValueError(f"config key must be a dict: {key}")
+    return nested
+
+
+def _required_string(value: dict[str, Any], key: str, *, parent: str) -> str:
+    if key not in value:
+        raise ValueError(f"missing config key: {parent}.{key}")
+    item = value[key]
+    if not isinstance(item, str) or not item:
+        raise ValueError(f"config key must be a non-empty string: {parent}.{key}")
+    return item
+
+
+def _require_file(path: Path, *, name: str) -> Path:
+    if not path.is_file():
+        raise ValueError(f"required file is missing: {name}")
+    return path
+
+
+def _repo_file(value: str, *, key: str) -> Path:
+    path = Path(value)
+    if path.is_absolute():
+        raise ValueError(f"config path must be relative to the repository root: {key}")
+    return _require_file(ROOT / path, name=key)
+
+
+def _holdout_file(value: str, *, key: str, sealed: dict[str, Path]) -> Path:
+    path = Path(value)
+    if path.name != value or value in {"", ".", ".."}:
+        raise ValueError(f"config holdout file must be a bare filename: {key}")
+    try:
+        return sealed[value]
+    except KeyError as exc:
+        raise ValueError(f"holdout file is not listed in SHA256SUMS: {value}") from exc
+
+
+def _extraction_score_report(items: list[GoldItem], extracted: dict[str, list[PreferenceCandidate]], parse_stats: dict[str, dict[str, int]]) -> dict[str, Any]:
+    score_report = key_correctness_eval.score(items, extracted, parse_stats=parse_stats)
+    report = {name: getattr(score_report, name) for name in _SCORE_METRIC_NAMES}
+    report.update(
+        {
+            "key_stability_correct": sum(row["merged_pairs"] for row in score_report.per_lifecycle),
+            "key_stability_total": sum(row["gold_pairs"] for row in score_report.per_lifecycle),
+            "hr_merged_pairs_zero": score_report.counts["hr_merged_pairs"] == 0,
+            "high_risk_supersede_proven": score_report.high_risk_supersede_proven,
+            "counts": score_report.counts,
+        }
+    )
+    return report
+
+
+def make_gate_evaluator(
+    *,
+    holdout_sums: Path,
+    provenance: Path,
+    holdout_counts: Path,
+    probe_path: Path | str,
+    manifest_path: Path | None,
+    evidence_path: Path | None,
+    config: dict[str, Any],
+    chat_fn: ChatFn | None = None,
+) -> Callable[[], dict[str, Any]]:
+    """Build the zero-argument evaluator pinned by a K1 gate configuration."""
+    if not isinstance(config, dict):
+        raise ValueError("config must be a dict")
+    public = _required_mapping(config, "public")
+    holdout_files = _required_mapping(config, "holdout_files")
+    frozen = _required_mapping(config, "frozen")
+    targets = _required_mapping(config, "run_validity_targets")
+    chat = _required_mapping(config, "chat")
+    llm_enabled = config.get("llm_enabled")
+    if "llm_enabled" not in config:
+        raise ValueError("missing config key: llm_enabled")
+    if not isinstance(llm_enabled, bool):
+        raise ValueError("config key must be bool: llm_enabled")
+    timeout_ms = config.get("timeout_ms")
+    if "timeout_ms" not in config:
+        raise ValueError("missing config key: timeout_ms")
+    if isinstance(timeout_ms, bool) or not isinstance(timeout_ms, int):
+        raise ValueError("config key must be an int: timeout_ms")
+
+    public_pairs = _repo_file(_required_string(public, "pairs_goldset", parent="public"), key="public.pairs_goldset")
+    public_items = _repo_file(_required_string(public, "items_goldset", parent="public"), key="public.items_goldset")
+    public_fixture = _repo_file(_required_string(public, "fixture", parent="public"), key="public.fixture")
+    sealed_entries = _sealed_files(_require_file(Path(holdout_sums), name="holdout_sums"))
+    sealed = {str(path.relative_to(holdout_sums.parent)): path for _, path in sealed_entries}
+    if len(sealed) != len(sealed_entries):
+        raise ValueError("SHA256SUMS must not contain duplicate holdout filenames")
+    holdout_pairs = _holdout_file(_required_string(holdout_files, "pairs", parent="holdout_files"), key="holdout_files.pairs", sealed=sealed)
+    holdout_items = _holdout_file(_required_string(holdout_files, "items_goldset", parent="holdout_files"), key="holdout_files.items_goldset", sealed=sealed)
+    holdout_fixture = _holdout_file(_required_string(holdout_files, "fixture", parent="holdout_files"), key="holdout_files.fixture", sealed=sealed)
+    for path, name in ((holdout_pairs, "holdout_files.pairs"), (holdout_items, "holdout_files.items_goldset"), (holdout_fixture, "holdout_files.fixture")):
+        _require_file(path, name=name)
+    _require_file(Path(provenance), name="provenance")
+    _require_file(Path(holdout_counts), name="holdout_counts")
+    _require_file(Path(probe_path), name="probe_path")
+
+    for name in targets:
+        if name not in _SCORE_METRIC_NAMES:
+            valid = ", ".join(_SCORE_METRIC_NAMES)
+            raise ValueError(f"run_validity_targets.{name} is not a score field; valid names: {valid}")
+    model = chat.get("model")
+    if "model" not in chat:
+        raise ValueError("missing config key: chat.model")
+    if model is not None and not isinstance(model, str):
+        raise ValueError("config key must be str or null: chat.model")
+    timeout_s = chat.get("timeout_s")
+    if "timeout_s" not in chat:
+        raise ValueError("missing config key: chat.timeout_s")
+    if isinstance(timeout_s, bool) or not isinstance(timeout_s, (int, float)):
+        raise ValueError("config key must be a number: chat.timeout_s")
+    retries = chat.get("retries")
+    if "retries" not in chat:
+        raise ValueError("missing config key: chat.retries")
+    if isinstance(retries, bool) or not isinstance(retries, int):
+        raise ValueError("config key must be an int: chat.retries")
+
+    transport = chat_fn or key_correctness_eval._codex_chat_fn(model=model, timeout=float(timeout_s), retries=retries)
+    manifest = manifest_digest = evidence_digest = None
+    if llm_enabled:
+        if manifest_path is None:
+            raise ValueError("llm_enabled requires manifest_path")
+        if evidence_path is None:
+            raise ValueError("llm_enabled requires evidence_path")
+        manifest, manifest_digest = load_manifest(_require_file(manifest_path, name="manifest_path"))
+        evidence_digest = hashlib.sha256(_require_file(evidence_path, name="evidence_path").read_bytes()).hexdigest()
+
+    def new_engine() -> ResolverEngine:
+        if not llm_enabled:
+            return ResolverEngine(ResolverConfig(False, timeout_ms, None, None, None))
+        assert manifest is not None and manifest_digest is not None and evidence_digest is not None
+        return ResolverEngine(
+            ResolverConfig(True, timeout_ms, manifest, manifest_digest, evidence_digest),
+            provider=FallbackProvider(transport, model_id=manifest.model_id),
+        )
+
+    def evaluate_split(pairs_path: Path, items_path: Path, fixture_path: Path, *, count_extractor_call: Callable[[str, str], str]) -> tuple[dict[str, Any], dict[str, Any], int]:
+        pair_result = pair_face(json.loads(pairs_path.read_text(encoding="utf-8")), new_engine())
+        items = key_correctness_eval.load_items(items_path, fixture_path)
+        extracted: dict[str, list[PreferenceCandidate]] = {}
+        parse_stats: dict[str, dict[str, int]] = {}
+        for item in items:
+            stats: dict[str, int] = {}
+            extracted[item.item_id] = extract_preferences(item.text, item.item_id, chat_fn=count_extractor_call, stats=stats)
+            parse_stats[item.item_id] = stats
+        extraction_result = extraction_face(items, extracted, new_engine())
+        extraction_result.update(_extraction_score_report(items, extracted, parse_stats))
+        return pair_result, extraction_result, pair_result["n_llm_calls"] + extraction_result["n_llm_calls"]
+
+    def evaluator() -> dict[str, Any]:
+        extractor_calls = 0
+
+        def counting_chat(system: str, user: str) -> str:
+            nonlocal extractor_calls
+            extractor_calls += 1
+            return transport(system, user)
+
+        public_pair, public_extraction, public_resolver_calls = evaluate_split(
+            public_pairs, public_items, public_fixture, count_extractor_call=counting_chat
+        )
+        holdout_pair, holdout_extraction, holdout_resolver_calls = evaluate_split(
+            holdout_pairs, holdout_items, holdout_fixture, count_extractor_call=counting_chat
+        )
+        observed = {name: public_extraction[name] for name in targets}
+        return {
+            "pair_report": {"public": public_pair["report"], "holdout": holdout_pair["report"]},
+            "extraction_report": {"public": public_extraction, "holdout": holdout_extraction},
+            "frozen": frozen,
+            "run_validity": {"observed": observed, "targets": targets},
+            "n_llm_calls": extractor_calls + public_resolver_calls + holdout_resolver_calls,
+        }
+
+    return evaluator
 
 
 def pair_face(goldset: dict[str, Any], engine: ResolverEngine) -> dict[str, Any]:
