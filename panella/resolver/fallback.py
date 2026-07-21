@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 import time
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 
 from .types import FallbackSuggestion, ResolveRequest, SlotView, TransportAttempt
 
@@ -92,25 +92,32 @@ class FallbackProvider:
             return None
         return choice, confidence
 
-    def _call(self, pool: ThreadPoolExecutor, system: str, user: str, timeout_ms: int) -> tuple[str, object, int]:
-        """Call through the attempt-shared executor.
+    def _call(self, system: str, user: str, timeout_ms: int) -> tuple[str, object, int]:
+        """Run one transport attempt on a fresh daemon thread with a wall-clock timeout.
 
-        A timed-out synchronous ChatFn thread cannot be killed and leaks until it returns; the
-        production shim's subprocess timeout is therefore the real hard bound.
+        A timed-out synchronous ChatFn thread cannot be killed — it is abandoned (daemon,
+        so it never delays interpreter shutdown) and the retry gets a fresh thread instead
+        of queueing behind the stuck one; the production shim's subprocess timeout remains
+        the real hard bound.
         """
         started = time.monotonic()
-        # A future gives an injected synchronous ChatFn an actual wall-clock timeout.
-        future = pool.submit(self._chat_fn, system, user)
-        try:
-            raw = future.result(timeout=timeout_ms / 1000)
-        except FutureTimeout:
-            future.cancel()
+        outcome: dict[str, object] = {}
+        done = threading.Event()
+
+        def _runner() -> None:
+            try:
+                outcome["raw"] = self._chat_fn(system, user)
+            except Exception as exc:
+                outcome["error"] = exc
+            finally:
+                done.set()
+
+        threading.Thread(target=_runner, daemon=True, name="resolver-fallback").start()
+        if not done.wait(timeout_ms / 1000):
             return "timeout", None, max(timeout_ms, int((time.monotonic() - started) * 1000))
-        except TimeoutError:
-            return "timeout", None, int((time.monotonic() - started) * 1000)
-        except Exception:
+        if "error" in outcome:
             return "transport_error", None, int((time.monotonic() - started) * 1000)
-        return "ok", raw, int((time.monotonic() - started) * 1000)
+        return "ok", outcome.get("raw"), int((time.monotonic() - started) * 1000)
 
     def suggest(
         self,
@@ -126,19 +133,15 @@ class FallbackProvider:
         system, user = render_prompt(request, choices, prompt_slice, truncated_value, truncated_evidence)
         choice_set = {choice.slot_id for choice in choices}
         attempts: list[TransportAttempt] = []
-        pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="resolver-fallback")
-        try:
-            for _ in range(2):
-                outcome, raw, latency = self._call(pool, system, user, timeout_ms)
-                if outcome == "ok":
-                    parsed = self._parse(raw, choice_set)
-                    if parsed is None:
-                        attempts.append(TransportAttempt("invalid_output", latency, self._excerpt(raw)))
-                        return FallbackSuggestion(None, None, tuple(attempts))
-                    raw_choice, raw_confidence = parsed
-                    attempts.append(TransportAttempt("ok", latency))
-                    return FallbackSuggestion(raw_choice, raw_confidence, tuple(attempts))
-                attempts.append(TransportAttempt(outcome, latency))  # type: ignore[arg-type]
-        finally:
-            pool.shutdown(wait=False, cancel_futures=True)
+        for _ in range(2):
+            outcome, raw, latency = self._call(system, user, timeout_ms)
+            if outcome == "ok":
+                parsed = self._parse(raw, choice_set)
+                if parsed is None:
+                    attempts.append(TransportAttempt("invalid_output", latency, self._excerpt(raw)))
+                    return FallbackSuggestion(None, None, tuple(attempts))
+                raw_choice, raw_confidence = parsed
+                attempts.append(TransportAttempt("ok", latency))
+                return FallbackSuggestion(raw_choice, raw_confidence, tuple(attempts))
+            attempts.append(TransportAttempt(outcome, latency))  # type: ignore[arg-type]
         return FallbackSuggestion(None, None, tuple(attempts))

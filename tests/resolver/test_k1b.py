@@ -61,6 +61,28 @@ def test_fallback_retries_only_transport_failures() -> None:
     assert calls == 2 and [a.outcome for a in result.attempts] == ["transport_error", "ok"]
 
 
+def test_timed_out_attempt_does_not_starve_the_retry() -> None:
+    calls = 0
+    blocked = threading.Event()
+
+    def chat(_: str, __: str) -> str:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            blocked.wait(5)
+        return '{"choice":"fact:employer","confidence":0.75}'
+
+    provider = FallbackProvider(chat, model_id="test")
+    request = ResolveRequest("retry-timeout", "fact", "unknown", "v", "e")
+    choices = (SlotView("fact:employer", "workplace", False, None),)
+    result = provider.suggest(request, choices, "benign", "v", "e", 100)
+
+    # The old shared executor queued this retry behind the timed-out first call.
+    assert tuple(attempt.outcome for attempt in result.attempts) == ("timeout", "ok")
+    assert result.raw_choice == "fact:employer"
+    assert all(thread.daemon for thread in threading.enumerate() if thread.name.startswith("resolver-fallback"))
+
+
 def test_fit_reference_vectors() -> None:
     vector_a = [(.05, False), (.15, False), (.22, False), (.28, True), (.35, True), (.42, False), (.55, True), (.61, True), (.68, True), (.83, True), (.91, True), (.97, True)]
     vector_b = [(.02, False), (.04, False), (.05, False), (.07, False), (.09, False), (.51, True), (.53, False), (.55, True), (.57, True), (.59, True), (.91, True), (.93, True), (.95, True), (.97, True), (.99, True)]
