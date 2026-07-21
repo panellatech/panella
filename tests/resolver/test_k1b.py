@@ -107,6 +107,31 @@ def test_fit_reference_vectors() -> None:
     assert fitted.tau == 1.0
 
 
+def test_calibration_run_threads_timeout_to_provider(tmp_path: Path) -> None:
+    probes = _load(DEFAULT_PROBES)
+    inner = fake_provider(probes)
+    seen: set[int] = set()
+
+    class RecordingProvider:
+        model_id = inner.model_id
+        prompt_template_hash = inner.prompt_template_hash
+
+        def suggest(self, request, choices, prompt_slice, truncated_value, truncated_evidence, timeout_ms):
+            seen.add(timeout_ms)
+            return inner.suggest(request, choices, prompt_slice, truncated_value, truncated_evidence, timeout_ms)
+
+    run(
+        probes,
+        provider=RecordingProvider(),
+        git_commit="test",
+        evidence_path=tmp_path / "evidence.jsonl",
+        manifest_path=tmp_path / "manifest.json",
+        probe_path=DEFAULT_PROBES,
+        timeout_ms=7777,
+    )
+    assert seen == {7777}
+
+
 def test_calibration_fake_run_verifies_and_tamper_fails(tmp_path: Path) -> None:
     probes = _load(DEFAULT_PROBES)
     evidence, manifest = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json", probe_path=DEFAULT_PROBES)

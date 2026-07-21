@@ -53,13 +53,15 @@ def _bootstrap_manifest(provider: FallbackProvider) -> tuple[object, str]:
 
 
 def run(
-    probes: list[dict[str, Any]], *, provider: FallbackProvider, git_commit: str, evidence_path: Path, manifest_path: Path, probe_path: Path,
+    probes: list[dict[str, Any]], *, provider: FallbackProvider, git_commit: str, evidence_path: Path, manifest_path: Path, probe_path: Path, timeout_ms: int = 1000,
 ) -> tuple[Path, Path]:
     by_uid = {probe["probe_uid"]: probe for probe in probes}
     if len(by_uid) != len(probes):
         raise ValueError("calibration probes must have unique IDs")
     bootstrap, bootstrap_hash = _bootstrap_manifest(provider)
-    engine = ResolverEngine(ResolverConfig(True, 1000, bootstrap, bootstrap_hash, "bootstrap-only"), provider=provider)
+    # Real transports (codex CLI subprocess) take seconds per call; the 1000ms default
+    # only serves the instant hermetic fake — real runs must pass an explicit timeout_ms.
+    engine = ResolverEngine(ResolverConfig(True, timeout_ms, bootstrap, bootstrap_hash, "bootstrap-only"), provider=provider)
     budget = RunBudget(len(probes))
     rows: list[dict[str, Any]] = []
     for probe in probes:
