@@ -937,6 +937,53 @@ def test_make_gate_evaluator_composes_full_result(tmp_path: Path, monkeypatch: p
     assert set(result["extraction_report"]) == {"public", "holdout"}
 
 
+def test_extraction_score_report_uses_resolver_adapted_keys(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Regression for the §7.4a adapter wiring: two update-pair items whose extractor emits
+    # UNSTABLE raw domains ("employer" vs alias "current_employer"). Raw keys differ, so
+    # scoring the raw candidates reports zero key stability; the resolver binds both to
+    # fact:employer, so scoring the ADAPTED candidates must credit the pair.
+    paths = _write_toy_gate_inputs(tmp_path)
+    items = {
+        "labels": [],
+        "extra_items": [
+            {
+                "id": "job-1", "text": "I work at Northwind.", "should_extract": True,
+                "high_risk": False, "kind": "fact", "canonical_key": "fact:employer",
+                "value": "Northwind", "lifecycle": "work", "effective_at": "2025-01-01",
+            },
+            {
+                "id": "job-2", "text": "I moved to Contoso.", "should_extract": True,
+                "high_risk": False, "kind": "fact", "canonical_key": "fact:employer",
+                "value": "Contoso", "lifecycle": "work", "effective_at": "2025-02-01",
+            },
+        ],
+    }
+    for name in ("public_items", "holdout_items"):
+        paths[name].write_text(json.dumps(items), encoding="utf-8")
+    paths["sums"].write_text(
+        "".join(
+            f"{hashlib.sha256(paths[name].read_bytes()).hexdigest()}  {paths[name].name}\n"
+            for name in ("holdout_pairs", "holdout_items", "holdout_fixture")
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(resolver_eval, "ROOT", tmp_path)
+
+    def fake_chat(_: str, user: str) -> str:
+        if "Contoso" in user:
+            return '[{"kind":"fact","domain":"current_employer","value":"Contoso","confidence":1,"evidence":"Contoso"}]'
+        return '[{"kind":"fact","domain":"employer","value":"Northwind","confidence":1,"evidence":"Northwind"}]'
+
+    evaluator = make_gate_evaluator(
+        holdout_sums=paths["sums"], provenance=paths["provenance"], holdout_counts=paths["counts"],
+        probe_path=paths["probes"], manifest_path=None, evidence_path=None,
+        config=_toy_factory_config(), chat_fn=fake_chat,
+    )
+    extraction = evaluator()["extraction_report"]["public"]
+    assert extraction["key_stability_total"] == 1
+    assert extraction["key_stability_correct"] == 1
+
+
 def test_factory_wiring_errors_fire_pre_consumption(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     harness = _gate_ticket_harness(tmp_path, monkeypatch, "n-factory-wiring")
     config_path = tmp_path / "config.json"

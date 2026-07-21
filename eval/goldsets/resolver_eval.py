@@ -203,7 +203,12 @@ def make_gate_evaluator(
             extracted[item.item_id] = extract_preferences(item.text, item.item_id, chat_fn=chat, stats=stats)
             parse_stats[item.item_id] = stats
         extraction_result = extraction_face(items, extracted, new_engine(chat))
-        extraction_result.update(_extraction_score_report(items, extracted, parse_stats))
+        # Score the resolver-ADAPTED candidates (spec §7.4a): key-derived metrics
+        # (stability, collisions, supersede precision, hr-proven) must reflect resolver
+        # decisions, not the extractor's free-form keys. The adapter preserves
+        # value/evidence/confidence 1:1 and schema_validity comes from parse_stats, so
+        # run-validity (extraction_recall / value_match_rate) and G13 stay extractor-truth.
+        extraction_result.update(_extraction_score_report(items, extraction_result["adapted"], parse_stats))
         return pair_result, extraction_result
 
     def evaluator() -> dict[str, Any]:
