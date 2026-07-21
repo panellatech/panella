@@ -598,7 +598,39 @@ def _raise_on_transport_error(raw: str) -> str:
     return raw
 
 
-_CODEX_EFFORTS = ("minimal", "low", "medium", "high", "xhigh")
+_CODEX_EFFORTS = ("none", "low", "medium", "high", "xhigh")
+
+
+def _run_transport_attempt(argv: list[str], stdin_bytes: bytes, timeout: float) -> tuple[int | None, str]:
+    """One subprocess attempt with a group-kill timeout; returns (returncode, err_excerpt).
+
+    Pipes + timeout deadlock when the CLI's wrapper dies but a grandchild inherits the
+    pipe write end: run(capture_output=True) then blocks draining a pipe that never hits
+    EOF. Output goes to a temp FILE instead, and the child gets its own process group so
+    a timeout SIGKILLs the whole tree (wrapper AND grandchildren) — no orphaned binaries,
+    no drain, prompt return. returncode None means the attempt timed out.
+    """
+    import contextlib
+    import os
+    import signal
+    import subprocess
+    import tempfile
+
+    with tempfile.TemporaryFile() as sink:
+        proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=sink, stderr=sink, start_new_session=True)
+        try:
+            proc.communicate(input=stdin_bytes, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(proc.pid, signal.SIGKILL)
+            proc.wait()
+            return None, "timeout"
+        if proc.returncode == 0:
+            return 0, ""
+        sink.seek(0, os.SEEK_END)
+        sink.seek(max(0, sink.tell() - 400))
+        excerpt = sink.read().decode("utf-8", errors="ignore").strip()
+        return proc.returncode, excerpt
 
 
 def _codex_chat_fn(model: str | None = None, *, timeout: float = 240.0, retries: int = 3, effort: str | None = None) -> ChatFn:
@@ -612,7 +644,6 @@ def _codex_chat_fn(model: str | None = None, *, timeout: float = 240.0, retries:
 
     BOUNDED RETRY (transport resilience, NOT scoring): retry up to ``retries`` times, then FAIL
     CLOSED -- a persistent transport failure must NEVER become a fake verdict."""
-    import subprocess
     import tempfile
     import time
 
@@ -632,13 +663,14 @@ def _codex_chat_fn(model: str | None = None, *, timeout: float = 240.0, retries:
                 out_path = tmp.name
             argv[-2] = out_path  # the --output-last-message slot (argv: ..., out_path, "-")
             try:
-                proc = subprocess.run(argv, input=prompt.encode("utf-8"), capture_output=True, timeout=timeout, check=False)
+                returncode, err_excerpt = _run_transport_attempt(argv, prompt.encode("utf-8"), timeout)
                 text = Path(out_path).read_text(encoding="utf-8") if Path(out_path).exists() else ""
-                if proc.returncode == 0 and text.strip():
+                if returncode == 0 and text.strip():
                     return text
-                last_err = f"exit={proc.returncode} empty={not text.strip()}"
-            except subprocess.TimeoutExpired:
-                last_err = "timeout"
+                if returncode is None:
+                    last_err = "timeout"
+                else:
+                    last_err = f"exit={returncode} empty={not text.strip()} {err_excerpt}".strip()
             finally:
                 Path(out_path).unlink(missing_ok=True)
             if attempt < retries - 1:

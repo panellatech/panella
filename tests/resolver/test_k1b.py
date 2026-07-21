@@ -938,21 +938,18 @@ def test_make_gate_evaluator_composes_full_result(tmp_path: Path, monkeypatch: p
 
 
 def test_codex_chat_fn_threads_effort_flag(monkeypatch: pytest.MonkeyPatch) -> None:
-    import subprocess as subprocess_module
-    from types import SimpleNamespace
-
-    from eval.goldsets.key_correctness_eval import _codex_chat_fn
+    from eval.goldsets import key_correctness_eval
 
     captured: list[list[str]] = []
 
-    def fake_run(argv, **kwargs):  # noqa: ANN001, ANN003
+    def fake_attempt(argv, stdin_bytes, timeout):  # noqa: ANN001
         captured.append(list(argv))
         out_path = argv[argv.index("--output-last-message") + 1]
         Path(out_path).write_text("ok", encoding="utf-8")
-        return SimpleNamespace(returncode=0)
+        return 0, ""
 
-    monkeypatch.setattr(subprocess_module, "run", fake_run)
-    chat = _codex_chat_fn(model="toy-model", timeout=5.0, retries=1, effort="medium")
+    monkeypatch.setattr(key_correctness_eval, "_run_transport_attempt", fake_attempt)
+    chat = key_correctness_eval._codex_chat_fn(model="toy-model", timeout=5.0, retries=1, effort="medium")
     assert chat("system", "user") == "ok"
     argv = captured[0]
     index = argv.index("-c")
@@ -960,11 +957,39 @@ def test_codex_chat_fn_threads_effort_flag(monkeypatch: pytest.MonkeyPatch) -> N
     assert argv[argv.index("--model") + 1] == "toy-model"
 
     with pytest.raises(ValueError, match="effort"):
-        _codex_chat_fn(effort="turbo")
+        key_correctness_eval._codex_chat_fn(effort="turbo")
     # None inherits the user's global config: no -c flag is injected.
     captured.clear()
-    assert _codex_chat_fn(model="toy-model", timeout=5.0, retries=1)("system", "user") == "ok"
+    assert key_correctness_eval._codex_chat_fn(model="toy-model", timeout=5.0, retries=1)("system", "user") == "ok"
     assert "-c" not in captured[0]
+
+
+def test_run_transport_attempt_kills_process_group_on_timeout(tmp_path: Path) -> None:
+    # A wrapper that spawns a pipe-holding grandchild then blocks: exactly the shape that
+    # deadlocked run(capture_output=True, timeout=...) — the grandchild inherits stdout and
+    # never EOFs it. The attempt must return promptly AND leave no survivors in the group.
+    import os
+    import time as time_module
+
+    from eval.goldsets.key_correctness_eval import _run_transport_attempt
+
+    pidfile = tmp_path / "grandchild.pid"
+    argv = ["/bin/sh", "-c", f"sleep 30 & echo $! > {pidfile}; exec sleep 30"]
+    started = time_module.monotonic()
+    returncode, err = _run_transport_attempt(argv, b"", 1.0)
+    elapsed = time_module.monotonic() - started
+    assert returncode is None and err == "timeout"
+    assert elapsed < 5.0
+    grandchild = int(pidfile.read_text().strip())
+    deadline = time_module.monotonic() + 2.0
+    while time_module.monotonic() < deadline:
+        try:
+            os.kill(grandchild, 0)
+        except ProcessLookupError:
+            break
+        time_module.sleep(0.05)
+    else:
+        raise AssertionError("grandchild survived the group kill")
 
 
 def test_gate_config_rejects_unknown_chat_effort(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
