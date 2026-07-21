@@ -385,11 +385,14 @@ def _gate_ticket_harness(
     }
 
 
-def _run_gate_ticket(harness: dict[str, object], evaluator: object, out_dir: Path) -> dict[str, object]:
+def _run_gate_ticket(
+    harness: dict[str, object], evaluator: object, out_dir: Path, *, evaluator_ref: str | None = None
+) -> dict[str, object]:
     return run_ticket(
         harness["ticket_path"], config=harness["config"], goldset_path="toy", runner_version="v1",
         holdout_sums=harness["holdout_sums"], provenance=harness["provenance"], holdout_counts=harness["holdout_counts"],
-        manifest_path=None, evidence_path=None, evaluator=evaluator, ledger_path=harness["ledger_path"], out_dir=out_dir,
+        manifest_path=None, evidence_path=None, evaluator=evaluator, evaluator_ref=evaluator_ref,
+        ledger_path=harness["ledger_path"], out_dir=out_dir,
     )
 
 
@@ -409,9 +412,17 @@ def test_gate_pass_writes_passed_receipt(tmp_path: Path, monkeypatch: pytest.Mon
     nonce = "n-gate-pass"
     harness = _gate_ticket_harness(tmp_path, monkeypatch, nonce)
     pairs, extraction, frozen, validity = _passing_gate_inputs()
-    receipt = _run_gate_ticket(harness, lambda: {"pair_report": pairs, "extraction_report": extraction, "frozen": frozen, "run_validity": validity, "n_llm_calls": 0}, tmp_path / "out")
+    receipt = _run_gate_ticket(
+        harness,
+        lambda: {"pair_report": pairs, "extraction_report": extraction, "frozen": frozen, "run_validity": validity, "n_llm_calls": 0},
+        tmp_path / "out",
+        evaluator_ref="eval.goldsets.x:y",
+    )
     assert receipt["status"] == "PASSED" and receipt["gate_verdict"]["pass"] is True
-    assert (tmp_path / "out" / f"k1-gate-receipt-{nonce}.json").exists() and receipt["n_llm_calls"] == 0
+    receipt_path = tmp_path / "out" / f"k1-gate-receipt-{nonce}.json"
+    assert receipt_path.exists() and receipt["n_llm_calls"] == 0
+    assert receipt["evaluator_reference"] == "eval.goldsets.x:y"
+    assert json.loads(receipt_path.read_text(encoding="utf-8"))["evaluator_reference"] == "eval.goldsets.x:y"
 
 
 @pytest.mark.parametrize("result", [{"n_llm_calls": 0}, {}, {"pair_report": {}, "extraction_report": {}, "frozen": {}, "run_validity": "invalid", "n_llm_calls": 0}])
@@ -624,7 +635,7 @@ def test_cli_preflight_rejects_one_sided_ticket_pins(tmp_path: Path, monkeypatch
     ticket_path = tmp_path / "ticket.json"
     ticket_path.write_text(json.dumps({"nonce": "n-one-sided", "manifest_hash": "a" * 64, "evidence_hash": None}), encoding="utf-8")
     config_path = tmp_path / "config.json"
-    config_path.write_text("{}", encoding="utf-8")
+    config_path.write_text(json.dumps({"evaluator": "eval.goldsets.resolver_eval:extraction_face"}), encoding="utf-8")
     artifact = tmp_path / "artifact.json"
     artifact.write_text("{}", encoding="utf-8")
     monkeypatch.setattr(
@@ -632,11 +643,33 @@ def test_cli_preflight_rejects_one_sided_ticket_pins(tmp_path: Path, monkeypatch
         [
             "resolver_gate", "--ticket", str(ticket_path), "--config", str(config_path), "--goldset", "toy",
             "--holdout-sums", str(tmp_path / "SHA256SUMS"), "--provenance", str(tmp_path / "PROVENANCE"),
-            "--holdout-counts", str(tmp_path / "counts.json"), "--evaluator", "module:callable",
+            "--holdout-counts", str(tmp_path / "counts.json"),
             "--manifest", str(artifact), "--evidence", str(artifact),
         ],
     )
     # The one-sided-pin exit must fire pre-consumption: the ticket file survives untouched.
     with pytest.raises(SystemExit, match="only one calibration artifact"):
+        gate_main()
+    assert ticket_path.exists()
+
+
+def test_gate_config_must_pin_in_tree_evaluator(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ticket_path = tmp_path / "ticket.json"
+    ticket_path.write_text(json.dumps({"nonce": "n-evaluator"}), encoding="utf-8")
+    config_path = tmp_path / "config.json"
+    argv = [
+        "resolver_gate", "--ticket", str(ticket_path), "--config", str(config_path), "--goldset", "toy",
+        "--holdout-sums", str(tmp_path / "SHA256SUMS"), "--provenance", str(tmp_path / "PROVENANCE"),
+        "--holdout-counts", str(tmp_path / "counts.json"),
+    ]
+
+    config_path.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit, match="must pin the evaluator"):
+        gate_main()
+    assert ticket_path.exists()
+
+    config_path.write_text(json.dumps({"evaluator": "json:loads"}), encoding="utf-8")
+    with pytest.raises(ValueError, match="inside the repository tree"):
         gate_main()
     assert ticket_path.exists()

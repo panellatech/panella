@@ -2,7 +2,9 @@
 """One-shot K1 gate ticket handling and fail-closed metric checks.
 
 Receipts embed the full gate verdict: gate failure writes a receipt and exits non-zero,
-while structurally invalid evaluator output errors before a receipt is written.
+while structurally invalid evaluator output errors before a receipt is written; the evaluator
+reference is config-pinned (ticket-bound) and must resolve inside the repository tree, while
+deliberate root-level tampering remains outside the protocol threat model.
 """
 
 from __future__ import annotations
@@ -10,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib
+import inspect
 import json
 import math
 import os
@@ -302,7 +305,7 @@ def gate_metrics(pair_report: dict[str, Any], extraction_report: dict[str, Any],
 def run_ticket(
     ticket_path: Path, *, config: dict[str, Any], goldset_path: str, runner_version: str, holdout_sums: Path,
     provenance: Path, holdout_counts: dict[str, Any], manifest_path: Path | None, evidence_path: Path | None,
-    evaluator: Callable[[], dict[str, Any]], probe_path: Path | str = DEFAULT_PROBE_PATH,
+    evaluator: Callable[[], dict[str, Any]], evaluator_ref: str | None = None, probe_path: Path | str = DEFAULT_PROBE_PATH,
     ledger_path: Path = LEDGER_PATH, out_dir: Path = OUT_DIR,
 ) -> dict[str, Any]:
     """Run a burned ticket and write a receipt embedding the full gate verdict.
@@ -334,7 +337,7 @@ def run_ticket(
         raise ValueError("evaluator result has malformed required field: n_llm_calls")
     verdict = gate_metrics(result["pair_report"], result["extraction_report"], frozen=result["frozen"], run_validity=result["run_validity"])
     out_dir.mkdir(parents=True, exist_ok=True)
-    receipt = {"ticket": ticket, "ledger_line": ledger_line, "worktree_binding": ledger_line["worktree_binding"], "consumed_ticket": str(consumed), "result": result, "n_llm_calls": result["n_llm_calls"], "gate_verdict": verdict, "status": "PASSED" if verdict["pass"] else "FAILED"}
+    receipt = {"ticket": ticket, "ledger_line": ledger_line, "worktree_binding": ledger_line["worktree_binding"], "consumed_ticket": str(consumed), "evaluator_reference": evaluator_ref, "result": result, "n_llm_calls": result["n_llm_calls"], "gate_verdict": verdict, "status": "PASSED" if verdict["pass"] else "FAILED"}
     (out_dir / f"k1-gate-receipt-{ticket['nonce']}.json").write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8")
     return receipt
 
@@ -342,10 +345,19 @@ def run_ticket(
 def _load_evaluator(reference: str) -> Callable[[], dict[str, Any]]:
     module_name, separator, attribute = reference.partition(":")
     if not separator or not module_name or not attribute:
-        raise ValueError("--evaluator must be module:callable")
-    evaluator = getattr(importlib.import_module(module_name), attribute, None)
+        raise ValueError("evaluator reference must be module:callable")
+    module = importlib.import_module(module_name)
+    evaluator = getattr(module, attribute, None)
     if not callable(evaluator):
-        raise ValueError("--evaluator is not callable")
+        raise ValueError("evaluator reference is not callable")
+    try:
+        module_file = Path(inspect.getfile(module)).resolve()
+    except TypeError as exc:
+        raise ValueError("evaluator module has no resolvable source file") from exc
+    # In-tree + clean worktree pins evaluator code identity to the ticket's public commit.
+    # Out-of-tree evaluators are rejected fail-closed.
+    if not module_file.is_relative_to(ROOT):
+        raise ValueError("evaluator module must live inside the repository tree")
     return evaluator
 
 
@@ -357,7 +369,6 @@ def main() -> int:
     parser.add_argument("--holdout-sums", type=Path, required=True)
     parser.add_argument("--provenance", type=Path, required=True)
     parser.add_argument("--holdout-counts", type=Path, required=True)
-    parser.add_argument("--evaluator", required=True, help="wired evaluator as module:callable")
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--evidence", type=Path)
     parser.add_argument("--probe-path", type=Path, default=DEFAULT_PROBE_PATH)
@@ -365,6 +376,10 @@ def main() -> int:
     if (args.manifest is None) != (args.evidence is None):
         raise SystemExit("--manifest and --evidence must be supplied together")
     config = json.loads(args.config.read_text(encoding="utf-8"))
+    evaluator_ref = config.get("evaluator")
+    if not isinstance(evaluator_ref, str) or not evaluator_ref:
+        raise SystemExit("config must pin the evaluator as 'module:callable'")
+    evaluator = _load_evaluator(evaluator_ref)
     # This pre-flight is convenience only; run_ticket remains the authoritative check.
     try:
         pinned = json.loads(args.ticket.read_text(encoding="utf-8"))
@@ -380,7 +395,7 @@ def main() -> int:
         if not has_pins and (args.manifest is not None or args.evidence is not None):
             raise SystemExit("this ticket has no calibration pins; omit --manifest/--evidence")
     counts = json.loads(args.holdout_counts.read_text(encoding="utf-8"))
-    receipt = run_ticket(args.ticket, config=config, goldset_path=args.goldset, runner_version="k1-gate-v1", holdout_sums=args.holdout_sums, provenance=args.provenance, holdout_counts=counts, manifest_path=args.manifest, evidence_path=args.evidence, evaluator=_load_evaluator(args.evaluator), probe_path=args.probe_path)
+    receipt = run_ticket(args.ticket, config=config, goldset_path=args.goldset, runner_version="k1-gate-v1", holdout_sums=args.holdout_sums, provenance=args.provenance, holdout_counts=counts, manifest_path=args.manifest, evidence_path=args.evidence, evaluator=evaluator, evaluator_ref=evaluator_ref, probe_path=args.probe_path)
     receipt_path = OUT_DIR / f"k1-gate-receipt-{receipt['ticket']['nonce']}.json"
     print(f"gate {receipt['status']} — receipt: {receipt_path}")
     return 0 if receipt["gate_verdict"]["pass"] else 1
