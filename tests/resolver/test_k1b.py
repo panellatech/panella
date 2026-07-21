@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 import threading
 from dataclasses import replace
 from pathlib import Path
@@ -14,6 +15,7 @@ import pytest
 from eval.goldsets.resolver_calibration import DEFAULT_PROBES, _load, fake_provider, run
 from eval.goldsets.resolver_eval import extraction_face, reduce_item
 from eval.goldsets.resolver_gate import _worktree_binding, canonical_hash, consume_ticket, gate_metrics, run_ticket
+from eval.goldsets.resolver_gate import main as gate_main
 from eval.goldsets.key_correctness_eval import GoldItem
 from eval.goldsets.preference_extraction import PreferenceCandidate
 from panella.resolver.blocking import assemble_blocking
@@ -618,3 +620,23 @@ def test_one_sided_ticket_pin_rejected(tmp_path: Path, monkeypatch: pytest.Monke
             evaluator=lambda: {"pair_report": pairs, "extraction_report": extraction, "frozen": frozen, "run_validity": validity, "n_llm_calls": 0},
             ledger_path=harness["ledger_path"], out_dir=tmp_path / "out",
         )
+def test_cli_preflight_rejects_one_sided_ticket_pins(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ticket_path = tmp_path / "ticket.json"
+    ticket_path.write_text(json.dumps({"nonce": "n-one-sided", "manifest_hash": "a" * 64, "evidence_hash": None}), encoding="utf-8")
+    config_path = tmp_path / "config.json"
+    config_path.write_text("{}", encoding="utf-8")
+    artifact = tmp_path / "artifact.json"
+    artifact.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(
+        sys, "argv",
+        [
+            "resolver_gate", "--ticket", str(ticket_path), "--config", str(config_path), "--goldset", "toy",
+            "--holdout-sums", str(tmp_path / "SHA256SUMS"), "--provenance", str(tmp_path / "PROVENANCE"),
+            "--holdout-counts", str(tmp_path / "counts.json"), "--evaluator", "module:callable",
+            "--manifest", str(artifact), "--evidence", str(artifact),
+        ],
+    )
+    # The one-sided-pin exit must fire pre-consumption: the ticket file survives untouched.
+    with pytest.raises(SystemExit, match="only one calibration artifact"):
+        gate_main()
+    assert ticket_path.exists()

@@ -371,7 +371,10 @@ def main() -> int:
     except (OSError, json.JSONDecodeError):
         pinned = None
     if isinstance(pinned, dict):
-        has_pins = pinned.get("manifest_hash") is not None or pinned.get("evidence_hash") is not None
+        manifest_pin, evidence_pin = pinned.get("manifest_hash"), pinned.get("evidence_hash")
+        if (manifest_pin is None) != (evidence_pin is None):
+            raise SystemExit("this ticket pins only one calibration artifact; regenerate the ticket")
+        has_pins = manifest_pin is not None
         if has_pins and (args.manifest is None or args.evidence is None):
             raise SystemExit("this ticket pins calibration artifacts; --manifest and --evidence are required")
         if not has_pins and (args.manifest is not None or args.evidence is not None):
