@@ -32,6 +32,13 @@ def pair_face(goldset: dict[str, Any], engine: ResolverEngine) -> dict[str, Any]
                 existing.append(ExistingSlot(decision.slot_id or "", fact["date"]))
         for pair in case["pairs"]:
             first, second = decisions[(case["case_id"], pair["earlier_id"])], decisions[(case["case_id"], pair["later_id"])]
+            # Spec-fixed derivation (K1 spec §7.2): same slot + both bound => supersede,
+            # otherwise unrelated. K1 NEVER predicts coexist — coexist/restatement semantics
+            # are an explicit K1 non-goal deferred to K2 (spec §1, §9.3). Gold coexist pairs
+            # landing in confusion[coexist][unrelated] is the intended safe direction: they
+            # count toward no false-merge bar, coexist recall is not a K1 gate metric, and
+            # predicting coexist for same-aspect distinct-slot pairs would itself violate
+            # the G2 bar (gold unrelated predicted coexist must stay zero).
             label = "supersede" if first.action != "ABSTAIN_ADD" and second.action != "ABSTAIN_ADD" and first.slot_id == second.slot_id else "unrelated"
             predictions.append({"case_id": case["case_id"], "earlier_id": pair["earlier_id"], "later_id": pair["later_id"], "predicted_label": label})
     expected = {(case["case_id"], pair["earlier_id"], pair["later_id"]) for case in goldset["cases"] for pair in case["pairs"]}
