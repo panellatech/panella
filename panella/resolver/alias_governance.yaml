@@ -1,0 +1,24 @@
+baseline_registry_hash: "d7d00f7871459f5dd6472fe4a883d12d91d631e102804c399dcc2f8d0308f95e"
+ops:
+  - op: remove_alias
+    surface: username
+    from_slot: fact:messaging_handle
+    rationale: "A username can identify several account types rather than a messaging handle."
+    reason: ambiguity
+    fixture_id: tests/resolver/fixtures/alias_revocation_miss.json
+  - op: remove_alias
+    surface: nickname
+    from_slot: fact:chosen_name
+    rationale: "A nickname may refer to a person, account, or label rather than a chosen name."
+    reason: ambiguity
+    fixture_id: tests/resolver/fixtures/alias_revocation_miss.json
+  - op: remove_alias
+    surface: significant_other
+    from_slot: fact:partner_name
+    rationale: "The blocked functional-word form is retired in favour of a canonical specific surface."
+    reason: retirement
+  - op: remove_alias
+    surface: reach_me
+    from_slot: preference:contact_preference
+    rationale: "The blocked pronoun form is retired in favour of a canonical specific surface."
+    reason: retirement

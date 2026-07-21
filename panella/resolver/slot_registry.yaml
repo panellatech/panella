@@ -1,34 +1,44 @@
-version: "1"
+version: "2"
 slots:
   - id: "fact:legal_name"
     kind: fact
     domain: legal_name
     description: "legal or full name of the user"
     high_risk: false
+    taxonomy_domain: identity
+    blocking_terms: [identity]
     aliases: [full_name, name]
   - id: "fact:chosen_name"
     kind: fact
     domain: chosen_name
     description: "preferred everyday name of the user"
     high_risk: false
-    aliases: [display_name, nickname]
+    taxonomy_domain: identity
+    blocking_terms: [everyday]
+    aliases: [display_name]
   - id: "fact:pronoun"
     kind: fact
     domain: pronoun
     description: "pronouns the user uses"
     high_risk: false
+    taxonomy_domain: identity
+    blocking_terms: [language]
     aliases: [personal_pronouns, pronouns]
   - id: "fact:home_city"
     kind: fact
     domain: home_city
     description: "city the user calls home"
     high_risk: false
+    taxonomy_domain: household
+    blocking_terms: [municipality]
     aliases: [hometown, city]
   - id: "fact:medical_allergy"
     kind: fact
     domain: medical_allergy
     description: "medical allergy the user has"
     high_risk: true
+    taxonomy_domain: health
+    blocking_terms: [reaction]
     aliases: [allergy, food_allergy]
     deny_neighbors: [cuisine, diet, dietary_restriction]
     hr_lexicon: [allergic, allergy, allergen, anaphyla]
@@ -37,6 +47,8 @@ slots:
     domain: medical_condition
     description: "medical condition or diagnosis"
     high_risk: true
+    taxonomy_domain: health
+    blocking_terms: [illness]
     aliases: [health_condition, diagnosis]
     deny_neighbors: [fitness_goal, wellness_routine]
     hr_lexicon: [diagnos, condition, chronic, syndrome]
@@ -45,6 +57,8 @@ slots:
     domain: medication
     description: "medication the user takes"
     high_risk: true
+    taxonomy_domain: health
+    blocking_terms: [treatment]
     aliases: [medicine, prescription]
     deny_neighbors: [wellness_routine]
     hr_lexicon: [medicat, prescription, dosage, pill]
@@ -53,18 +67,24 @@ slots:
     domain: diet
     description: "dietary pattern or eating approach"
     high_risk: false
+    taxonomy_domain: health
+    blocking_terms: [nutrition]
     aliases: [eating_style, diet_plan]
   - id: "constraint:dietary_restriction"
     kind: constraint
     domain: dietary_restriction
     description: "non-medical dietary restriction"
     high_risk: false
+    taxonomy_domain: health
+    blocking_terms: [ingredient]
     aliases: [food_restriction, restricted_food]
   - id: "fact:home_address"
     kind: fact
     domain: home_address
     description: "home street address"
     high_risk: true
+    taxonomy_domain: household
+    blocking_terms: [domicile]
     aliases: [address, residential_address]
     deny_neighbors: [home_city]
     hr_lexicon: [address, street, postal, zipcode]
@@ -73,102 +93,136 @@ slots:
     domain: household_member
     description: "person in the user's household"
     high_risk: false
+    taxonomy_domain: household
+    blocking_terms: [occupant]
     aliases: [roommate, housemate]
   - id: "fact:home_type"
     kind: fact
     domain: home_type
     description: "type of home or residence"
     high_risk: false
+    taxonomy_domain: household
+    blocking_terms: [dwelling]
     aliases: [residence_type, housing_type]
   - id: "preference:home_amenity"
     kind: preference
     domain: home_amenity
     description: "preferred home amenity or feature"
     high_risk: false
+    taxonomy_domain: household
+    blocking_terms: [comfort]
     aliases: [house_feature, apartment_feature]
   - id: "fact:employer"
     kind: fact
     domain: employer
     description: "current employer or workplace organization"
     high_risk: false
+    taxonomy_domain: work
+    blocking_terms: [organization]
     aliases: [workplace, company, current_employer, job_company]
   - id: "fact:job_title"
     kind: fact
     domain: job_title
     description: "current job title or role"
     high_risk: false
+    taxonomy_domain: work
+    blocking_terms: [occupation]
     aliases: [work_role, position]
   - id: "fact:work_location"
     kind: fact
     domain: work_location
     description: "usual work location"
     high_risk: false
+    taxonomy_domain: work
+    blocking_terms: [worksite]
     aliases: [office_location, workplace_location]
   - id: "preference:work_style"
     kind: preference
     domain: work_style
     description: "preferred way of working"
     high_risk: false
+    taxonomy_domain: work
+    blocking_terms: [workflow]
     aliases: [working_style, collaboration_style]
   - id: "preference:career_goal"
     kind: preference
     domain: career_goal
     description: "career goal or professional aspiration"
     high_risk: false
+    taxonomy_domain: work
+    blocking_terms: [aspiration]
     aliases: [professional_goal, work_goal]
   - id: "fact:vehicle"
     kind: fact
     domain: vehicle
     description: "primary vehicle used by the user"
     high_risk: false
+    taxonomy_domain: transport
+    blocking_terms: [automobile]
     aliases: [primary_vehicle, main_car]
   - id: "preference:commute_mode"
     kind: preference
     domain: commute_mode
     description: "preferred commuting mode"
     high_risk: false
+    taxonomy_domain: transport
+    blocking_terms: [journey]
     aliases: [transport_mode, commute]
   - id: "preference:travel_class"
     kind: preference
     domain: travel_class
     description: "preferred travel or flight class"
     high_risk: false
+    taxonomy_domain: transport
+    blocking_terms: [airfare]
     aliases: [flight_class, cabin_class]
   - id: "preference:parking_preference"
     kind: preference
     domain: parking_preference
     description: "parking preference or requirement"
     high_risk: false
+    taxonomy_domain: transport
+    blocking_terms: [curbside]
     aliases: [parking, garage_preference]
   - id: "fact:phone_model"
     kind: fact
     domain: phone_model
     description: "primary phone model"
     high_risk: false
+    taxonomy_domain: devices
+    blocking_terms: [handset]
     aliases: [mobile_phone, smartphone]
   - id: "fact:computer_model"
     kind: fact
     domain: computer_model
     description: "primary computer model"
     high_risk: false
+    taxonomy_domain: devices
+    blocking_terms: [machine]
     aliases: [laptop, desktop_computer]
   - id: "preference:code_editor"
     kind: preference
     domain: code_editor
     description: "preferred code editor"
     high_risk: false
+    taxonomy_domain: devices
+    blocking_terms: [programming]
     aliases: [editor, ide]
   - id: "preference:browser"
     kind: preference
     domain: browser
     description: "preferred web browser"
     high_risk: false
+    taxonomy_domain: devices
+    blocking_terms: [internet]
     aliases: [web_browser, browsing_app]
   - id: "fact:email"
     kind: fact
     domain: email
     description: "primary email account"
     high_risk: true
+    taxonomy_domain: digital_services
+    blocking_terms: [mailbox]
     aliases: [primary_email, email_address, main_email]
     deny_neighbors: [email_service]
     hr_lexicon: [email, inbox, address]
@@ -177,13 +231,17 @@ slots:
     domain: email_service
     description: "preferred email service"
     high_risk: false
+    taxonomy_domain: digital_services
+    blocking_terms: [correspondence]
     aliases: [mail_provider, email_provider]
   - id: "fact:messaging_handle"
     kind: fact
     domain: messaging_handle
     description: "messaging account handle"
     high_risk: true
-    aliases: [chat_handle, username]
+    taxonomy_domain: digital_services
+    blocking_terms: [identifier]
+    aliases: [chat_handle]
     deny_neighbors: [messaging_service]
     hr_lexicon: [handle, username, account]
   - id: "preference:messaging_service"
@@ -191,37 +249,49 @@ slots:
     domain: messaging_service
     description: "preferred messaging service"
     high_risk: false
+    taxonomy_domain: digital_services
+    blocking_terms: [conversation]
     aliases: [chat_service, messenger]
   - id: "fact:morning_routine"
     kind: fact
     domain: morning_routine
     description: "usual morning routine"
     high_risk: false
+    taxonomy_domain: schedule
+    blocking_terms: [sunrise]
     aliases: [morning_schedule, morning_habit]
   - id: "fact:sleep_schedule"
     kind: fact
     domain: sleep_schedule
     description: "usual sleep schedule"
     high_risk: false
+    taxonomy_domain: schedule
+    blocking_terms: [rest]
     aliases: [bedtime, sleep_time]
   - id: "preference:meeting_time"
     kind: preference
     domain: meeting_time
     description: "preferred meeting time"
     high_risk: false
+    taxonomy_domain: schedule
+    blocking_terms: [calendar]
     aliases: [meeting_schedule, appointment_time]
   - id: "constraint:availability_window"
     kind: constraint
     domain: availability_window
     description: "time window when the user is available"
     high_risk: false
+    taxonomy_domain: schedule
+    blocking_terms: [timespan]
     aliases: [available_time, free_time]
   - id: "fact:partner_name"
     kind: fact
     domain: partner_name
     description: "name of the user's partner"
     high_risk: true
-    aliases: [spouse_name, significant_other]
+    taxonomy_domain: social
+    blocking_terms: [relationship]
+    aliases: [spouse_name]
     deny_neighbors: [social_circle]
     hr_lexicon: [partner, spouse, husband, wife]
   - id: "fact:relationship_status"
@@ -229,6 +299,8 @@ slots:
     domain: relationship_status
     description: "relationship status"
     high_risk: true
+    taxonomy_domain: social
+    blocking_terms: [romance]
     aliases: [marital_status, dating_status]
     deny_neighbors: [social_circle]
     hr_lexicon: [married, divorced, single, relationship]
@@ -237,60 +309,80 @@ slots:
     domain: social_circle
     description: "social circle or friend group"
     high_risk: false
+    taxonomy_domain: social
+    blocking_terms: [community]
     aliases: [friend_group, friends]
   - id: "preference:social_activity"
     kind: preference
     domain: social_activity
     description: "preferred social activity"
     high_risk: false
+    taxonomy_domain: social
+    blocking_terms: [gathering]
     aliases: [group_activity, social_event]
   - id: "fact:pet_name"
     kind: fact
     domain: pet_name
     description: "name of a pet"
     high_risk: false
+    taxonomy_domain: pets
+    blocking_terms: [companion]
     aliases: [animal_name, pet]
   - id: "fact:pet_type"
     kind: fact
     domain: pet_type
     description: "type or species of pet"
     high_risk: false
+    taxonomy_domain: pets
+    blocking_terms: [taxonomy]
     aliases: [animal_type, pet_species]
   - id: "preference:pet_care"
     kind: preference
     domain: pet_care
     description: "preferred pet care routine"
     high_risk: false
+    taxonomy_domain: pets
+    blocking_terms: [nurture]
     aliases: [animal_care, pet_routine]
   - id: "preference:cuisine"
     kind: preference
     domain: cuisine
     description: "favorite cuisine or food style"
     high_risk: false
+    taxonomy_domain: hobbies_lifestyle
+    blocking_terms: [culinary]
     aliases: [favorite_cuisine, food_preference]
   - id: "preference:music_genre"
     kind: preference
     domain: music_genre
     description: "preferred music genre"
     high_risk: false
+    taxonomy_domain: hobbies_lifestyle
+    blocking_terms: [listening]
     aliases: [music_style, favorite_music]
   - id: "preference:fitness_goal"
     kind: preference
     domain: fitness_goal
     description: "fitness goal or exercise preference"
     high_risk: false
+    taxonomy_domain: hobbies_lifestyle
+    blocking_terms: [training]
     aliases: [exercise_goal, workout_goal]
   - id: "preference:wellness_routine"
     kind: preference
     domain: wellness_routine
     description: "wellness routine or self care practice"
     high_risk: false
+    taxonomy_domain: hobbies_lifestyle
+    blocking_terms: [mindfulness]
     aliases: [self_care, health_routine]
   - id: "fact:income_range"
     kind: fact
     domain: income_range
     description: "income range of the user"
     high_risk: true
+    taxonomy_domain: finance
+    blocking_terms: [compensation]
     aliases: [salary_range, earnings]
     deny_neighbors: [budget_preference]
     hr_lexicon: [income, salary, earnings, compensation]
@@ -299,12 +391,16 @@ slots:
     domain: budget_preference
     description: "budget preference for purchases"
     high_risk: false
+    taxonomy_domain: finance
+    blocking_terms: [affordability]
     aliases: [spending_budget, price_range]
   - id: "fact:payment_method"
     kind: fact
     domain: payment_method
     description: "usual payment method"
     high_risk: true
+    taxonomy_domain: finance
+    blocking_terms: [transaction]
     aliases: [card_payment, payment_card]
     deny_neighbors: [budget_preference]
     hr_lexicon: [credit_card, debit_card, card_number, payment]
@@ -313,12 +409,16 @@ slots:
     domain: shopping_style
     description: "preferred shopping style"
     high_risk: false
+    taxonomy_domain: finance
+    blocking_terms: [purchasing]
     aliases: [buying_style, purchase_habit]
   - id: "constraint:emergency_contact"
     kind: constraint
     domain: emergency_contact
     description: "emergency contact information"
     high_risk: true
+    taxonomy_domain: safety_constraints
+    blocking_terms: [sos]
     aliases: [emergency_person, urgent_contact]
     deny_neighbors: [contact_preference]
     hr_lexicon: [emergency, urgent, next_of_kin]
@@ -327,12 +427,16 @@ slots:
     domain: contact_preference
     description: "preferred contact method"
     high_risk: false
-    aliases: [contact_method, reach_me]
+    taxonomy_domain: safety_constraints
+    blocking_terms: [communication]
+    aliases: [contact_method]
   - id: "constraint:accessibility_need"
     kind: constraint
     domain: accessibility_need
     description: "accessibility need or accommodation"
     high_risk: true
+    taxonomy_domain: safety_constraints
+    blocking_terms: [access]
     aliases: [accommodation_need, accessibility]
     deny_neighbors: [travel_class, home_amenity]
     hr_lexicon: [accessib, accommodation, disability, mobility]
@@ -341,6 +445,384 @@ slots:
     domain: safety_boundary
     description: "personal safety boundary or restriction"
     high_risk: true
+    taxonomy_domain: safety_constraints
+    blocking_terms: [protection]
     aliases: [safety_limit, personal_boundary]
     deny_neighbors: [social_activity]
     hr_lexicon: [unsafe, safety, danger, boundary]
+  - id: "fact:birth_date"
+    kind: fact
+    domain: birth_date
+    description: "natal chronology archival marker entry"
+    high_risk: false
+    taxonomy_domain: identity
+    blocking_terms: [birthday]
+    aliases: []
+  - id: "fact:birthplace"
+    kind: fact
+    domain: birthplace
+    description: "natal geography archival marker entry"
+    high_risk: false
+    taxonomy_domain: identity
+    blocking_terms: [origin]
+    aliases: []
+  - id: "preference:language"
+    kind: preference
+    domain: language
+    description: "linguistic expression vernacular affinity entry"
+    high_risk: false
+    taxonomy_domain: identity
+    blocking_terms: [linguistic]
+    aliases: []
+  - id: "constraint:privacy_disclosure"
+    kind: constraint
+    domain: privacy_disclosure
+    description: "disclosure confidentiality visibility boundary setting"
+    high_risk: false
+    taxonomy_domain: identity
+    blocking_terms: [confidentiality]
+    aliases: []
+  - id: "fact:healthcare_provider"
+    kind: fact
+    domain: healthcare_provider
+    description: "clinical practitioner relationship directory entry"
+    high_risk: false
+    taxonomy_domain: health
+    blocking_terms: [clinician]
+    aliases: []
+  - id: "preference:exercise_type"
+    kind: preference
+    domain: exercise_type
+    description: "physical movement modality exercise affinity"
+    high_risk: false
+    taxonomy_domain: health
+    blocking_terms: [movement]
+    aliases: []
+  - id: "preference:meal_timing"
+    kind: preference
+    domain: meal_timing
+    description: "nutritional meal chronology eating affinity"
+    high_risk: false
+    taxonomy_domain: health
+    blocking_terms: [breakfast]
+    aliases: []
+  - id: "preference:health_goal"
+    kind: preference
+    domain: health_goal
+    description: "wellbeing vitality objective wellness affinity"
+    high_risk: false
+    taxonomy_domain: health
+    blocking_terms: [vitality]
+    aliases: []
+  - id: "fact:household_size"
+    kind: fact
+    domain: household_size
+    description: "residential occupancy cardinality dwelling entry"
+    high_risk: false
+    taxonomy_domain: household
+    blocking_terms: [crowd]
+    aliases: []
+  - id: "preference:home_environment"
+    kind: preference
+    domain: home_environment
+    description: "residential ambience atmosphere domestic comfort"
+    high_risk: false
+    taxonomy_domain: household
+    blocking_terms: [ambience]
+    aliases: []
+  - id: "fact:employment_status"
+    kind: fact
+    domain: employment_status
+    description: "occupational engagement classification career entry"
+    high_risk: false
+    taxonomy_domain: work
+    blocking_terms: [occupation]
+    aliases: []
+  - id: "preference:learning_goal"
+    kind: preference
+    domain: learning_goal
+    description: "professional capability development study objective"
+    high_risk: false
+    taxonomy_domain: work
+    blocking_terms: [development]
+    aliases: []
+  - id: "preference:travel_destination"
+    kind: preference
+    domain: travel_destination
+    description: "journey destination vacation itinerary affinity"
+    high_risk: false
+    taxonomy_domain: transport
+    blocking_terms: [vacation]
+    aliases: []
+  - id: "fact:driver_license"
+    kind: fact
+    domain: driver_license
+    description: "driving authorization credential permit entry"
+    high_risk: false
+    taxonomy_domain: transport
+    blocking_terms: [licensing]
+    aliases: []
+  - id: "preference:ride_service"
+    kind: preference
+    domain: ride_service
+    description: "local rideshare arrangement mobility affinity"
+    high_risk: false
+    taxonomy_domain: transport
+    blocking_terms: [rideshare]
+    aliases: []
+  - id: "fact:operating_system"
+    kind: fact
+    domain: operating_system
+    description: "computing operating platform software entry"
+    high_risk: false
+    taxonomy_domain: devices
+    blocking_terms: [platform]
+    aliases: []
+  - id: "preference:device_accessory"
+    kind: preference
+    domain: device_accessory
+    description: "device peripheral hardware accessory affinity"
+    high_risk: false
+    taxonomy_domain: devices
+    blocking_terms: [peripheral]
+    aliases: []
+  - id: "preference:notification_modality"
+    kind: preference
+    domain: notification_modality
+    description: "alert delivery modality notification affinity"
+    high_risk: false
+    taxonomy_domain: devices
+    blocking_terms: [signal]
+    aliases: []
+  - id: "preference:notetaking_app"
+    kind: preference
+    domain: notetaking_app
+    description: "personal memorandum capture application affinity"
+    high_risk: false
+    taxonomy_domain: digital_services
+    blocking_terms: [memo]
+    aliases: []
+  - id: "preference:cloud_storage"
+    kind: preference
+    domain: cloud_storage
+    description: "remote document storage archive affinity"
+    high_risk: false
+    taxonomy_domain: digital_services
+    blocking_terms: [archive]
+    aliases: []
+  - id: "preference:credential_vault"
+    kind: preference
+    domain: credential_vault
+    description: "credential safeguarding vault utility affinity"
+    high_risk: false
+    taxonomy_domain: digital_services
+    blocking_terms: [secret]
+    aliases: []
+  - id: "preference:video_conference"
+    kind: preference
+    domain: video_conference
+    description: "remote video conversation platform affinity"
+    high_risk: false
+    taxonomy_domain: digital_services
+    blocking_terms: [videoconference]
+    aliases: []
+  - id: "preference:weekday_routine"
+    kind: preference
+    domain: weekday_routine
+    description: "weekday sequence chronology routine affinity"
+    high_risk: false
+    taxonomy_domain: schedule
+    blocking_terms: [commencement]
+    aliases: []
+  - id: "constraint:deadline_preference"
+    kind: constraint
+    domain: deadline_preference
+    description: "task completion timing deadline boundary"
+    high_risk: false
+    taxonomy_domain: schedule
+    blocking_terms: [timeliness]
+    aliases: []
+  - id: "preference:reminder_modality"
+    kind: preference
+    domain: reminder_modality
+    description: "timely prompt delivery reminder modality"
+    high_risk: false
+    taxonomy_domain: schedule
+    blocking_terms: [prompt]
+    aliases: []
+  - id: "fact:family_member"
+    kind: fact
+    domain: family_member
+    description: "familial kinship relationship directory entry"
+    high_risk: false
+    taxonomy_domain: social
+    blocking_terms: [relative]
+    aliases: []
+  - id: "preference:gift_affinity"
+    kind: preference
+    domain: gift_affinity
+    description: "present selection occasion affinity gesture"
+    high_risk: false
+    taxonomy_domain: social
+    blocking_terms: [present]
+    aliases: []
+  - id: "preference:celebration_ritual"
+    kind: preference
+    domain: celebration_ritual
+    description: "occasion observance ritual gathering affinity"
+    high_risk: false
+    taxonomy_domain: social
+    blocking_terms: [occasion]
+    aliases: []
+  - id: "fact:pet_breed"
+    kind: fact
+    domain: pet_breed
+    description: "companion animal lineage classification entry"
+    high_risk: false
+    taxonomy_domain: pets
+    blocking_terms: [lineage]
+    aliases: []
+  - id: "preference:pet_activity"
+    kind: preference
+    domain: pet_activity
+    description: "companion animal pastime playfulness affinity"
+    high_risk: false
+    taxonomy_domain: pets
+    blocking_terms: [playtime]
+    aliases: []
+  - id: "constraint:pet_restriction"
+    kind: constraint
+    domain: pet_restriction
+    description: "companion care limitation boundary restriction"
+    high_risk: false
+    taxonomy_domain: pets
+    blocking_terms: [limitation]
+    aliases: []
+  - id: "preference:reading_genre"
+    kind: preference
+    domain: reading_genre
+    description: "literature category reading affinity leisure"
+    high_risk: false
+    taxonomy_domain: hobbies_lifestyle
+    blocking_terms: [literature]
+    aliases: []
+  - id: "preference:creative_hobby"
+    kind: preference
+    domain: creative_hobby
+    description: "creative craft pastime artistry affinity"
+    high_risk: false
+    taxonomy_domain: hobbies_lifestyle
+    blocking_terms: [craft]
+    aliases: []
+  - id: "preference:outdoor_activity"
+    kind: preference
+    domain: outdoor_activity
+    description: "outdoor recreation pastime excursion affinity"
+    high_risk: false
+    taxonomy_domain: hobbies_lifestyle
+    blocking_terms: [recreation]
+    aliases: []
+  - id: "preference:saving_goal"
+    kind: preference
+    domain: saving_goal
+    description: "financial reserve objective savings affinity"
+    high_risk: false
+    taxonomy_domain: finance
+    blocking_terms: [reserve]
+    aliases: []
+  - id: "preference:subscription_budget"
+    kind: preference
+    domain: subscription_budget
+    description: "recurring charge affordability boundary subscription"
+    high_risk: false
+    taxonomy_domain: finance
+    blocking_terms: [recurring]
+    aliases: []
+  - id: "constraint:privacy_preference"
+    kind: constraint
+    domain: privacy_preference
+    description: "information confidentiality sharing boundary privacy"
+    high_risk: false
+    taxonomy_domain: safety_constraints
+    blocking_terms: [confidentiality]
+    aliases: []
+  - id: "constraint:communication_boundary"
+    kind: constraint
+    domain: communication_boundary
+    description: "incoming communication limitation boundary contact"
+    high_risk: false
+    taxonomy_domain: safety_constraints
+    blocking_terms: [contacting]
+    aliases: []
+  - id: "constraint:itinerary_protection"
+    kind: constraint
+    domain: itinerary_protection
+    description: "itinerary safeguard requirement boundary protocol"
+    high_risk: false
+    taxonomy_domain: safety_constraints
+    blocking_terms: [safeguard]
+    aliases: []
+  - id: "preference:sport_team"
+    kind: preference
+    domain: sport_team
+    description: "athletic club supporter allegiance affinity"
+    high_risk: false
+    taxonomy_domain: entertainment_media
+    blocking_terms: [supporter]
+    aliases: []
+  - id: "preference:streaming_platform"
+    kind: preference
+    domain: streaming_platform
+    description: "on_demand viewing platform cinema affinity"
+    high_risk: false
+    taxonomy_domain: entertainment_media
+    blocking_terms: [viewing]
+    aliases: []
+  - id: "preference:movie_genre"
+    kind: preference
+    domain: movie_genre
+    description: "cinematic category filmgoing affinity leisure"
+    high_risk: false
+    taxonomy_domain: entertainment_media
+    blocking_terms: [cinema]
+    aliases: []
+  - id: "preference:television_genre"
+    kind: preference
+    domain: television_genre
+    description: "televisual category episode affinity leisure"
+    high_risk: false
+    taxonomy_domain: entertainment_media
+    blocking_terms: [episode]
+    aliases: []
+  - id: "preference:podcast_genre"
+    kind: preference
+    domain: podcast_genre
+    description: "spoken audio category listening affinity"
+    high_risk: false
+    taxonomy_domain: entertainment_media
+    blocking_terms: [audio]
+    aliases: []
+  - id: "preference:book_format"
+    kind: preference
+    domain: book_format
+    description: "publication binding medium reading affinity"
+    high_risk: false
+    taxonomy_domain: entertainment_media
+    blocking_terms: [binding]
+    aliases: []
+  - id: "preference:gaming_platform"
+    kind: preference
+    domain: gaming_platform
+    description: "interactive game console pastime affinity"
+    high_risk: false
+    taxonomy_domain: entertainment_media
+    blocking_terms: [console]
+    aliases: []
+  - id: "preference:live_event"
+    kind: preference
+    domain: live_event
+    description: "in_person performance attendance occasion affinity"
+    high_risk: false
+    taxonomy_domain: entertainment_media
+    blocking_terms: [performance]
+    aliases: []

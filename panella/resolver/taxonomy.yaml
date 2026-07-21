@@ -1,0 +1,44 @@
+version: "2"
+domains:
+  identity:
+    min_slots: 7
+    provenance: "generic:PARA (Projects, Areas, Resources, Archives)"
+  health:
+    min_slots: 7
+    provenance: "generic:PARA (Projects, Areas, Resources, Archives)"
+  household:
+    min_slots: 7
+    provenance: "generic:PARA (Projects, Areas, Resources, Archives)"
+  work:
+    min_slots: 7
+    provenance: "generic:PARA (Projects, Areas, Resources, Archives)"
+  transport:
+    min_slots: 7
+    provenance: "generic:PARA (Projects, Areas, Resources, Archives)"
+  devices:
+    min_slots: 7
+    provenance: "generic:PARA (Projects, Areas, Resources, Archives)"
+  digital_services:
+    min_slots: 8
+    provenance: "findings:digital-services"
+  schedule:
+    min_slots: 7
+    provenance: "generic:PARA (Projects, Areas, Resources, Archives)"
+  social:
+    min_slots: 7
+    provenance: "generic:PARA (Projects, Areas, Resources, Archives)"
+  pets:
+    min_slots: 6
+    provenance: "generic:PARA (Projects, Areas, Resources, Archives)"
+  hobbies_lifestyle:
+    min_slots: 7
+    provenance: "generic:PARA (Projects, Areas, Resources, Archives)"
+  finance:
+    min_slots: 6
+    provenance: "generic:PARA (Projects, Areas, Resources, Archives)"
+  safety_constraints:
+    min_slots: 6
+    provenance: "generic:PARA (Projects, Areas, Resources, Archives)"
+  entertainment_media:
+    min_slots: 8
+    provenance: "findings:entertainment/media"

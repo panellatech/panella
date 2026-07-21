@@ -24,7 +24,15 @@ from panella.resolver import (
 )
 from panella.resolver.blocking import CHOICE_SET_K, assemble_blocking
 from panella.resolver.normalize import NORMALIZER_VERSION, compute_normalizer_rules_hash, normalizer_rules_hash, resolver_normalize
-from panella.resolver.registry import PINNED_REGISTRY_HASH, canonical_registry_content_hash, default_registry_path, load_registry
+from panella.resolver.registry import (
+    PINNED_REGISTRY_HASH,
+    canonical_registry_content_hash,
+    canonical_taxonomy_content_hash,
+    composite_registry_hash,
+    default_registry_path,
+    default_taxonomy_path,
+    load_registry,
+)
 from panella.resolver.risk import compute_risk_evidence
 from panella.resolver.types import split_slot_id
 
@@ -468,7 +476,7 @@ def test_registry_fail_matrix(tmp_path: Path, mutation: str) -> None:
 
 def test_registry_pin_mismatch_still_raises(tmp_path: Path) -> None:
     pin_mutation = registry_data()
-    pin_mutation["version"] = "2"
+    pin_mutation["version"] = "3"
     with pytest.raises(ValueError, match="content hash"):
         load_registry(write_registry(tmp_path, pin_mutation))
 
@@ -491,7 +499,10 @@ def test_hr_alias_only_matching_after_folding_is_a_miss() -> None:
 def test_hash_pins_and_versions() -> None:
     registry = load_registry()
     content = registry_data()
-    assert registry.content_hash == PINNED_REGISTRY_HASH == canonical_registry_content_hash(content)
+    taxonomy = yaml.safe_load(default_taxonomy_path().read_text(encoding="utf-8"))
+    assert registry.slot_registry_hash == canonical_registry_content_hash(content)
+    assert registry.taxonomy_hash == canonical_taxonomy_content_hash(taxonomy)
+    assert registry.content_hash == PINNED_REGISTRY_HASH == composite_registry_hash(registry.slot_registry_hash, registry.taxonomy_hash)
     assert normalizer_rules_hash == compute_normalizer_rules_hash()
     assert NORMALIZER_VERSION == "1.0.0"
     assert ResolverEngine().resolve(request(), ResolverContext(()), RunBudget(1)).versions.resolver_code_version == "1.0.0"
