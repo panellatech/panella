@@ -18,7 +18,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Callable
 
-from panella.resolver.calibrate import verify
+from panella.resolver.calibrate import DEFAULT_PROBE_PATH, verify
 
 ROOT = Path(__file__).resolve().parents[2]
 LEDGER_PATH = ROOT / "eval/out/k1_gate_ledger.jsonl"
@@ -83,7 +83,8 @@ def consume_ticket(ticket_path: Path | str, *, live_config_hash: str, ledger_pat
     binding = _worktree_binding()
     if binding["actual_commit"] != ticket["public_commit"] or binding["dirty"]:
         raise ValueError("ticket public-commit/clean-worktree binding failed")
-    consumed = source.with_name(f"consumed-{ticket['nonce']}.json")
+    # The authenticated ledger's directory is global nonce state, so copied tickets cannot burn twice.
+    consumed = Path(ledger_path).parent / f"consumed-{ticket['nonce']}.json"
     if consumed.exists():
         raise ValueError("ticket nonce was already consumed")
     os.replace(source, consumed)
@@ -296,7 +297,8 @@ def gate_metrics(pair_report: dict[str, Any], extraction_report: dict[str, Any],
 def run_ticket(
     ticket_path: Path, *, config: dict[str, Any], goldset_path: str, runner_version: str, holdout_sums: Path,
     provenance: Path, holdout_counts: dict[str, Any], manifest_path: Path | None, evidence_path: Path | None,
-    evaluator: Callable[[], dict[str, Any]], ledger_path: Path = LEDGER_PATH, out_dir: Path = OUT_DIR,
+    evaluator: Callable[[], dict[str, Any]], probe_path: Path | str = DEFAULT_PROBE_PATH,
+    ledger_path: Path = LEDGER_PATH, out_dir: Path = OUT_DIR,
 ) -> dict[str, Any]:
     """Run a burned ticket and write a receipt embedding the full gate verdict.
 
@@ -310,7 +312,7 @@ def run_ticket(
     if manifest_path is not None or evidence_path is not None:
         if manifest_path is None or evidence_path is None or ticket["manifest_hash"] is None or ticket["evidence_hash"] is None:
             raise ValueError("incomplete calibration ticket pins")
-        _, digest = verify(evidence_path, manifest_path)
+        _, digest = verify(evidence_path, manifest_path, probe_path=probe_path)
         if digest != ticket["manifest_hash"] or file_hash(evidence_path) != ticket["evidence_hash"]:
             raise ValueError("ticket calibration pin mismatch")
     result = evaluator()
@@ -353,12 +355,13 @@ def main() -> int:
     parser.add_argument("--evaluator", required=True, help="wired evaluator as module:callable")
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--evidence", type=Path)
+    parser.add_argument("--probe-path", type=Path, default=DEFAULT_PROBE_PATH)
     args = parser.parse_args()
     if (args.manifest is None) != (args.evidence is None):
         raise SystemExit("--manifest and --evidence must be supplied together")
     config = json.loads(args.config.read_text(encoding="utf-8"))
     counts = json.loads(args.holdout_counts.read_text(encoding="utf-8"))
-    receipt = run_ticket(args.ticket, config=config, goldset_path=args.goldset, runner_version="k1-gate-v1", holdout_sums=args.holdout_sums, provenance=args.provenance, holdout_counts=counts, manifest_path=args.manifest, evidence_path=args.evidence, evaluator=_load_evaluator(args.evaluator))
+    receipt = run_ticket(args.ticket, config=config, goldset_path=args.goldset, runner_version="k1-gate-v1", holdout_sums=args.holdout_sums, provenance=args.provenance, holdout_counts=counts, manifest_path=args.manifest, evidence_path=args.evidence, evaluator=_load_evaluator(args.evaluator), probe_path=args.probe_path)
     receipt_path = OUT_DIR / f"k1-gate-receipt-{receipt['ticket']['nonce']}.json"
     print(f"gate {receipt['status']} — receipt: {receipt_path}")
     return 0 if receipt["gate_verdict"]["pass"] else 1

@@ -340,7 +340,14 @@ def test_ticket_head_clean_order_and_per_file_tamper_burns(tmp_path: Path, monke
     assert ticket_path.exists() and not (tmp_path / "consumed-n3.json").exists()
 
 
-def _gate_ticket_harness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, nonce: str) -> dict[str, object]:
+def _gate_ticket_harness(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    nonce: str,
+    *,
+    manifest_hash: str | None = None,
+    evidence_hash: str | None = None,
+) -> dict[str, object]:
     sums, provenance = tmp_path / "SHA256SUMS", tmp_path / "PROVENANCE"
     holdout = tmp_path / "holdout.json"
     holdout.write_text("sealed", encoding="utf-8")
@@ -355,8 +362,8 @@ def _gate_ticket_harness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, nonce:
         "holdout_sums_sha256": hashlib.sha256(sums.read_bytes()).hexdigest(),
         "holdout_provenance_sha256": hashlib.sha256(provenance.read_bytes()).hexdigest(),
         "config_hash": canonical_hash({"config": config, "goldset_path": "toy", "runner_version": "v1"}),
-        "manifest_hash": None,
-        "evidence_hash": None,
+        "manifest_hash": manifest_hash,
+        "evidence_hash": evidence_hash,
         "created": "now",
     }
     ticket_path, ledger = tmp_path / "ticket.json", tmp_path / "ledger.jsonl"
@@ -428,3 +435,76 @@ def test_calibration_binds_selected_probe_file(tmp_path: Path) -> None:
     verify(evidence, manifest, probe_path=custom)
     with pytest.raises(ValueError):
         verify(evidence, manifest, probe_path=DEFAULT_PROBES)
+
+
+def test_copied_ticket_cannot_be_consumed_twice(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    ledger_dir = tmp_path / "ledger"
+    ledger_dir.mkdir()
+    harness = _gate_ticket_harness(ledger_dir, monkeypatch, "n-copied")
+    ticket_a, ticket_b = tmp_path / "a" / "ticket.json", tmp_path / "b" / "ticket.json"
+    ticket_a.parent.mkdir()
+    ticket_b.parent.mkdir()
+    ticket_bytes = Path(harness["ticket_path"]).read_bytes()
+    ticket_a.write_bytes(ticket_bytes)
+    ticket_b.write_bytes(ticket_bytes)
+    live_config_hash = canonical_hash({"config": harness["config"], "goldset_path": "toy", "runner_version": "v1"})
+
+    _, consumed, _ = consume_ticket(ticket_a, live_config_hash=live_config_hash, ledger_path=Path(harness["ledger_path"]))
+    assert consumed == ledger_dir / "consumed-n-copied.json" and consumed.exists()
+    with pytest.raises(ValueError, match="already consumed"):
+        consume_ticket(ticket_b, live_config_hash=live_config_hash, ledger_path=Path(harness["ledger_path"]))
+    assert ticket_b.exists()
+
+
+def test_gate_accepts_custom_probe_calibration_and_default_binding_burns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
+    custom = tmp_path / "custom_probes.json"
+    custom.write_text(json.dumps(document, indent=1), encoding="utf-8")
+    probes = _load(custom)
+    evidence, manifest = run(
+        probes,
+        provider=fake_provider(probes),
+        git_commit="t",
+        evidence_path=tmp_path / "evidence.jsonl",
+        manifest_path=tmp_path / "manifest.json",
+        probe_path=custom,
+    )
+    manifest_digest = verify(evidence, manifest, probe_path=custom)[1]
+    evidence_digest = hashlib.sha256(evidence.read_bytes()).hexdigest()
+    pairs, extraction, frozen, validity = _passing_gate_inputs()
+
+    def evaluator() -> dict[str, object]:
+        return {
+            "pair_report": pairs,
+            "extraction_report": extraction,
+            "frozen": frozen,
+            "run_validity": validity,
+            "n_llm_calls": 0,
+        }
+
+    nonce = "n-custom-probe"
+    harness = _gate_ticket_harness(
+        tmp_path, monkeypatch, nonce, manifest_hash=manifest_digest, evidence_hash=evidence_digest
+    )
+    receipt = run_ticket(
+        harness["ticket_path"], config=harness["config"], goldset_path="toy", runner_version="v1",
+        holdout_sums=harness["holdout_sums"], provenance=harness["provenance"], holdout_counts=harness["holdout_counts"],
+        manifest_path=manifest, evidence_path=evidence, probe_path=custom, evaluator=evaluator,
+        ledger_path=harness["ledger_path"], out_dir=tmp_path / "out",
+    )
+    assert receipt["status"] == "PASSED"
+
+    burned_nonce = "n-custom-probe-default"
+    burned = _gate_ticket_harness(
+        tmp_path, monkeypatch, burned_nonce, manifest_hash=manifest_digest, evidence_hash=evidence_digest
+    )
+    with pytest.raises(ValueError, match="probe universe hash is not bound by manifest"):
+        run_ticket(
+            burned["ticket_path"], config=burned["config"], goldset_path="toy", runner_version="v1",
+            holdout_sums=burned["holdout_sums"], provenance=burned["provenance"], holdout_counts=burned["holdout_counts"],
+            manifest_path=manifest, evidence_path=evidence, evaluator=evaluator,
+            ledger_path=burned["ledger_path"], out_dir=tmp_path / "out",
+        )
+    assert (tmp_path / f"consumed-{burned_nonce}.json").exists()
