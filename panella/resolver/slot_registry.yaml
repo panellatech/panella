@@ -199,7 +199,7 @@ slots:
     high_risk: false
     taxonomy_domain: devices
     blocking_terms: [machine]
-    aliases: [laptop, desktop_computer]
+    aliases: [desktop_computer]
   - id: "preference:code_editor"
     kind: preference
     domain: code_editor

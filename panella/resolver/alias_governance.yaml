@@ -13,6 +13,12 @@ ops:
     reason: ambiguity
     fixture_id: tests/resolver/fixtures/alias_revocation_miss.json
   - op: remove_alias
+    surface: laptop
+    from_slot: fact:computer_model
+    rationale: "A laptop is not a unique computer-model surface when multiple physical devices may occupy the slot."
+    reason: ambiguity
+    fixture_id: tests/resolver/fixtures/alias_revocation_miss.json
+  - op: remove_alias
     surface: significant_other
     from_slot: fact:partner_name
     rationale: "The blocked functional-word form is retired in favour of a canonical specific surface."

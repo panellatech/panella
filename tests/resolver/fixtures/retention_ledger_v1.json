@@ -23,6 +23,13 @@
       "op_ref": "remove_alias:username:fact:messaging_handle",
       "verdict_sha256": "1415ec1c0650f53c2a07a3974bc16048396aead82e84754f42228c14b59328aa",
       "reason": "governed_univocity_revocation"
+    },
+    {
+      "uids": ["sc-supersede-0012-laptop_model/f-later"],
+      "to": "approved_remap",
+      "op_ref": "remove_alias:laptop:fact:computer_model",
+      "verdict_sha256": "766b5f033b497a558a4b122fba80485b18c0feb0a9ba3926bc086b2fb6f4870e",
+      "reason": "governed_univocity_revocation"
     }
   ],
   "cases": [

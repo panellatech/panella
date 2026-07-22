@@ -6,6 +6,7 @@ from pathlib import Path
 
 import yaml
 
+from panella.resolver import ResolveRequest, ResolverContext, ResolverEngine, RunBudget
 from panella.resolver.registry import canonical_blocking_terms_hash, canonical_governance_hash, validate_alias_governance
 from panella.resolver.registry import default_taxonomy_path, load_registry
 
@@ -13,8 +14,10 @@ from panella.resolver.registry import default_taxonomy_path, load_registry
 ROOT = Path(__file__).resolve().parents[2]
 LEDGER = ROOT / "tests/resolver/fixtures/retention_ledger_v1.json"
 GOVERNANCE = ROOT / "panella/resolver/alias_governance.yaml"
+REVOCATION_FIXTURE = ROOT / "tests/resolver/fixtures/alias_revocation_miss.json"
 BASELINE_REGISTRY_HASH = "f6d44f272dd092a48c9078d8a7f442fa7b11fe350fb4506684bbbfabd2009a84"
 VERDICT = "1415ec1c0650f53c2a07a3974bc16048396aead82e84754f42228c14b59328aa"
+LAPTOP_VERDICT = "766b5f033b497a558a4b122fba80485b18c0feb0a9ba3926bc086b2fb6f4870e"
 STATES = {"must_retain_correct", "known_wrong_fix", "unresolved", "approved_remap"}
 
 
@@ -42,12 +45,18 @@ def test_governed_transitions_meet_c1_e3_conditions() -> None:
     expected = {
         "remove_alias:nickname:fact:chosen_name": {"sc-hrmulti-0000/f1", "sc-hrunrelated-0003/f-a", "sc-hrunrelated-0012/f-a"},
         "remove_alias:username:fact:messaging_handle": {"sc-hrunrelated-0020/f-a"},
+        "remove_alias:laptop:fact:computer_model": {"sc-supersede-0012-laptop_model/f-later"},
+    }
+    expected_verdicts = {
+        "remove_alias:nickname:fact:chosen_name": VERDICT,
+        "remove_alias:username:fact:messaging_handle": VERDICT,
+        "remove_alias:laptop:fact:computer_model": LAPTOP_VERDICT,
     }
     observed: dict[str, set[str]] = {}
     for transition in ledger["transitions"]:
         assert transition["to"] == "approved_remap"
         assert transition["reason"] == "governed_univocity_revocation"
-        assert transition["verdict_sha256"] == VERDICT
+        assert transition["verdict_sha256"] == expected_verdicts[transition["op_ref"]]
         _, surface, slot_kind, slot_domain = transition["op_ref"].split(":")
         original_slot = f"{slot_kind}:{slot_domain}"
         for uid in transition["uids"]:
@@ -56,6 +65,40 @@ def test_governed_transitions_meet_c1_e3_conditions() -> None:
             assert row["raw_domain"] == surface and row["hit_slot"] == original_slot
         observed[transition["op_ref"]] = set(transition["uids"])
     assert observed == expected
+
+
+def test_laptop_alias_revocation_fixture_is_a_deterministic_miss() -> None:
+    fixture = json.loads(REVOCATION_FIXTURE.read_text(encoding="utf-8"))
+    laptop = {"kind": "fact", "raw_domain": "laptop", "expected_method": "none"}
+    assert laptop in fixture["cases"]
+
+    decision = ResolverEngine().resolve(
+        ResolveRequest("alias-revocation/laptop", laptop["kind"], laptop["raw_domain"], "", ""),
+        ResolverContext(()),
+        RunBudget(1),
+    )
+    assert decision.slot_id is None
+    assert decision.action == "ABSTAIN_ADD"
+
+
+def test_governance_records_the_laptop_revocation_once() -> None:
+    governance = yaml.safe_load(GOVERNANCE.read_text(encoding="utf-8"))
+    validate_alias_governance(governance, repository_root=ROOT)
+    laptop_ops = [
+        operation for operation in governance["ops"]
+        if operation["op"] == "remove_alias"
+        and operation["surface"] == "laptop"
+        and operation["from_slot"] == "fact:computer_model"
+    ]
+    assert laptop_ops == [{
+        "op": "remove_alias",
+        "surface": "laptop",
+        "from_slot": "fact:computer_model",
+        "rationale": "A laptop is not a unique computer-model surface when multiple physical devices may occupy the slot.",
+        "reason": "ambiguity",
+        "fixture_id": "tests/resolver/fixtures/alias_revocation_miss.json",
+    }]
+    assert len(governance["ops"]) == 5
 
 
 def test_governance_reference_and_blocking_term_vectors() -> None:

@@ -1,6 +1,7 @@
 {
   "cases": [
     {"kind": "fact", "raw_domain": "username", "expected_method": "none"},
-    {"kind": "fact", "raw_domain": "nickname", "expected_method": "none"}
+    {"kind": "fact", "raw_domain": "nickname", "expected_method": "none"},
+    {"kind": "fact", "raw_domain": "laptop", "expected_method": "none"}
   ]
 }
