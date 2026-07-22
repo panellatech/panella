@@ -17,7 +17,7 @@ from .normalize import extractor_normalize_domain, resolver_normalize
 
 MIN_REGISTRY_SLOTS = 90
 # The v2 pin is sha256(slot-registry canonical hash + ':' + taxonomy canonical hash).
-PINNED_REGISTRY_HASH = "d356aae72b35a656f6a5085fe2f78d136cf0404b97f7afc7d049cfdcc9505d0d"
+PINNED_REGISTRY_HASH = "15cc46300177b0392a47a7be3c9f4b00c4539e947e60c0070ec18cf161cdc34a"
 _KINDS = frozenset({"preference", "fact", "constraint"})
 _REQUIRED_SLOT_FIELDS = frozenset({
     "id", "kind", "domain", "description", "high_risk", "aliases", "taxonomy_domain", "blocking_terms",

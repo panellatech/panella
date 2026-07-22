@@ -578,10 +578,10 @@ slots:
     taxonomy_domain: devices
     blocking_terms: [platform]
     aliases: []
-  - id: "preference:device_accessory"
+  - id: "preference:hardware_accessory"
     kind: preference
-    domain: device_accessory
-    description: "device peripheral hardware accessory affinity"
+    domain: hardware_accessory
+    description: "peripheral attachment equipment affinity"
     high_risk: false
     taxonomy_domain: devices
     blocking_terms: [peripheral]
@@ -706,10 +706,10 @@ slots:
     taxonomy_domain: hobbies_lifestyle
     blocking_terms: [literature]
     aliases: []
-  - id: "preference:creative_hobby"
+  - id: "preference:artistic_pastime"
     kind: preference
-    domain: creative_hobby
-    description: "creative craft pastime artistry affinity"
+    domain: artistic_pastime
+    description: "artistic making leisure affinity"
     high_risk: false
     taxonomy_domain: hobbies_lifestyle
     blocking_terms: [craft]
@@ -770,10 +770,10 @@ slots:
     taxonomy_domain: entertainment_media
     blocking_terms: [supporter]
     aliases: []
-  - id: "preference:streaming_platform"
+  - id: "preference:streaming_subscription"
     kind: preference
-    domain: streaming_platform
-    description: "on_demand viewing platform cinema affinity"
+    domain: streaming_subscription
+    description: "subscription audiovisual catalogue affinity"
     high_risk: false
     taxonomy_domain: entertainment_media
     blocking_terms: [viewing]

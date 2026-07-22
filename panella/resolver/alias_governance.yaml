@@ -28,3 +28,30 @@ ops:
     from_slot: preference:contact_preference
     rationale: "The blocked pronoun form is retired in favour of a canonical specific surface."
     reason: retirement
+  - op: remove_domain
+    surface: device_accessory
+    from_slot: preference:device_accessory
+    rationale: "The broad device surface is retired in favour of a hardware-specific preference surface."
+    reason: retirement
+  - op: add_domain
+    surface: hardware_accessory
+    to_slot: preference:hardware_accessory
+    rationale: "The hardware-specific preference surface keeps accessories distinct from general devices."
+  - op: remove_domain
+    surface: creative_hobby
+    from_slot: preference:creative_hobby
+    rationale: "The generic hobby surface is retired in favour of an artistic-pastime preference surface."
+    reason: retirement
+  - op: add_domain
+    surface: artistic_pastime
+    to_slot: preference:artistic_pastime
+    rationale: "The artistic-pastime surface preserves the creative leisure preference without generic hobby routing."
+  - op: remove_domain
+    surface: streaming_platform
+    from_slot: preference:streaming_platform
+    rationale: "The broad platform surface is retired in favour of a subscription-specific media preference surface."
+    reason: retirement
+  - op: add_domain
+    surface: streaming_subscription
+    to_slot: preference:streaming_subscription
+    rationale: "The subscription-specific surface preserves the streaming preference without generic platform routing."

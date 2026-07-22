@@ -81,7 +81,7 @@ def test_laptop_alias_revocation_fixture_is_a_deterministic_miss() -> None:
     assert decision.action == "ABSTAIN_ADD"
 
 
-def test_governance_records_the_laptop_revocation_once() -> None:
+def test_governance_records_laptop_revocation_and_domain_refinements() -> None:
     governance = yaml.safe_load(GOVERNANCE.read_text(encoding="utf-8"))
     validate_alias_governance(governance, repository_root=ROOT)
     laptop_ops = [
@@ -98,7 +98,52 @@ def test_governance_records_the_laptop_revocation_once() -> None:
         "reason": "ambiguity",
         "fixture_id": "tests/resolver/fixtures/alias_revocation_miss.json",
     }]
-    assert len(governance["ops"]) == 5
+    domain_ops = [
+        operation for operation in governance["ops"]
+        if operation["op"].endswith("_domain")
+    ]
+    assert domain_ops == [
+        {
+            "op": "remove_domain",
+            "surface": "device_accessory",
+            "from_slot": "preference:device_accessory",
+            "rationale": "The broad device surface is retired in favour of a hardware-specific preference surface.",
+            "reason": "retirement",
+        },
+        {
+            "op": "add_domain",
+            "surface": "hardware_accessory",
+            "to_slot": "preference:hardware_accessory",
+            "rationale": "The hardware-specific preference surface keeps accessories distinct from general devices.",
+        },
+        {
+            "op": "remove_domain",
+            "surface": "creative_hobby",
+            "from_slot": "preference:creative_hobby",
+            "rationale": "The generic hobby surface is retired in favour of an artistic-pastime preference surface.",
+            "reason": "retirement",
+        },
+        {
+            "op": "add_domain",
+            "surface": "artistic_pastime",
+            "to_slot": "preference:artistic_pastime",
+            "rationale": "The artistic-pastime surface preserves the creative leisure preference without generic hobby routing.",
+        },
+        {
+            "op": "remove_domain",
+            "surface": "streaming_platform",
+            "from_slot": "preference:streaming_platform",
+            "rationale": "The broad platform surface is retired in favour of a subscription-specific media preference surface.",
+            "reason": "retirement",
+        },
+        {
+            "op": "add_domain",
+            "surface": "streaming_subscription",
+            "to_slot": "preference:streaming_subscription",
+            "rationale": "The subscription-specific surface preserves the streaming preference without generic platform routing.",
+        },
+    ]
+    assert len(governance["ops"]) == 11
 
 
 def test_governance_reference_and_blocking_term_vectors() -> None:
