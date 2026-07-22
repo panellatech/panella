@@ -20,7 +20,14 @@ PAIR_GOLDSET_SHA256 = "b932fd97cfa6d63fdf027bb799094939b18d00be8d8f807cc90c9a96c
 LEDGER_PATH = ROOT / "tests/resolver/fixtures/retention_ledger_v1.json"
 OUT_DIR = ROOT / "eval/out"
 # Chief adds a pre-registered artifact digest here before asking this script to consume it.
-CANDIDATE_HASH_ALLOWLIST: frozenset[str] = frozenset()
+CANDIDATE_HASH_ALLOWLIST: frozenset[str] = frozenset({
+    # k1c_pinned_candidates_v1.json — c1-e2.1 first-valid output, ledger-pinned 2026-07-22.
+    "5aec8521eee58cebf5f518e17ed97f14bb9172af31150bf3b89d705539c71fa3",
+})
+EXTRACTION_SOURCES = {
+    "source_items": ROOT / "eval/goldsets/fixtures/extraction_goldset_v1.json",
+    "source_fixture": ROOT / "eval/goldsets/fixtures/continuity_set_v1.json",
+}
 
 
 def _sha256(path: Path) -> str:
@@ -36,21 +43,26 @@ def _load_pair_goldset() -> dict[str, Any]:
     return value
 
 
-def _load_candidates(path: Path) -> list[dict[str, Any]]:
-    """Reject unregistered candidate artifacts before inspecting their contents."""
+def _load_candidates(path: Path) -> dict[str, list[dict[str, Any]]]:
+    """Admit only the ledger-pinned candidates artifact (c1-e2.1): identity hash,
+    pre-pinned source hashes, declared item count, and item-set shape."""
     if _sha256(path) not in CANDIDATE_HASH_ALLOWLIST:
         raise ValueError("candidate artifact hash is not allowlisted")
     value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, dict) or not isinstance(value.get("items"), list):
-        raise ValueError("candidate artifact must contain an items list")
-    items = value["items"]
-    uids = [item.get("item_uid") for item in items if isinstance(item, dict)]
-    if len(uids) != len(items) or any(not isinstance(uid, str) or not uid for uid in uids) or len(set(uids)) != len(uids):
-        raise ValueError("candidate item uids must be a unique total set")
-    source_uids = value.get("source_item_uids")
-    if not isinstance(source_uids, list) or set(source_uids) != set(uids) or len(source_uids) != len(set(source_uids)):
-        raise ValueError("candidate item set is not bijective to source_item_uids")
-    return items
+    candidates = value.get("candidates") if isinstance(value, dict) else None
+    if not isinstance(candidates, dict) or not candidates:
+        raise ValueError("candidate artifact must contain a candidates mapping")
+    if any(not isinstance(uid, str) or not uid for uid in candidates):
+        raise ValueError("candidate item uids must be non-empty strings")
+    if value.get("n_items") != len(candidates):
+        raise ValueError("candidate item count does not match the declared n_items")
+    for source_key, source_path in EXTRACTION_SOURCES.items():
+        declared = value.get(source_key)
+        if not isinstance(declared, dict) or declared.get("sha256") != _sha256(source_path):
+            raise ValueError(f"candidate artifact {source_key} hash does not match the pinned source")
+    if any(not isinstance(rows, list) for rows in candidates.values()):
+        raise ValueError("candidate rows must be lists")
+    return candidates
 
 
 def _run_pair() -> tuple[dict[str, Any], list[dict[str, Any]]]:
