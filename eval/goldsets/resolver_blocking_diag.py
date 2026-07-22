@@ -7,8 +7,9 @@ import hashlib
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
+from eval.goldsets.key_correctness_eval import load_items
 from panella.resolver.blocking import assemble_blocking
 from panella.resolver.engine import ResolverEngine
 from panella.resolver.risk import compute_risk_evidence
@@ -43,12 +44,21 @@ def _load_pair_goldset() -> dict[str, Any]:
     return value
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError("candidate artifact has duplicate keys")
+        value[key] = item
+    return value
+
+
 def _load_candidates(path: Path) -> dict[str, list[dict[str, Any]]]:
     """Admit only the ledger-pinned candidates artifact (c1-e2.1): identity hash,
     pre-pinned source hashes, declared item count, and item-set shape."""
     if _sha256(path) not in CANDIDATE_HASH_ALLOWLIST:
         raise ValueError("candidate artifact hash is not allowlisted")
-    value = json.loads(path.read_text(encoding="utf-8"))
+    value = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_reject_duplicate_keys)
     candidates = value.get("candidates") if isinstance(value, dict) else None
     if not isinstance(candidates, dict) or not candidates:
         raise ValueError("candidate artifact must contain a candidates mapping")
@@ -62,10 +72,39 @@ def _load_candidates(path: Path) -> dict[str, list[dict[str, Any]]]:
             raise ValueError(f"candidate artifact {source_key} hash does not match the pinned source")
     if any(not isinstance(rows, list) for rows in candidates.values()):
         raise ValueError("candidate rows must be lists")
+    source_uids = {item.item_id for item in load_items(EXTRACTION_SOURCES["source_items"])}
+    if set(candidates) != source_uids:
+        raise ValueError("candidate item set is not an exact bijection to the pinned source items")
     return candidates
 
 
-def _run_pair() -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def _retention_report(
+    ledger: Mapping[str, Any], decision_slots: Mapping[str, str | None]
+) -> dict[str, bool]:
+    ledger_cases = {entry["request_uid"]: entry for entry in ledger["cases"]}
+    missing = set(ledger_cases) - set(decision_slots)
+    if missing:
+        raise ValueError("retention ledger contains request uids absent from pair decisions")
+    transitioned = {uid for item in ledger["transitions"] for uid in item["uids"]}
+    retained = [
+        uid
+        for uid, row in ledger_cases.items()
+        if row["initial_state"] == "must_retain_correct" and uid not in transitioned
+    ]
+    retained_correct = sum(decision_slots[uid] == ledger_cases[uid]["hit_slot"] for uid in retained)
+    approved = [
+        uid for uid, row in ledger_cases.items() if row["initial_state"] == "approved_remap"
+    ] + sorted(transitioned)
+    approved_eliminated = all(decision_slots[uid] != ledger_cases[uid]["hit_slot"] for uid in approved)
+    return {
+        "pass": retained_correct >= len(retained) - 2,
+        "approved_remap_eliminated": approved_eliminated,
+    }
+
+
+def _resolve_pair_goldset() -> tuple[
+    dict[str, Any], dict[tuple[str, str], Any], dict[tuple[str, str], tuple[str, ...]]
+]:
     goldset = _load_pair_goldset()
     engine = ResolverEngine()
     budget = RunBudget(sum(len(case["facts"]) for case in goldset["cases"]))
@@ -82,6 +121,11 @@ def _run_pair() -> tuple[dict[str, Any], list[dict[str, Any]]]:
             choice_sets[(case["case_id"], fact["fact_id"])] = assemble_blocking(request, engine.registry, compute_risk_evidence(request, engine.registry)).receipt.choice_set
             if decision.action in {"BIND", "ADD"}:
                 existing.append(ExistingSlot(decision.slot_id or "", fact["date"]))
+    return goldset, decisions, choice_sets
+
+
+def _run_pair() -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    goldset, decisions, choice_sets = _resolve_pair_goldset()
     classes: Counter[str] = Counter()
     negative_sets: list[tuple[set[str], set[str]]] = []
     det_methods = {"exact", "alias"}
@@ -108,20 +152,20 @@ def _run_pair() -> tuple[dict[str, Any], list[dict[str, Any]]]:
             if pair.get("label") != "supersede":
                 negative_sets.append((set(choice_sets[first_key]), set(choice_sets[second_key])))
     ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
-    ledger_cases = {entry["request_uid"]: entry for entry in ledger["cases"]}
-    transitioned = {uid for item in ledger["transitions"] for uid in item["uids"]}
-    retained = [uid for uid, row in ledger_cases.items() if row["initial_state"] == "must_retain_correct" and uid not in transitioned]
-    retained_correct = sum(decisions[tuple(uid.split("/", 1))].slot_id == ledger_cases[uid]["hit_slot"] for uid in retained)
-    approved = [uid for uid, row in ledger_cases.items() if row["initial_state"] == "approved_remap"] + sorted(transitioned)
-    approved_eliminated = all(decisions[tuple(uid.split("/", 1))].slot_id != ledger_cases[uid]["hit_slot"] for uid in approved)
+    retention = _retention_report(
+        ledger,
+        {
+            f"{case_id}/{fact_id}": decision.slot_id
+            for (case_id, fact_id), decision in decisions.items()
+        },
+    )
     pool_sizes = Counter(len(pool) for pool in choice_sets.values())
     overlaps = sum(bool(left & right) for left, right in negative_sets)
     return {
         "pair_classification": dict(sorted(classes.items())),
         "det": {
             "method_counts": dict(sorted(Counter(decision.method for _, decision in det_hits).items())),
-            "wrong_bind_uids": [],
-            "retention": {"pass": retained_correct >= len(retained) - 2, "approved_remap_eliminated": approved_eliminated},
+            "retention": retention,
         },
         "blocking_v1": {
             "negative_choice_set_overlap": {"numerator": overlaps, "denominator": len(negative_sets)},
@@ -141,11 +185,13 @@ def main(argv: list[str] | None = None) -> int:
         _load_candidates(args.candidates)
     report, _ = _run_pair()
     unresolved = report["pair_classification"].get("unresolved_semantic", 0) > 0
+    retention = report["det"]["retention"]
+    passed = not unresolved and retention["pass"] and retention["approved_remap_eliminated"]
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     out = OUT_DIR / "resolver_blocking_diag_v2a.json"
     out.write_text(json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
-    print(json.dumps({"output": str(out), "pass": not unresolved}, separators=(",", ":")))
-    return 1 if unresolved else 0
+    print(json.dumps({"output": str(out), "pass": passed}, separators=(",", ":")))
+    return 0 if passed else 1
 
 
 if __name__ == "__main__":

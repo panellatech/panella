@@ -5,16 +5,19 @@ import json
 from pathlib import Path
 
 import yaml
+import pytest
 
+from eval.goldsets import resolver_blocking_diag as diag
 from panella.resolver import ResolveRequest, ResolverContext, ResolverEngine, RunBudget
-from panella.resolver.registry import canonical_blocking_terms_hash, canonical_governance_hash, validate_alias_governance
-from panella.resolver.registry import default_taxonomy_path, load_registry
+from panella.resolver.registry import canonical_blocking_terms_hash, canonical_governance_hash, canonical_registry_content_hash, validate_alias_governance
+from panella.resolver.registry import default_registry_path, default_taxonomy_path, load_registry
 
 
 ROOT = Path(__file__).resolve().parents[2]
 LEDGER = ROOT / "tests/resolver/fixtures/retention_ledger_v1.json"
 GOVERNANCE = ROOT / "panella/resolver/alias_governance.yaml"
 REVOCATION_FIXTURE = ROOT / "tests/resolver/fixtures/alias_revocation_miss.json"
+MAIN_REGISTRY_FIXTURE = ROOT / "tests/resolver/fixtures/slot_registry_main_v1.yaml"
 BASELINE_REGISTRY_HASH = "f6d44f272dd092a48c9078d8a7f442fa7b11fe350fb4506684bbbfabd2009a84"
 VERDICT = "1415ec1c0650f53c2a07a3974bc16048396aead82e84754f42228c14b59328aa"
 LAPTOP_VERDICT = "766b5f033b497a558a4b122fba80485b18c0feb0a9ba3926bc086b2fb6f4870e"
@@ -67,13 +70,18 @@ def test_governed_transitions_meet_c1_e3_conditions() -> None:
     assert observed == expected
 
 
-def test_laptop_alias_revocation_fixture_is_a_deterministic_miss() -> None:
+@pytest.mark.parametrize(
+    "case",
+    json.loads(REVOCATION_FIXTURE.read_text(encoding="utf-8"))["cases"],
+    ids=lambda case: case["raw_domain"],
+)
+def test_alias_revocation_fixture_is_a_deterministic_miss(case: dict[str, str]) -> None:
     fixture = json.loads(REVOCATION_FIXTURE.read_text(encoding="utf-8"))
-    laptop = {"kind": "fact", "raw_domain": "laptop", "expected_method": "none"}
-    assert laptop in fixture["cases"]
+    assert case in fixture["cases"]
+    assert case["expected_method"] == "none"
 
     decision = ResolverEngine().resolve(
-        ResolveRequest("alias-revocation/laptop", laptop["kind"], laptop["raw_domain"], "", ""),
+        ResolveRequest(f"alias-revocation/{case['raw_domain']}", case["kind"], case["raw_domain"], "", ""),
         ResolverContext(()),
         RunBudget(1),
     )
@@ -100,28 +108,15 @@ def test_governance_records_laptop_revocation_and_domain_refinements() -> None:
     }]
     domain_ops = [
         operation for operation in governance["ops"]
-        if operation["op"].endswith("_domain")
+        if operation["op"] == "add_domain"
+        and operation["surface"] in {"hardware_accessory", "artistic_pastime", "streaming_subscription"}
     ]
     assert domain_ops == [
-        {
-            "op": "remove_domain",
-            "surface": "device_accessory",
-            "from_slot": "preference:device_accessory",
-            "rationale": "The broad device surface is retired in favour of a hardware-specific preference surface.",
-            "reason": "retirement",
-        },
         {
             "op": "add_domain",
             "surface": "hardware_accessory",
             "to_slot": "preference:hardware_accessory",
             "rationale": "The hardware-specific preference surface keeps accessories distinct from general devices.",
-        },
-        {
-            "op": "remove_domain",
-            "surface": "creative_hobby",
-            "from_slot": "preference:creative_hobby",
-            "rationale": "The generic hobby surface is retired in favour of an artistic-pastime preference surface.",
-            "reason": "retirement",
         },
         {
             "op": "add_domain",
@@ -130,20 +125,22 @@ def test_governance_records_laptop_revocation_and_domain_refinements() -> None:
             "rationale": "The artistic-pastime surface preserves the creative leisure preference without generic hobby routing.",
         },
         {
-            "op": "remove_domain",
-            "surface": "streaming_platform",
-            "from_slot": "preference:streaming_platform",
-            "rationale": "The broad platform surface is retired in favour of a subscription-specific media preference surface.",
-            "reason": "retirement",
-        },
-        {
             "op": "add_domain",
             "surface": "streaming_subscription",
             "to_slot": "preference:streaming_subscription",
             "rationale": "The subscription-specific surface preserves the streaming preference without generic platform routing.",
         },
     ]
-    assert len(governance["ops"]) == 11
+    assert len(governance["ops"]) == 52
+
+
+def test_governance_reconciles_real_main_baseline_to_current_registry() -> None:
+    governance = yaml.safe_load(GOVERNANCE.read_text(encoding="utf-8"))
+    baseline = yaml.safe_load(MAIN_REGISTRY_FIXTURE.read_text(encoding="utf-8"))
+    current = yaml.safe_load(default_registry_path().read_text(encoding="utf-8"))
+    assert canonical_registry_content_hash(baseline) == BASELINE_REGISTRY_HASH
+    assert governance["baseline_registry_hash"] == BASELINE_REGISTRY_HASH
+    validate_alias_governance(governance, baseline_document=baseline, current_document=current)
 
 
 def test_governance_reference_and_blocking_term_vectors() -> None:
@@ -156,6 +153,8 @@ def test_governance_reference_and_blocking_term_vectors() -> None:
     }
     assert canonical_governance_hash(reference) == "bbd75b76e781a456f133bb38c822a8db2afcb47fc77a404bc793497472f78697"
     assert canonical_blocking_terms_hash(["netflix", "hulu", "spotify", "stream"]) == "1435eba3cb5eb28a2a93f0e5a29fa1e24e92bf518cff70c025256a6d304e7c12"
+    governance = yaml.safe_load(GOVERNANCE.read_text(encoding="utf-8"))
+    assert canonical_governance_hash(governance) == "9bcc6819ff41195bf3f6e917603f4fd745c95ead003f5ef7e2308592c2ccf9cf"
 
 
 def test_governance_rejects_frozen_failure_vectors(tmp_path: Path) -> None:
@@ -188,6 +187,35 @@ def test_governance_reconciles_alias_and_domain_projection() -> None:
         ],
     }
     validate_alias_governance(document, baseline_document=baseline, current_document=current)
+
+
+def test_pair_retention_uses_real_decisions_and_has_complete_ledger_keyspace() -> None:
+    ledger = _ledger()
+    _, decisions, _ = diag._resolve_pair_goldset()
+    decision_slots = {
+        f"{case_id}/{fact_id}": decision.slot_id
+        for (case_id, fact_id), decision in decisions.items()
+    }
+    assert {case["request_uid"] for case in ledger["cases"]} <= set(decision_slots)
+    assert diag._retention_report(ledger, decision_slots) == {
+        "pass": True,
+        "approved_remap_eliminated": True,
+    }
+
+
+def test_pair_retention_excludes_transitioned_uids_from_retained_budget() -> None:
+    ledger = {
+        "cases": [
+            {"request_uid": "u1", "initial_state": "must_retain_correct", "hit_slot": "s1"},
+            {"request_uid": "u2", "initial_state": "must_retain_correct", "hit_slot": "s2"},
+            {"request_uid": "u3", "initial_state": "must_retain_correct", "hit_slot": "s3"},
+            {"request_uid": "u4", "initial_state": "must_retain_correct", "hit_slot": "s4"},
+        ],
+        "transitions": [{"uids": ["u4"]}],
+    }
+    decision_slots = {"u1": "s1", "u2": "wrong", "u3": "wrong", "u4": "wrong"}
+    assert diag._retention_report(ledger, decision_slots)["pass"] is True
+    assert 1 < 4 - 2  # Counting transitioned u4 would make the same retained-loss budget fail.
 
 
 def test_each_taxonomy_domain_has_a_registry_fixture_slot() -> None:

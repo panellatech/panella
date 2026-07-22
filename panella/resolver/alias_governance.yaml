@@ -1,4 +1,4 @@
-baseline_registry_hash: "d7d00f7871459f5dd6472fe4a883d12d91d631e102804c399dcc2f8d0308f95e"
+baseline_registry_hash: "f6d44f272dd092a48c9078d8a7f442fa7b11fe350fb4506684bbbfabd2009a84"
 ops:
   - op: remove_alias
     surface: username
@@ -28,29 +28,190 @@ ops:
     from_slot: preference:contact_preference
     rationale: "The blocked pronoun form is retired in favour of a canonical specific surface."
     reason: retirement
-  - op: remove_domain
-    surface: device_accessory
-    from_slot: preference:device_accessory
-    rationale: "The broad device surface is retired in favour of a hardware-specific preference surface."
-    reason: retirement
+  - op: add_domain
+    surface: birth_date
+    to_slot: fact:birth_date
+    rationale: "Adds the dedicated birth-date fact introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: birthplace
+    to_slot: fact:birthplace
+    rationale: "Adds the dedicated birthplace fact introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: book_format
+    to_slot: preference:book_format
+    rationale: "Adds the dedicated book-format preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: celebration_ritual
+    to_slot: preference:celebration_ritual
+    rationale: "Adds the dedicated celebration-ritual preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: cloud_storage
+    to_slot: preference:cloud_storage
+    rationale: "Adds the dedicated cloud-storage preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: communication_boundary
+    to_slot: constraint:communication_boundary
+    rationale: "Adds the dedicated communication-boundary constraint introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: credential_vault
+    to_slot: preference:credential_vault
+    rationale: "Adds the dedicated credential-vault preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: deadline_preference
+    to_slot: constraint:deadline_preference
+    rationale: "Adds the dedicated deadline-preference constraint introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: driver_license
+    to_slot: fact:driver_license
+    rationale: "Adds the dedicated driver-license fact introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: employment_status
+    to_slot: fact:employment_status
+    rationale: "Adds the dedicated employment-status fact introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: exercise_type
+    to_slot: preference:exercise_type
+    rationale: "Adds the dedicated exercise-type preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: family_member
+    to_slot: fact:family_member
+    rationale: "Adds the dedicated family-member fact introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: gaming_platform
+    to_slot: preference:gaming_platform
+    rationale: "Adds the dedicated gaming-platform preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: gift_affinity
+    to_slot: preference:gift_affinity
+    rationale: "Adds the dedicated gift-affinity preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: health_goal
+    to_slot: preference:health_goal
+    rationale: "Adds the dedicated health-goal preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: healthcare_provider
+    to_slot: fact:healthcare_provider
+    rationale: "Adds the dedicated healthcare-provider fact introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: home_environment
+    to_slot: preference:home_environment
+    rationale: "Adds the dedicated home-environment preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: household_size
+    to_slot: fact:household_size
+    rationale: "Adds the dedicated household-size fact introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: itinerary_protection
+    to_slot: constraint:itinerary_protection
+    rationale: "Adds the dedicated itinerary-protection constraint introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: language
+    to_slot: preference:language
+    rationale: "Adds the dedicated language preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: learning_goal
+    to_slot: preference:learning_goal
+    rationale: "Adds the dedicated learning-goal preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: live_event
+    to_slot: preference:live_event
+    rationale: "Adds the dedicated live-event preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: meal_timing
+    to_slot: preference:meal_timing
+    rationale: "Adds the dedicated meal-timing preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: movie_genre
+    to_slot: preference:movie_genre
+    rationale: "Adds the dedicated movie-genre preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: notetaking_app
+    to_slot: preference:notetaking_app
+    rationale: "Adds the dedicated notetaking-app preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: notification_modality
+    to_slot: preference:notification_modality
+    rationale: "Adds the dedicated notification-modality preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: operating_system
+    to_slot: fact:operating_system
+    rationale: "Adds the dedicated operating-system fact introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: outdoor_activity
+    to_slot: preference:outdoor_activity
+    rationale: "Adds the dedicated outdoor-activity preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: pet_activity
+    to_slot: preference:pet_activity
+    rationale: "Adds the dedicated pet-activity preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: pet_breed
+    to_slot: fact:pet_breed
+    rationale: "Adds the dedicated pet-breed fact introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: pet_restriction
+    to_slot: constraint:pet_restriction
+    rationale: "Adds the dedicated pet-restriction constraint introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: podcast_genre
+    to_slot: preference:podcast_genre
+    rationale: "Adds the dedicated podcast-genre preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: privacy_disclosure
+    to_slot: constraint:privacy_disclosure
+    rationale: "Adds the dedicated privacy-disclosure constraint introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: privacy_preference
+    to_slot: constraint:privacy_preference
+    rationale: "Adds the dedicated privacy-preference constraint introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: reading_genre
+    to_slot: preference:reading_genre
+    rationale: "Adds the dedicated reading-genre preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: reminder_modality
+    to_slot: preference:reminder_modality
+    rationale: "Adds the dedicated reminder-modality preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: ride_service
+    to_slot: preference:ride_service
+    rationale: "Adds the dedicated ride-service preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: saving_goal
+    to_slot: preference:saving_goal
+    rationale: "Adds the dedicated saving-goal preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: sport_team
+    to_slot: preference:sport_team
+    rationale: "Adds the dedicated sport-team preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: subscription_budget
+    to_slot: preference:subscription_budget
+    rationale: "Adds the dedicated subscription-budget preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: television_genre
+    to_slot: preference:television_genre
+    rationale: "Adds the dedicated television-genre preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: travel_destination
+    to_slot: preference:travel_destination
+    rationale: "Adds the dedicated travel-destination preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: video_conference
+    to_slot: preference:video_conference
+    rationale: "Adds the dedicated video-conference preference introduced by the K1 registry expansion."
+  - op: add_domain
+    surface: weekday_routine
+    to_slot: preference:weekday_routine
+    rationale: "Adds the dedicated weekday-routine preference introduced by the K1 registry expansion."
   - op: add_domain
     surface: hardware_accessory
     to_slot: preference:hardware_accessory
     rationale: "The hardware-specific preference surface keeps accessories distinct from general devices."
-  - op: remove_domain
-    surface: creative_hobby
-    from_slot: preference:creative_hobby
-    rationale: "The generic hobby surface is retired in favour of an artistic-pastime preference surface."
-    reason: retirement
   - op: add_domain
     surface: artistic_pastime
     to_slot: preference:artistic_pastime
     rationale: "The artistic-pastime surface preserves the creative leisure preference without generic hobby routing."
-  - op: remove_domain
-    surface: streaming_platform
-    from_slot: preference:streaming_platform
-    rationale: "The broad platform surface is retired in favour of a subscription-specific media preference surface."
-    reason: retirement
   - op: add_domain
     surface: streaming_subscription
     to_slot: preference:streaming_subscription

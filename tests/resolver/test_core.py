@@ -415,6 +415,7 @@ def test_normalize_reference_vectors(vector: tuple[str, str]) -> None:
         "high_risk_without_lexicon",
         "reserved_alias",
         "below_minimum_slots",
+        "below_taxonomy_domain_minimum",
         "id_does_not_match_kind_domain",
         "noncanonical_domain",
         "noncanonical_alias",
@@ -445,6 +446,9 @@ def test_registry_fail_matrix(tmp_path: Path, mutation: str) -> None:
             base["slots"][0]["aliases"].append("xunres_bad")
         case "below_minimum_slots":
             base["slots"] = base["slots"][:49]
+        case "below_taxonomy_domain_minimum":
+            source = next(slot for slot in base["slots"] if slot["taxonomy_domain"] == "identity")
+            source["taxonomy_domain"] = "health"
         case "id_does_not_match_kind_domain":
             base["slots"][0]["id"] = "fact:not_legal_name"
         case "noncanonical_domain":
@@ -470,7 +474,8 @@ def test_registry_fail_matrix(tmp_path: Path, mutation: str) -> None:
         case _:
             raise ValueError(f"unknown registry mutation: {mutation}")
 
-    with pytest.raises(ValueError):
+    expected = "taxonomy domain identity has fewer" if mutation == "below_taxonomy_domain_minimum" else None
+    with pytest.raises(ValueError, match=expected):
         load_registry(write_registry(tmp_path, base), expected_hash=None)
 
 
@@ -479,6 +484,15 @@ def test_registry_pin_mismatch_still_raises(tmp_path: Path) -> None:
     pin_mutation["version"] = "3"
     with pytest.raises(ValueError, match="content hash"):
         load_registry(write_registry(tmp_path, pin_mutation))
+
+
+def test_taxonomy_pin_mismatch_still_raises(tmp_path: Path) -> None:
+    taxonomy = yaml.safe_load(default_taxonomy_path().read_text(encoding="utf-8"))
+    taxonomy["version"] = "drifted"
+    taxonomy_path = tmp_path / "taxonomy.yaml"
+    taxonomy_path.write_text(yaml.safe_dump(taxonomy, sort_keys=False), encoding="utf-8")
+    with pytest.raises(ValueError, match="content hash"):
+        load_registry(default_registry_path(), taxonomy_path=taxonomy_path)
 
 
 def test_injected_registry_integrity_still_raises() -> None:
