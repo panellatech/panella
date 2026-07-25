@@ -100,7 +100,7 @@ jobs:
           assert data.get("bomFormat") == "CycloneDX", data.get("bomFormat")
           print(f"sbom=pass path={path} components={len(data.get('components', []))}")
           PY
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: panella-cyclonedx-sbom
           path: sbom/panella.cdx.json
