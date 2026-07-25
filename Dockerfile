@@ -11,7 +11,7 @@
 # `app` is last so a bare `docker build .` produces the facade image.
 
 # --------------------------------------------------------------------------------------------
-FROM python:3.12-slim AS store
+FROM python:3.14-slim AS store
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -129,7 +129,7 @@ RUN pip uninstall -y sentence-transformers
 USER 10001
 
 # --------------------------------------------------------------------------------------------
-FROM python:3.12-slim AS app
+FROM python:3.14-slim AS app
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
