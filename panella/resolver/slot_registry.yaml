@@ -3,7 +3,7 @@ slots:
   - id: "fact:legal_name"
     kind: fact
     domain: legal_name
-    description: "legal or full name of the user"
+    description: "Records the full legal name the user provides for reference."
     high_risk: false
     taxonomy_domain: identity
     blocking_terms: [identity]
@@ -11,7 +11,7 @@ slots:
   - id: "fact:chosen_name"
     kind: fact
     domain: chosen_name
-    description: "preferred everyday name of the user"
+    description: "Records the everyday name the user chooses for reference."
     high_risk: false
     taxonomy_domain: identity
     blocking_terms: [everyday]
@@ -19,7 +19,7 @@ slots:
   - id: "fact:pronoun"
     kind: fact
     domain: pronoun
-    description: "pronouns the user uses"
+    description: "Records pronoun forms the user uses for reference."
     high_risk: false
     taxonomy_domain: identity
     blocking_terms: [language]
@@ -27,7 +27,7 @@ slots:
   - id: "fact:home_city"
     kind: fact
     domain: home_city
-    description: "city the user calls home"
+    description: "Records the city the user calls home for reference."
     high_risk: false
     taxonomy_domain: household
     blocking_terms: [municipality]
@@ -35,7 +35,7 @@ slots:
   - id: "fact:medical_allergy"
     kind: fact
     domain: medical_allergy
-    description: "medical allergy the user has"
+    description: "Records a medical allergy reported by the user for reference."
     high_risk: true
     taxonomy_domain: health
     blocking_terms: [reaction]
@@ -45,7 +45,7 @@ slots:
   - id: "fact:medical_condition"
     kind: fact
     domain: medical_condition
-    description: "medical condition or diagnosis"
+    description: "Records a medical condition or diagnosis for profile reference."
     high_risk: true
     taxonomy_domain: health
     blocking_terms: [illness]
@@ -55,7 +55,7 @@ slots:
   - id: "fact:medication"
     kind: fact
     domain: medication
-    description: "medication the user takes"
+    description: "Records medication the user takes for profile reference."
     high_risk: true
     taxonomy_domain: health
     blocking_terms: [treatment]
@@ -73,7 +73,7 @@ slots:
   - id: "constraint:dietary_restriction"
     kind: constraint
     domain: dietary_restriction
-    description: "non-medical dietary restriction"
+    description: "Records a non-medical dietary restriction for profile reference."
     high_risk: false
     taxonomy_domain: health
     blocking_terms: [ingredient]
@@ -81,7 +81,7 @@ slots:
   - id: "fact:home_address"
     kind: fact
     domain: home_address
-    description: "home street address"
+    description: "Records the street address of a home for profile reference."
     high_risk: true
     taxonomy_domain: household
     blocking_terms: [domicile]
@@ -91,7 +91,7 @@ slots:
   - id: "fact:household_member"
     kind: fact
     domain: household_member
-    description: "person in the user's household"
+    description: "Identifies a person in a household associated with the user profile."
     high_risk: false
     taxonomy_domain: household
     blocking_terms: [occupant]
@@ -99,7 +99,7 @@ slots:
   - id: "fact:home_type"
     kind: fact
     domain: home_type
-    description: "type of home or residence"
+    description: "Identifies the type of home or residence in this profile record."
     high_risk: false
     taxonomy_domain: household
     blocking_terms: [dwelling]
@@ -107,7 +107,7 @@ slots:
   - id: "preference:home_amenity"
     kind: preference
     domain: home_amenity
-    description: "preferred home amenity or feature"
+    description: "Records a preferred home amenity or feature for this profile."
     high_risk: false
     taxonomy_domain: household
     blocking_terms: [comfort]
@@ -115,7 +115,7 @@ slots:
   - id: "fact:employer"
     kind: fact
     domain: employer
-    description: "current employer or workplace organization"
+    description: "Records the employer organization or workplace in this profile."
     high_risk: false
     taxonomy_domain: work
     blocking_terms: [organization]
@@ -123,7 +123,7 @@ slots:
   - id: "fact:job_title"
     kind: fact
     domain: job_title
-    description: "current job title or role"
+    description: "Records the current job title or role for profile reference."
     high_risk: false
     taxonomy_domain: work
     blocking_terms: [occupation]
@@ -131,7 +131,7 @@ slots:
   - id: "fact:work_location"
     kind: fact
     domain: work_location
-    description: "usual work location"
+    description: "Identifies the usual work location selected for this profile record."
     high_risk: false
     taxonomy_domain: work
     blocking_terms: [worksite]
@@ -139,7 +139,7 @@ slots:
   - id: "preference:work_style"
     kind: preference
     domain: work_style
-    description: "preferred way of working"
+    description: "Records the preferred way of working for this profile reference."
     high_risk: false
     taxonomy_domain: work
     blocking_terms: [workflow]
@@ -147,7 +147,7 @@ slots:
   - id: "preference:career_goal"
     kind: preference
     domain: career_goal
-    description: "career goal or professional aspiration"
+    description: "Records a career goal or professional aspiration for this profile."
     high_risk: false
     taxonomy_domain: work
     blocking_terms: [aspiration]
@@ -155,7 +155,7 @@ slots:
   - id: "fact:vehicle"
     kind: fact
     domain: vehicle
-    description: "primary vehicle used by the user"
+    description: "Records the primary owned vehicle used by the user for reference."
     high_risk: false
     taxonomy_domain: transport
     blocking_terms: [automobile]
@@ -163,7 +163,7 @@ slots:
   - id: "preference:commute_mode"
     kind: preference
     domain: commute_mode
-    description: "preferred commuting mode"
+    description: "Records a preferred mode for commuting in this profile."
     high_risk: false
     taxonomy_domain: transport
     blocking_terms: [journey]
@@ -171,7 +171,7 @@ slots:
   - id: "preference:travel_class"
     kind: preference
     domain: travel_class
-    description: "preferred travel or flight class"
+    description: "Records the preferred travel cabin class or flight class for reference."
     high_risk: false
     taxonomy_domain: transport
     blocking_terms: [airfare]
@@ -179,7 +179,7 @@ slots:
   - id: "preference:parking_preference"
     kind: preference
     domain: parking_preference
-    description: "parking preference or requirement"
+    description: "Records a parking preference or requirement for this profile."
     high_risk: false
     taxonomy_domain: transport
     blocking_terms: [curbside]
@@ -187,7 +187,7 @@ slots:
   - id: "fact:phone_model"
     kind: fact
     domain: phone_model
-    description: "primary phone model"
+    description: "Identifies the primary phone model selected for this profile record."
     high_risk: false
     taxonomy_domain: devices
     blocking_terms: [handset]
@@ -195,7 +195,7 @@ slots:
   - id: "fact:computer_model"
     kind: fact
     domain: computer_model
-    description: "primary computer model"
+    description: "Identifies the primary computer model selected for this profile record."
     high_risk: false
     taxonomy_domain: devices
     blocking_terms: [machine]
@@ -203,7 +203,7 @@ slots:
   - id: "preference:code_editor"
     kind: preference
     domain: code_editor
-    description: "preferred code editor"
+    description: "Identifies the preferred code editor selected for this profile record."
     high_risk: false
     taxonomy_domain: devices
     blocking_terms: [programming]
@@ -211,7 +211,7 @@ slots:
   - id: "preference:browser"
     kind: preference
     domain: browser
-    description: "preferred web browser"
+    description: "Records the preferred web browser selected for this profile."
     high_risk: false
     taxonomy_domain: devices
     blocking_terms: [internet]
@@ -219,7 +219,7 @@ slots:
   - id: "fact:email"
     kind: fact
     domain: email
-    description: "primary email account"
+    description: "Records the primary email account for this profile reference."
     high_risk: true
     taxonomy_domain: digital_services
     blocking_terms: [mailbox]
@@ -229,7 +229,7 @@ slots:
   - id: "preference:email_service"
     kind: preference
     domain: email_service
-    description: "preferred email service"
+    description: "Identifies the preferred email service selected for this profile record."
     high_risk: false
     taxonomy_domain: digital_services
     blocking_terms: [correspondence]
@@ -237,7 +237,7 @@ slots:
   - id: "fact:messaging_handle"
     kind: fact
     domain: messaging_handle
-    description: "messaging account handle"
+    description: "Records the messaging account handle for this profile reference."
     high_risk: true
     taxonomy_domain: digital_services
     blocking_terms: [identifier]
@@ -247,7 +247,7 @@ slots:
   - id: "preference:messaging_service"
     kind: preference
     domain: messaging_service
-    description: "preferred messaging service"
+    description: "Identifies the preferred messaging service selected for this profile record."
     high_risk: false
     taxonomy_domain: digital_services
     blocking_terms: [conversation]
@@ -255,7 +255,7 @@ slots:
   - id: "fact:morning_routine"
     kind: fact
     domain: morning_routine
-    description: "usual morning routine"
+    description: "Identifies the usual morning routine selected for this profile record."
     high_risk: false
     taxonomy_domain: schedule
     blocking_terms: [sunrise]
@@ -263,7 +263,7 @@ slots:
   - id: "fact:sleep_schedule"
     kind: fact
     domain: sleep_schedule
-    description: "usual sleep schedule"
+    description: "Identifies the usual sleep schedule selected for this profile record."
     high_risk: false
     taxonomy_domain: schedule
     blocking_terms: [rest]
@@ -271,7 +271,7 @@ slots:
   - id: "preference:meeting_time"
     kind: preference
     domain: meeting_time
-    description: "preferred meeting time"
+    description: "Identifies the preferred meeting time selected for this profile record."
     high_risk: false
     taxonomy_domain: schedule
     blocking_terms: [calendar]
@@ -279,7 +279,7 @@ slots:
   - id: "constraint:availability_window"
     kind: constraint
     domain: availability_window
-    description: "time window when the user is available"
+    description: "Records the time when the user is available for this profile."
     high_risk: false
     taxonomy_domain: schedule
     blocking_terms: [timespan]
@@ -287,7 +287,7 @@ slots:
   - id: "fact:partner_name"
     kind: fact
     domain: partner_name
-    description: "name of the user's partner"
+    description: "Records the partner name associated with the user profile for reference."
     high_risk: true
     taxonomy_domain: social
     blocking_terms: [relationship]
@@ -297,7 +297,7 @@ slots:
   - id: "fact:relationship_status"
     kind: fact
     domain: relationship_status
-    description: "relationship status"
+    description: "Identifies the relationship status selected for this profile record."
     high_risk: true
     taxonomy_domain: social
     blocking_terms: [romance]
@@ -307,7 +307,7 @@ slots:
   - id: "fact:social_circle"
     kind: fact
     domain: social_circle
-    description: "social circle or friend group"
+    description: "Records a social circle or friend group for this profile."
     high_risk: false
     taxonomy_domain: social
     blocking_terms: [community]
@@ -315,7 +315,7 @@ slots:
   - id: "preference:social_activity"
     kind: preference
     domain: social_activity
-    description: "preferred social activity"
+    description: "Identifies the preferred social activity selected for this profile record."
     high_risk: false
     taxonomy_domain: social
     blocking_terms: [gathering]
@@ -323,7 +323,7 @@ slots:
   - id: "fact:pet_name"
     kind: fact
     domain: pet_name
-    description: "name of a pet"
+    description: "Records the name of a pet for this profile reference."
     high_risk: false
     taxonomy_domain: pets
     blocking_terms: [companion]
@@ -331,7 +331,7 @@ slots:
   - id: "fact:pet_type"
     kind: fact
     domain: pet_type
-    description: "type or species of pet"
+    description: "Records the type or species of a pet for this profile."
     high_risk: false
     taxonomy_domain: pets
     blocking_terms: [taxonomy]
@@ -339,7 +339,7 @@ slots:
   - id: "preference:pet_care"
     kind: preference
     domain: pet_care
-    description: "preferred pet care routine"
+    description: "Records the preferred pet care routine for this profile."
     high_risk: false
     taxonomy_domain: pets
     blocking_terms: [nurture]
@@ -347,7 +347,7 @@ slots:
   - id: "preference:cuisine"
     kind: preference
     domain: cuisine
-    description: "favorite cuisine or food style"
+    description: "Records a favorite cuisine or food style for this profile."
     high_risk: false
     taxonomy_domain: hobbies_lifestyle
     blocking_terms: [culinary]
@@ -355,7 +355,7 @@ slots:
   - id: "preference:music_genre"
     kind: preference
     domain: music_genre
-    description: "preferred music genre"
+    description: "Identifies the preferred music genre selected for this profile record."
     high_risk: false
     taxonomy_domain: hobbies_lifestyle
     blocking_terms: [listening]
@@ -363,7 +363,7 @@ slots:
   - id: "preference:fitness_goal"
     kind: preference
     domain: fitness_goal
-    description: "fitness goal or exercise preference"
+    description: "Records a fitness goal or exercise preference for this profile."
     high_risk: false
     taxonomy_domain: hobbies_lifestyle
     blocking_terms: [training]
@@ -371,7 +371,7 @@ slots:
   - id: "preference:wellness_routine"
     kind: preference
     domain: wellness_routine
-    description: "wellness routine or self care practice"
+    description: "Records a wellness routine or self-care practice for this profile."
     high_risk: false
     taxonomy_domain: hobbies_lifestyle
     blocking_terms: [mindfulness]
@@ -379,7 +379,7 @@ slots:
   - id: "fact:income_range"
     kind: fact
     domain: income_range
-    description: "income range of the user"
+    description: "Records the income range of the user for this profile."
     high_risk: true
     taxonomy_domain: finance
     blocking_terms: [compensation]
@@ -389,7 +389,7 @@ slots:
   - id: "preference:budget_preference"
     kind: preference
     domain: budget_preference
-    description: "budget preference for purchases"
+    description: "Records a budget preference for each purchase in this profile."
     high_risk: false
     taxonomy_domain: finance
     blocking_terms: [affordability]
@@ -397,7 +397,7 @@ slots:
   - id: "fact:payment_method"
     kind: fact
     domain: payment_method
-    description: "usual payment method"
+    description: "Identifies the usual payment method selected for this profile record."
     high_risk: true
     taxonomy_domain: finance
     blocking_terms: [transaction]
@@ -407,7 +407,7 @@ slots:
   - id: "preference:shopping_style"
     kind: preference
     domain: shopping_style
-    description: "preferred shopping style"
+    description: "Identifies the preferred shopping style selected for this profile record."
     high_risk: false
     taxonomy_domain: finance
     blocking_terms: [purchasing]
@@ -415,7 +415,7 @@ slots:
   - id: "constraint:emergency_contact"
     kind: constraint
     domain: emergency_contact
-    description: "emergency contact information"
+    description: "Records emergency contact information for this profile reference."
     high_risk: true
     taxonomy_domain: safety_constraints
     blocking_terms: [sos]
@@ -425,7 +425,7 @@ slots:
   - id: "preference:contact_preference"
     kind: preference
     domain: contact_preference
-    description: "preferred contact method"
+    description: "Records the preferred contact method for this profile reference."
     high_risk: false
     taxonomy_domain: safety_constraints
     blocking_terms: [communication]
@@ -433,7 +433,7 @@ slots:
   - id: "constraint:accessibility_need"
     kind: constraint
     domain: accessibility_need
-    description: "accessibility need or accommodation"
+    description: "Records an accessibility need or accommodation for this profile."
     high_risk: true
     taxonomy_domain: safety_constraints
     blocking_terms: [access]
@@ -443,7 +443,7 @@ slots:
   - id: "constraint:safety_boundary"
     kind: constraint
     domain: safety_boundary
-    description: "personal safety boundary or restriction"
+    description: "Records a personal safety boundary or restriction for this profile."
     high_risk: true
     taxonomy_domain: safety_constraints
     blocking_terms: [protection]
@@ -589,7 +589,7 @@ slots:
   - id: "preference:notification_modality"
     kind: preference
     domain: notification_modality
-    description: "alert delivery modality notification affinity"
+    description: "Records alert delivery affinity for the preferred notification modality."
     high_risk: false
     taxonomy_domain: devices
     blocking_terms: [signal]
@@ -613,7 +613,7 @@ slots:
   - id: "preference:credential_vault"
     kind: preference
     domain: credential_vault
-    description: "credential safeguarding vault utility affinity"
+    description: "Records credential safeguarding utility affinity for the preferred vault."
     high_risk: false
     taxonomy_domain: digital_services
     blocking_terms: [secret]
@@ -629,7 +629,7 @@ slots:
   - id: "preference:weekday_routine"
     kind: preference
     domain: weekday_routine
-    description: "weekday sequence chronology routine affinity"
+    description: "Records weekday routine sequence chronology and affinity for this profile."
     high_risk: false
     taxonomy_domain: schedule
     blocking_terms: [commencement]
@@ -645,7 +645,7 @@ slots:
   - id: "preference:reminder_modality"
     kind: preference
     domain: reminder_modality
-    description: "timely prompt delivery reminder modality"
+    description: "Records timely prompt delivery for the preferred reminder modality."
     high_risk: false
     taxonomy_domain: schedule
     blocking_terms: [prompt]
@@ -709,7 +709,7 @@ slots:
   - id: "preference:artistic_pastime"
     kind: preference
     domain: artistic_pastime
-    description: "artistic making leisure affinity"
+    description: "Records artistic pastime affinity for leisure making in this profile."
     high_risk: false
     taxonomy_domain: hobbies_lifestyle
     blocking_terms: [craft]
@@ -749,7 +749,7 @@ slots:
   - id: "constraint:communication_boundary"
     kind: constraint
     domain: communication_boundary
-    description: "incoming communication limitation boundary contact"
+    description: "Records a communication boundary for incoming contact limitation."
     high_risk: false
     taxonomy_domain: safety_constraints
     blocking_terms: [contacting]
@@ -773,7 +773,7 @@ slots:
   - id: "preference:streaming_subscription"
     kind: preference
     domain: streaming_subscription
-    description: "subscription audiovisual catalogue affinity"
+    description: "Records streaming subscription affinity for an audiovisual catalogue."
     high_risk: false
     taxonomy_domain: entertainment_media
     blocking_terms: [viewing]

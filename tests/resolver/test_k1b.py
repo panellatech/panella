@@ -12,7 +12,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from eval.goldsets.resolver_calibration import DEFAULT_PROBES, _load, fake_provider, run
+from eval.goldsets.resolver_calibration import _load, fake_provider, run
 from eval.goldsets import resolver_eval
 from eval.goldsets.resolver_eval import extraction_face, make_gate_evaluator, reduce_item
 from eval.goldsets.synth_calibration_probes import _sweep
@@ -29,11 +29,87 @@ from eval.goldsets.resolver_gate import main as gate_main
 from eval.goldsets.key_correctness_eval import GoldItem
 from eval.goldsets.preference_extraction import PreferenceCandidate
 from panella.resolver.blocking import assemble_blocking
-from panella.resolver.calibrate import dump_manifest, fit_slice, load_manifest, verify
+from panella.resolver.calibrate import build_manifest, dump_manifest, fit_slice, load_manifest, verify
+from panella.resolver.engine import ResolverEngine
 from panella.resolver.fallback import FallbackProvider, render_prompt
+from panella.resolver.normalize import resolver_normalize
 from panella.resolver.registry import load_registry
 from panella.resolver.risk import compute_risk_evidence
-from panella.resolver.types import ResolveRequest, SlotView
+from panella.resolver.types import ResolveRequest, ResolverConfig, SlotView
+
+
+def _live_test_probe_document() -> dict[str, object]:
+    """Build a local probe universe from the live registry and blocking contracts."""
+    registry = load_registry()
+
+    def tokens(value: str) -> set[str]:
+        return set(filter(None, resolver_normalize(value).split("_")))
+
+    def route(slot: object, raw_domain: str, evidence: str) -> object:
+        request = ResolveRequest("candidate", slot.kind, raw_domain, "sample", evidence)
+        return assemble_blocking(request, registry, compute_risk_evidence(request, registry))
+
+    benign_slots = [slot for slot in registry.slots if not slot.high_risk]
+    hard_slots = []
+    for slot in benign_slots:
+        surfaces = tokens(slot.domain)
+        for alias in slot.aliases:
+            surfaces.update(tokens(alias))
+        raw_domain = "route_" + "_".join(sorted(tokens(slot.description) - surfaces))
+        blocked = route(slot, raw_domain, "evidence style context ordinary")
+        if slot.slot_id in blocked.receipt.choice_set and blocked.receipt.slice == "benign":
+            hard_slots.append(slot)
+    soft_slots = [
+        slot
+        for slot in benign_slots
+        if (blocked := route(slot, f"route_{slot.domain}", "evidence style context ordinary"))
+        and slot.slot_id in blocked.receipt.choice_set
+        and blocked.receipt.slice == "benign"
+    ]
+    assert len(hard_slots) >= 1 and len(soft_slots) >= 1
+
+    probes: list[dict[str, object]] = []
+    for index in range(60):
+        hard = index < 40
+        uid = f"local-benign-{index:03d}"
+        evidence = f"evidence style{index % 24} context ordinary {uid}"
+        slot = raw_domain = blocked = None
+        for candidate in hard_slots if hard else soft_slots:
+            if hard:
+                surfaces = tokens(candidate.domain)
+                for alias in candidate.aliases:
+                    surfaces.update(tokens(alias))
+                candidate_domain = "route_" + "_".join(sorted(tokens(candidate.description) - surfaces)) + f"_{index}"
+            else:
+                candidate_domain = f"route_{candidate.domain}_{index}"
+            request = ResolveRequest(uid, candidate.kind, candidate_domain, f"sample-{index}", evidence)
+            candidate_blocked = assemble_blocking(request, registry, compute_risk_evidence(request, registry))
+            if not candidate_blocked.forced_overflow and candidate.slot_id in candidate_blocked.receipt.choice_set and candidate_blocked.receipt.slice == "benign":
+                slot, raw_domain, blocked = candidate, candidate_domain, candidate_blocked
+                break
+        assert slot is not None and raw_domain is not None and blocked is not None
+        probes.append({"probe_uid": uid, "kind": slot.kind, "raw_domain": raw_domain, "value": f"sample-{index}", "evidence_text": evidence, "expected_slot_id": slot.slot_id, "slice": "benign"})
+    high_risk_slots = [slot for slot in registry.slots if slot.high_risk]
+    for index in range(36):
+        slot = high_risk_slots[index % len(high_risk_slots)]
+        uid = f"local-hr-{index:03d}"
+        raw_domain = f"route_{slot.domain}_{index}"
+        domain_tokens = tuple(tokens(slot.domain))
+        risk_token = next(token for token in slot.hr_lexicon if tuple(tokens(token)) != domain_tokens)
+        evidence = f"evidence style{index % 24} context {risk_token} {uid}"
+        request = ResolveRequest(uid, slot.kind, raw_domain, f"sample-{index}", evidence)
+        blocked = assemble_blocking(request, registry, compute_risk_evidence(request, registry))
+        assert not blocked.forced_overflow and slot.slot_id in blocked.receipt.choice_set and blocked.receipt.slice == "hr"
+        probes.append({"probe_uid": uid, "kind": slot.kind, "raw_domain": raw_domain, "value": f"sample-{index}", "evidence_text": evidence, "expected_slot_id": slot.slot_id, "slice": "hr"})
+    return {"version": "test-live", "probes": probes}
+
+
+def _write_live_test_probes(tmp_path: Path) -> tuple[Path, list[dict[str, object]]]:
+    """Materialize a test-local probe universe from live registry/blocking contracts."""
+    path = tmp_path / "live_test_probes.json"
+    document = _live_test_probe_document()
+    path.write_text(json.dumps(document, sort_keys=True, separators=(",", ":")), encoding="utf-8")
+    return path, _load(path)
 
 
 def test_fallback_closed_choice_and_injection_boundary() -> None:
@@ -109,7 +185,7 @@ def test_fit_reference_vectors() -> None:
 
 
 def test_calibration_run_threads_timeout_to_provider(tmp_path: Path) -> None:
-    probes = _load(DEFAULT_PROBES)
+    probe_path, probes = _write_live_test_probes(tmp_path)
     inner = fake_provider(probes)
     seen: set[int] = set()
 
@@ -127,16 +203,16 @@ def test_calibration_run_threads_timeout_to_provider(tmp_path: Path) -> None:
         git_commit="test",
         evidence_path=tmp_path / "evidence.jsonl",
         manifest_path=tmp_path / "manifest.json",
-        probe_path=DEFAULT_PROBES,
+        probe_path=probe_path,
         timeout_ms=7777,
     )
     assert seen == {7777}
 
 
 def test_calibration_fake_run_verifies_and_tamper_fails(tmp_path: Path) -> None:
-    probes = _load(DEFAULT_PROBES)
-    evidence, manifest = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json", probe_path=DEFAULT_PROBES)
-    verify(evidence, manifest)
+    probe_path, probes = _write_live_test_probes(tmp_path)
+    evidence, manifest = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json", probe_path=probe_path)
+    verify(evidence, manifest, probe_path=probe_path)
     lines = evidence.read_text(encoding="utf-8").splitlines()
     lines[0] = lines[0].replace('"raw_confidence":1.0', '"raw_confidence":0.0')
     evidence.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -144,35 +220,40 @@ def test_calibration_fake_run_verifies_and_tamper_fails(tmp_path: Path) -> None:
         verify(evidence, manifest)
 
 
-def test_committed_calibration_probes_declare_the_live_blocking_slice() -> None:
-    registry = load_registry()
-    counts = {"benign": 0, "hr": 0}
-    for probe in _load(DEFAULT_PROBES):
-        request = ResolveRequest(
-            probe["probe_uid"], probe["kind"], probe["raw_domain"], probe["value"], probe["evidence_text"]
-        )
-        routed = assemble_blocking(request, registry, compute_risk_evidence(request, registry))
-        assert probe["slice"] == routed.receipt.slice
-        counts[routed.receipt.slice] += 1
-    assert counts["benign"] >= 60 and counts["hr"] >= 36
+def test_stale_registry_manifest_disables_live_engine() -> None:
+    provider = FallbackProvider(lambda _system, _user: '{"choice":"ABSTAIN","confidence":0}', model_id="stale-registry-test")
+    manifest, manifest_hash = build_manifest(
+        model_id=provider.model_id,
+        prompt_template_hash=provider.prompt_template_hash,
+        fitted_on_evidence_hash="test-evidence",
+        fitted_on_git_commit="test",
+        fitted_on_goldset_hashes=("test-goldset",),
+        slices={"benign": None, "hr": None},
+        registry_hash="0" * 64,
+    )
+    engine = ResolverEngine(
+        ResolverConfig(True, 1000, manifest, manifest_hash, "test-evidence"), provider=provider
+    )
+    assert engine._llm_disabled_reason == "manifest_component_mismatch:registry_hash"
 
 
 def test_calibration_probe_lint_rejects_expected_domain_ngram() -> None:
-    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
-    document["probes"][0]["value"] = "My legal name is Marin Cole"
+    document = _live_test_probe_document()
+    probe = document["probes"][40]
+    probe["value"] = f"My {probe['expected_slot_id'].split(':', 1)[1].replace('_', ' ')} is Marin Cole"
     with pytest.raises(ValueError, match="expected domain token sequence"):
         _sweep(document)
 
 
 def test_calibration_probe_lint_rejects_scaffold_word() -> None:
-    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
+    document = _live_test_probe_document()
     document["probes"][0]["evidence_text"] = "This is a synthetic sentence cal-0001"
     with pytest.raises(ValueError, match="scaffold word"):
         _sweep(document)
 
 
 def test_calibration_probe_lint_rejects_single_template_universe() -> None:
-    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
+    document = _live_test_probe_document()
     registry = load_registry()
     for probe in document["probes"]:
         target = registry.by_id[probe["expected_slot_id"]]
@@ -183,7 +264,7 @@ def test_calibration_probe_lint_rejects_single_template_universe() -> None:
 
 
 def test_calibration_probe_lint_rejects_hard_band_floor() -> None:
-    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
+    document = _live_test_probe_document()
     registry = load_registry()
     for index, probe in enumerate(document["probes"]):
         target = registry.by_id[probe["expected_slot_id"]]
@@ -193,7 +274,7 @@ def test_calibration_probe_lint_rejects_hard_band_floor() -> None:
 
 
 def test_calibration_probe_lint_rejects_duplicate_surface_pairs() -> None:
-    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
+    document = _live_test_probe_document()
     for probe in document["probes"][:8]:
         probe["raw_domain"] = "repeat_surface"
         probe["value"] = "repeat value"
@@ -201,16 +282,16 @@ def test_calibration_probe_lint_rejects_duplicate_surface_pairs() -> None:
         _sweep(document)
 
 
-def test_shipped_calibration_probe_document_passes_generator_sweep() -> None:
-    _sweep(json.loads(DEFAULT_PROBES.read_text(encoding="utf-8")))
+def test_live_test_probe_document_passes_generator_sweep() -> None:
+    _sweep(_live_test_probe_document())
 
 
 @pytest.mark.parametrize("tamper", ["sample", "mapping", "tau", "swapped_evidence", "component_hash", "duplicate_uid", "coverage_gap"])
 def test_calibration_verifier_rejects_each_tamper_class(tmp_path: Path, tamper: str) -> None:
-    probes = _load(DEFAULT_PROBES)
-    evidence, manifest_path = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json", probe_path=DEFAULT_PROBES)
+    source_probe_path, probes = _write_live_test_probes(tmp_path)
+    evidence, manifest_path = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json", probe_path=source_probe_path)
     probe_path = tmp_path / "probes.json"
-    probe_path.write_text(json.dumps({"version": "v1", "probes": probes}), encoding="utf-8")
+    probe_path.write_text(json.dumps({"version": "v2", "probes": probes}), encoding="utf-8")
     if tamper in {"sample", "swapped_evidence"}:
         rows = evidence.read_text(encoding="utf-8").splitlines()
         row = json.loads(rows[0])
@@ -241,8 +322,8 @@ def test_calibration_verifier_rejects_each_tamper_class(tmp_path: Path, tamper: 
 
 
 def test_calibration_verifier_rejects_evidence_slice_drift(tmp_path: Path) -> None:
-    probes = _load(DEFAULT_PROBES)
-    evidence, manifest = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json", probe_path=DEFAULT_PROBES)
+    probe_path, probes = _write_live_test_probes(tmp_path)
+    evidence, manifest = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json", probe_path=probe_path)
     rows = evidence.read_text(encoding="utf-8").splitlines()
     row = json.loads(rows[0])
     row["slice"] = "hr" if row["slice"] == "benign" else "benign"
@@ -577,18 +658,19 @@ def test_structurally_invalid_evaluator_result_errors_before_receipt(tmp_path: P
 
 
 def test_calibration_binds_selected_probe_file(tmp_path: Path) -> None:
-    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
+    source_probe_path, _ = _write_live_test_probes(tmp_path)
+    document = json.loads(source_probe_path.read_text(encoding="utf-8"))
     custom = tmp_path / "custom_probes.json"
     custom.write_text(json.dumps(document, indent=1), encoding="utf-8")
     custom_hash = hashlib.sha256(custom.read_bytes()).hexdigest()
-    default_hash = hashlib.sha256(DEFAULT_PROBES.read_bytes()).hexdigest()
-    assert custom_hash != default_hash
+    source_hash = hashlib.sha256(source_probe_path.read_bytes()).hexdigest()
+    assert custom_hash != source_hash
     probes = _load(custom)
     evidence, manifest = run(probes, provider=fake_provider(probes), git_commit="t", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json", probe_path=custom)
     assert json.loads(manifest.read_text(encoding="utf-8"))["fitted_on_goldset_hashes"] == [custom_hash]
     verify(evidence, manifest, probe_path=custom)
     with pytest.raises(ValueError):
-        verify(evidence, manifest, probe_path=DEFAULT_PROBES)
+        verify(evidence, manifest, probe_path=source_probe_path)
 
 
 def test_copied_ticket_cannot_be_consumed_twice(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -663,7 +745,8 @@ def test_partially_claimed_marker_blocks_consumption(tmp_path: Path, monkeypatch
 def test_gate_accepts_custom_probe_calibration_and_default_binding_burns(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    document = json.loads(DEFAULT_PROBES.read_text(encoding="utf-8"))
+    source_probe_path, _ = _write_live_test_probes(tmp_path)
+    document = json.loads(source_probe_path.read_text(encoding="utf-8"))
     custom = tmp_path / "custom_probes.json"
     custom.write_text(json.dumps(document, indent=1), encoding="utf-8")
     probes = _load(custom)
@@ -715,21 +798,21 @@ def test_gate_accepts_custom_probe_calibration_and_default_binding_burns(
 
 
 def test_ticket_pins_require_artifact_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    probes = _load(DEFAULT_PROBES)
+    probe_path, probes = _write_live_test_probes(tmp_path)
     evidence, manifest = run(
         probes,
         provider=fake_provider(probes),
         git_commit="t",
         evidence_path=tmp_path / "evidence.jsonl",
         manifest_path=tmp_path / "manifest.json",
-        probe_path=DEFAULT_PROBES,
+        probe_path=probe_path,
     )
     nonce = "n-pins-require-paths"
     harness = _gate_ticket_harness(
         tmp_path,
         monkeypatch,
         nonce,
-        manifest_hash=verify(evidence, manifest)[1],
+        manifest_hash=verify(evidence, manifest, probe_path=probe_path)[1],
         evidence_hash=hashlib.sha256(evidence.read_bytes()).hexdigest(),
     )
     pairs, extraction, frozen, validity = _passing_gate_inputs()
@@ -748,18 +831,18 @@ def test_ticket_pins_require_artifact_paths(tmp_path: Path, monkeypatch: pytest.
 
 
 def test_one_sided_ticket_pin_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    probes = _load(DEFAULT_PROBES)
+    probe_path, probes = _write_live_test_probes(tmp_path)
     evidence, manifest = run(
         probes,
         provider=fake_provider(probes),
         git_commit="t",
         evidence_path=tmp_path / "evidence.jsonl",
         manifest_path=tmp_path / "manifest.json",
-        probe_path=DEFAULT_PROBES,
+        probe_path=probe_path,
     )
     nonce = "n-one-sided-pin"
     harness = _gate_ticket_harness(
-        tmp_path, monkeypatch, nonce, manifest_hash=verify(evidence, manifest)[1], evidence_hash=None
+        tmp_path, monkeypatch, nonce, manifest_hash=verify(evidence, manifest, probe_path=probe_path)[1], evidence_hash=None
     )
     pairs, extraction, frozen, validity = _passing_gate_inputs()
 
