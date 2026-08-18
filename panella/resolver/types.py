@@ -112,6 +112,7 @@ class CalibrationManifest:
     prompt_template_hash: str
     registry_hash: str
     normalizer_rules_hash: str
+    blocking_rules_hash: str
     resolver_code_version: str
     fitted_on_goldset_hashes: tuple[str, ...]
     fitted_on_evidence_hash: str
@@ -119,6 +120,8 @@ class CalibrationManifest:
     slices: Mapping[Literal["benign", "hr"], CalibrationSlice]
 
     def __post_init__(self) -> None:
+        if not isinstance(self.blocking_rules_hash, str) or not self.blocking_rules_hash:
+            raise ValueError("blocking_rules_hash must be a non-empty string")
         if not isinstance(self.slices, Mapping):
             raise ValueError("slices must be a mapping of calibration slices")
 
@@ -232,6 +235,7 @@ class BlockingReceipt:
     choice_set: tuple[str, ...]
     choice_set_hash: str
     slice: Literal["benign", "hr"]
+    forced_ids: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -277,6 +281,7 @@ class VersionStamp:
     resolver_code_version: str
     registry_hash: str
     normalizer_rules_hash: str
+    blocking_rules_hash: str
     normalizer_version: str
     calibration_hash: str | None
 

@@ -22,8 +22,8 @@ from panella.resolver import (
     RunBudget,
     TransportAttempt,
 )
-from panella.resolver.blocking import CHOICE_SET_K, assemble_blocking
-from panella.resolver.engine import prepare_guard
+from panella.resolver.blocking import BLOCKING_RULES_HASH, CHOICE_SET_K, MAX_FORCED, assemble_blocking
+from panella.resolver.engine import RESOLVER_CODE_VERSION, prepare_guard
 from panella.resolver.normalize import NORMALIZER_VERSION, compute_normalizer_rules_hash, normalizer_rules_hash, resolver_normalize
 from panella.resolver.registry import (
     PINNED_REGISTRY_HASH,
@@ -63,7 +63,7 @@ def request(uid: str = "req-1", raw_domain: str = "unknown", value: str = "code 
 def valid_manifest() -> CalibrationManifest:
     calibration = CalibrationSlice(50, (25, 25), ((0.0, 0.5, 0.0), (0.5, 1.0, 1.0)), 1.0)
     return CalibrationManifest(
-        "cal-1", "test-model", "test-prompt", PINNED_REGISTRY_HASH, normalizer_rules_hash, "1.0.0",
+        "cal-1", "test-model", "test-prompt", PINNED_REGISTRY_HASH, normalizer_rules_hash, BLOCKING_RULES_HASH, RESOLVER_CODE_VERSION,
         ("public-hash",), "evidence", "commit", {"benign": calibration, "hr": calibration},
     )
 
@@ -95,7 +95,7 @@ def test_deterministic_pass_for_empty_risk_and_escalation_for_other_hr_evidence(
     engine = ResolverEngine()
     probe = request(raw_domain=raw_domain, value=value)
     prepared = prepare_guard(probe, engine.registry, compute_risk_evidence(probe, engine.registry))
-    decision = engine.resolve(probe, ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(probe, ResolverContext(()), RunBudget(2))
     assert prepared.guard_fired is expected_guard
     assert prepared.target is not None and prepared.target.slot_id == "fact:employer"
     assert decision.guard_fired is expected_guard
@@ -110,7 +110,7 @@ def test_deterministic_pass_for_empty_risk_and_escalation_for_other_hr_evidence(
 def test_hr_deterministic_self_passes_without_transport() -> None:
     provider = FakeProvider(FallbackSuggestion(None, None, ()))
     engine = ResolverEngine(ResolverConfig(False, 20, None, None, None), provider=provider)
-    decision = engine.resolve(request(raw_domain="allergy", value=""), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(raw_domain="allergy", value=""), ResolverContext(()), RunBudget(2))
     assert decision.slot_id == "fact:medical_allergy"
     assert decision.high_risk is True
     assert decision.guard_fired is False
@@ -119,21 +119,22 @@ def test_hr_deterministic_self_passes_without_transport() -> None:
 
 def test_competing_hr_evidence_escalates_to_forced_hr_choice_set() -> None:
     engine, provider = llm_engine(FallbackSuggestion("fact:medication", 1.0, (TransportAttempt("ok", 1),)))
-    decision = engine.resolve(request(uid="competing-hr", raw_domain="allergy", value="medication"), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(uid="competing-hr", raw_domain="allergy", value="medication"), ResolverContext(()), RunBudget(2))
 
     assert decision.guard_fired is True
     assert decision.method == "llm_choice"
     assert decision.slot_id == "fact:medication"
     assert decision.risk_evidence.matched_hr_slot_ids == ("fact:medical_allergy", "fact:medication")
     assert decision.blocking_receipt is not None
-    assert decision.blocking_receipt.choice_set == ("fact:medical_allergy", "fact:medication")
+    assert decision.blocking_receipt.forced_ids == ("fact:medical_allergy", "fact:medication")
+    assert decision.blocking_receipt.choice_set[: len(decision.blocking_receipt.forced_ids)] == decision.blocking_receipt.forced_ids
     assert decision.blocking_receipt.slice == "hr"
     assert provider.calls == 1
 
 
 def test_competing_hr_evidence_abstains_when_llm_is_disabled() -> None:
     decision = ResolverEngine().resolve(
-        request(uid="competing-hr-disabled", raw_domain="allergy", value="medication"), ResolverContext(()), RunBudget(1)
+        request(uid="competing-hr-disabled", raw_domain="allergy", value="medication"), ResolverContext(()), RunBudget(2)
     )
 
     assert decision.action == "ABSTAIN_ADD"
@@ -144,7 +145,7 @@ def test_competing_hr_evidence_abstains_when_llm_is_disabled() -> None:
 
 
 def test_short_circuit_hr_alias_propagates_risk_with_llm_disabled() -> None:
-    decision = ResolverEngine().resolve(request(raw_domain="food_allergy", value="", uid="risk-alias"), ResolverContext(()), RunBudget(1))
+    decision = ResolverEngine().resolve(request(raw_domain="food_allergy", value="", uid="risk-alias"), ResolverContext(()), RunBudget(2))
     assert decision.action == "ADD"
     assert decision.high_risk is True
     assert decision.risk_evidence.matched_hr_slot_ids == ("fact:medical_allergy",)
@@ -166,7 +167,7 @@ def test_manifest_component_mismatch_disables_llm_and_preserves_high_risk(
         ResolverConfig(True, 20, manifest, canonical_manifest_hash(manifest), evidence_hash), provider=provider
     )
 
-    decision = engine.resolve(request(raw_domain="employer", value="allergic reaction"), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(raw_domain="employer", value="allergic reaction"), ResolverContext(()), RunBudget(2))
 
     assert decision.fallback_outcome == "not_attempted_disabled"
     assert decision.disabled_reason == f"manifest_component_mismatch:{mismatch}"
@@ -191,12 +192,22 @@ def test_tampered_manifest_mapping_with_stale_hash_soft_disables_llm() -> None:
     provider = FakeProvider(FallbackSuggestion("preference:code_editor", 1.0, (TransportAttempt("ok", 1),)))
     engine = ResolverEngine(ResolverConfig(True, 20, tampered_manifest, stale_hash, "evidence"), provider=provider)
 
-    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(2))
 
     assert decision.fallback_outcome == "not_attempted_disabled"
     assert decision.disabled_reason == "manifest_component_mismatch:manifest_hash"
     assert decision.blocking_receipt is None and decision.llm_receipt is None
     assert provider.calls == 0
+
+
+def test_manifest_binding_order_reaches_version_after_live_component_rebind() -> None:
+    manifest = dataclasses.replace(valid_manifest(), resolver_code_version="1.0.0")
+    provider = FakeProvider(FallbackSuggestion("ABSTAIN", 0.0, (TransportAttempt("ok", 1),)))
+    engine = ResolverEngine(
+        ResolverConfig(True, 20, manifest, canonical_manifest_hash(manifest), "evidence"), provider=provider
+    )
+    decision = engine.resolve(request(uid="old-version"), ResolverContext(()), RunBudget(2))
+    assert decision.disabled_reason == "manifest_component_mismatch:resolver_code_version"
 
 
 @pytest.mark.parametrize(
@@ -218,7 +229,7 @@ def test_calibration_rejects_unquantized_float_fields(
 def test_unquantized_calibration_cannot_form_a_hash_colliding_manifest() -> None:
     quantized = CalibrationSlice(50, (25, 25), ((0.0, 0.5, 0.0), (0.5, 1.0, 1.0)), 1.0)
     manifest = CalibrationManifest(
-        "cal-1", "test-model", "test-prompt", PINNED_REGISTRY_HASH, normalizer_rules_hash, "1.0.0",
+        "cal-1", "test-model", "test-prompt", PINNED_REGISTRY_HASH, normalizer_rules_hash, BLOCKING_RULES_HASH, RESOLVER_CODE_VERSION,
         ("public-hash",), "evidence", "commit", {"benign": quantized, "hr": quantized},
     )
     assert canonical_manifest_hash(manifest)
@@ -233,7 +244,7 @@ def test_manifest_snapshots_external_slices_before_engine_construction() -> None
     source_slice = CalibrationSlice(50, source_per_bin, source_mapping, 1.0)
     source_slices = {"benign": source_slice, "hr": source_slice}
     manifest = CalibrationManifest(
-        "cal-1", "test-model", "test-prompt", PINNED_REGISTRY_HASH, normalizer_rules_hash, "1.0.0",
+        "cal-1", "test-model", "test-prompt", PINNED_REGISTRY_HASH, normalizer_rules_hash, BLOCKING_RULES_HASH, RESOLVER_CODE_VERSION,
         ("public-hash",), "evidence", "commit", source_slices,
     )
     manifest_hash = canonical_manifest_hash(manifest)
@@ -254,7 +265,7 @@ def test_manifest_snapshots_external_slices_before_engine_construction() -> None
     assert manifest.slices["benign"].mapping == ((0.0, 0.5, 0.0), (0.5, 1.0, 1.0))
     assert canonical_manifest_hash(manifest) == manifest_hash
 
-    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(2))
     assert decision.fallback_outcome == "selected"
     assert provider.calls == 1
 
@@ -264,7 +275,7 @@ def test_missing_manifest_hash_soft_disables_llm() -> None:
     provider = FakeProvider(FallbackSuggestion("preference:code_editor", 1.0, (TransportAttempt("ok", 1),)))
     engine = ResolverEngine(ResolverConfig(True, 20, manifest, None, "evidence"), provider=provider)
 
-    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(2))
 
     assert decision.fallback_outcome == "not_attempted_disabled"
     assert decision.disabled_reason == "manifest_component_mismatch:manifest_hash"
@@ -288,19 +299,19 @@ def test_global_disabled_truth_rows(budget: RunBudget, expected_outcome: str, bl
 
 def test_budget_row_has_no_receipts() -> None:
     engine, _ = llm_engine(FallbackSuggestion("fact:code_editor", 1.0, (TransportAttempt("ok", 1),)))
-    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1, calls_made=1))
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(2, calls_made=1))
     assert decision.fallback_outcome == "not_attempted_budget_exhausted"
     assert decision.blocking_receipt is None and decision.llm_receipt is None
 
 
 def test_upgraded_global_disabled_and_budget_rows_short_circuit_before_blocking() -> None:
     upgraded = request(uid="guard-global", raw_domain="employer", value="allergic")
-    disabled = ResolverEngine().resolve(upgraded, ResolverContext(()), RunBudget(1))
+    disabled = ResolverEngine().resolve(upgraded, ResolverContext(()), RunBudget(2))
     assert disabled.guard_fired is True
     assert disabled.fallback_outcome == "not_attempted_disabled"
     assert disabled.blocking_receipt is None and disabled.llm_receipt is None
     engine, _ = llm_engine(FallbackSuggestion("ABSTAIN", 0.0, (TransportAttempt("ok", 1),)))
-    budget = engine.resolve(request(uid="guard-budget", raw_domain="employer", value="allergic"), ResolverContext(()), RunBudget(1, 1))
+    budget = engine.resolve(request(uid="guard-budget", raw_domain="employer", value="allergic"), ResolverContext(()), RunBudget(2, 1))
     assert budget.guard_fired is True
     assert budget.fallback_outcome == "not_attempted_budget_exhausted"
     assert budget.blocking_receipt is None and budget.llm_receipt is None
@@ -308,7 +319,7 @@ def test_upgraded_global_disabled_and_budget_rows_short_circuit_before_blocking(
 
 def test_empty_choice_row_has_only_blocking_receipt() -> None:
     engine, provider = llm_engine(FallbackSuggestion("ABSTAIN", 0.0, (TransportAttempt("ok", 1),)))
-    decision = engine.resolve(request(value="", raw_domain="unmapped"), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(value="", raw_domain="unmapped"), ResolverContext(()), RunBudget(2))
     assert decision.fallback_outcome == "not_attempted_empty_choice_set"
     assert decision.blocking_receipt is not None and decision.blocking_receipt.choice_set == ()
     assert decision.llm_receipt is None and provider.calls == 0
@@ -321,7 +332,7 @@ def test_slice_disabled_row_has_only_blocking_receipt() -> None:
     engine = ResolverEngine(
         ResolverConfig(True, 20, disabled_hr, canonical_manifest_hash(disabled_hr), "evidence"), provider=provider
     )
-    decision = engine.resolve(request(raw_domain="diet", value="allergic"), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(raw_domain="diet", value="allergic"), ResolverContext(()), RunBudget(2))
     assert decision.fallback_outcome == "not_attempted_disabled"
     assert decision.disabled_reason == "hr_slice_required_but_disabled"
     assert decision.blocking_receipt is not None and decision.llm_receipt is None
@@ -335,7 +346,7 @@ def test_upgraded_slice_disabled_row_preserves_guard_and_receipt() -> None:
     engine = ResolverEngine(
         ResolverConfig(True, 20, disabled_hr, canonical_manifest_hash(disabled_hr), "evidence"), provider=provider
     )
-    decision = engine.resolve(request(uid="guard-slice", raw_domain="employer", value="allergic"), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(uid="guard-slice", raw_domain="employer", value="allergic"), ResolverContext(()), RunBudget(2))
     assert decision.guard_fired is True
     assert decision.fallback_outcome == "not_attempted_disabled"
     assert decision.blocking_receipt is not None and decision.llm_receipt is None
@@ -354,7 +365,7 @@ def test_upgraded_slice_disabled_row_preserves_guard_and_receipt() -> None:
 )
 def test_llm_truth_rows_have_both_receipts(suggestion: FallbackSuggestion, outcome: str, has_slot: bool) -> None:
     engine, provider = llm_engine(suggestion)
-    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(2))
     assert decision.fallback_outcome == outcome
     assert (decision.slot_id is not None) is has_slot
     assert decision.blocking_receipt is not None and decision.llm_receipt is not None
@@ -363,7 +374,7 @@ def test_llm_truth_rows_have_both_receipts(suggestion: FallbackSuggestion, outco
 
 def test_upgraded_llm_selection_uses_hr_slice_and_preserves_guard() -> None:
     engine, provider = llm_engine(FallbackSuggestion("fact:employer", 1.0, (TransportAttempt("ok", 1),)))
-    decision = engine.resolve(request(uid="guard-selected", raw_domain="employer", value="allergic"), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(uid="guard-selected", raw_domain="employer", value="allergic"), ResolverContext(()), RunBudget(2))
     assert decision.action == "ADD"
     assert decision.method == "llm_choice"
     assert decision.fallback_outcome == "selected"
@@ -374,14 +385,14 @@ def test_upgraded_llm_selection_uses_hr_slice_and_preserves_guard() -> None:
 
 def test_unresolved_encoding_and_run_invariants() -> None:
     engine = ResolverEngine()
-    budget = RunBudget(1)
+    budget = RunBudget(2)
     decision = engine.resolve(request(uid="once"), ResolverContext(()), budget)
     assert decision.unresolved_domain == "xunres_" + hashlib.sha256(b"once").hexdigest()[:32]
     with pytest.raises(ValueError, match="duplicate request_uid"):
         engine.resolve(request(uid="once"), ResolverContext(()), budget)
     collision_uid = "collision"
     encoded = "xunres_" + hashlib.sha256(collision_uid.encode()).hexdigest()[:32]
-    collision_budget = RunBudget(1, seen_unresolved={encoded: "other-request"})
+    collision_budget = RunBudget(2, seen_unresolved={encoded: "other-request"})
     with pytest.raises(RuntimeError, match="encoding collision"):
         engine.resolve(request(uid=collision_uid), ResolverContext(()), collision_budget)
     assert split_slot_id("fact:employer") == ("fact", "employer")
@@ -391,8 +402,8 @@ def test_unresolved_encoding_and_run_invariants() -> None:
 
 def test_same_input_is_byte_identical_for_same_budget_prestate() -> None:
     engine = ResolverEngine()
-    first = engine.resolve(request(uid="one"), ResolverContext(()), RunBudget(1))
-    second = engine.resolve(request(uid="two"), ResolverContext(()), RunBudget(1))
+    first = engine.resolve(request(uid="one"), ResolverContext(()), RunBudget(2))
+    second = engine.resolve(request(uid="two"), ResolverContext(()), RunBudget(2))
     assert dataclasses.asdict(first) | {"unresolved_domain": "normalized"} == dataclasses.asdict(second) | {
         "unresolved_domain": "normalized"
     }
@@ -509,7 +520,7 @@ def test_injected_registry_integrity_still_raises() -> None:
 
 
 def test_hr_alias_only_matching_after_folding_is_a_miss() -> None:
-    decision = ResolverEngine().resolve(request(raw_domain="current_food_allergy", value="", uid="folded"), ResolverContext(()), RunBudget(1))
+    decision = ResolverEngine().resolve(request(raw_domain="current_food_allergy", value="", uid="folded"), ResolverContext(()), RunBudget(2))
     assert decision.slot_id is None
     assert decision.action == "ABSTAIN_ADD"
     assert decision.high_risk is True
@@ -524,7 +535,9 @@ def test_hash_pins_and_versions() -> None:
     assert registry.content_hash == PINNED_REGISTRY_HASH == composite_registry_hash(registry.slot_registry_hash, registry.taxonomy_hash)
     assert normalizer_rules_hash == compute_normalizer_rules_hash()
     assert NORMALIZER_VERSION == "1.0.0"
-    assert ResolverEngine().resolve(request(), ResolverContext(()), RunBudget(1)).versions.resolver_code_version == "1.0.0"
+    version = ResolverEngine().resolve(request(), ResolverContext(()), RunBudget(2)).versions
+    assert RESOLVER_CODE_VERSION == "1.1.0" and version.resolver_code_version == RESOLVER_CODE_VERSION
+    assert version.blocking_rules_hash == BLOCKING_RULES_HASH
 
 
 def test_blocking_is_deterministic_forced_first_and_overflow() -> None:
@@ -538,9 +551,9 @@ def test_blocking_is_deterministic_forced_first_and_overflow() -> None:
     many_terms = " ".join(term for slot in registry.slots if slot.high_risk for term in slot.hr_lexicon)
     overflow_risk = compute_risk_evidence(request(uid="overflow", value=many_terms), registry)
     result = assemble_blocking(request(uid="overflow", value=many_terms), registry, overflow_risk)
-    assert len(overflow_risk.matched_hr_slot_ids) > CHOICE_SET_K
+    assert len(overflow_risk.matched_hr_slot_ids) > MAX_FORCED
     assert result.forced_overflow and result.receipt.choice_set == overflow_risk.matched_hr_slot_ids
-    decision = ResolverEngine().resolve(request(uid="overflow-2", value=many_terms), ResolverContext(()), RunBudget(1))
+    decision = ResolverEngine().resolve(request(uid="overflow-2", value=many_terms), ResolverContext(()), RunBudget(2))
     assert decision.fallback_outcome == "not_attempted_disabled"  # global gate comes before blocking
 
 
@@ -556,7 +569,7 @@ def test_blocking_is_deterministic_forced_first_and_overflow() -> None:
 )
 def test_provider_contract_violations(suggestion: FallbackSuggestion, violation: str, outcome: str) -> None:
     engine, _ = llm_engine(suggestion)
-    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(2))
     assert decision.fallback_outcome == outcome
     assert decision.llm_receipt is not None
     assert decision.llm_receipt.provider_contract_violation == violation
@@ -571,7 +584,7 @@ def test_unknown_provider_outcome_cannot_bind() -> None:
         )
     )
 
-    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(2))
 
     assert decision.action == "ABSTAIN_ADD"
     assert decision.slot_id is None
@@ -590,7 +603,7 @@ def test_unknown_provider_outcome_cannot_bind() -> None:
 )
 def test_provider_raw_excerpt_contract(attempt: TransportAttempt, violation: str | None) -> None:
     engine, _ = llm_engine(FallbackSuggestion(None, None, (attempt,)))
-    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(2))
 
     assert decision.fallback_outcome == "invalid_output"
     assert decision.llm_receipt is not None
@@ -599,7 +612,7 @@ def test_provider_raw_excerpt_contract(attempt: TransportAttempt, violation: str
 
 def test_provider_ok_beyond_timeout_is_not_selected() -> None:
     engine, _ = llm_engine(FallbackSuggestion("fact:code_editor", 1.0, (TransportAttempt("ok", 21),)))
-    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(2))
     assert decision.fallback_outcome == "timeout"
 
 
@@ -607,7 +620,7 @@ def test_overflow_runs_after_global_checks_when_llm_enabled() -> None:
     registry = load_registry()
     terms = " ".join(term for slot in registry.slots if slot.high_risk for term in slot.hr_lexicon)
     engine, provider = llm_engine(FallbackSuggestion("ABSTAIN", 0.0, (TransportAttempt("ok", 1),)))
-    decision = engine.resolve(request(uid="force-overflow", value=terms), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(uid="force-overflow", value=terms), ResolverContext(()), RunBudget(2))
     assert decision.fallback_outcome == "forced_set_overflow"
     assert decision.blocking_receipt is not None and decision.llm_receipt is None
     assert provider.calls == 0
@@ -617,7 +630,7 @@ def test_upgraded_overflow_keeps_guard_and_blocking_receipt() -> None:
     registry = load_registry()
     terms = " ".join(term for slot in registry.slots if slot.high_risk for term in slot.hr_lexicon)
     engine, provider = llm_engine(FallbackSuggestion("ABSTAIN", 0.0, (TransportAttempt("ok", 1),)))
-    decision = engine.resolve(request(uid="guard-overflow", raw_domain="employer", value=terms), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(uid="guard-overflow", raw_domain="employer", value=terms), ResolverContext(()), RunBudget(2))
     assert decision.guard_fired is True
     assert decision.fallback_outcome == "forced_set_overflow"
     assert decision.blocking_receipt is not None and decision.llm_receipt is None
@@ -632,5 +645,5 @@ def test_split_slot_id_rejects_reserved_and_invalid_values() -> None:
 
 def test_no_nan_confidence_reaches_a_decision() -> None:
     engine, _ = llm_engine(FallbackSuggestion("preference:code_editor", math.nan, (TransportAttempt("ok", 1),)))
-    decision = engine.resolve(request(), ResolverContext(()), RunBudget(1))
+    decision = engine.resolve(request(), ResolverContext(()), RunBudget(2))
     assert decision.fallback_outcome == "invalid_output"

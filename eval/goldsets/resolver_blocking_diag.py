@@ -110,7 +110,7 @@ def _resolve_pair_goldset() -> tuple[
 ]:
     goldset = _load_pair_goldset()
     engine = ResolverEngine()
-    budget = RunBudget(sum(len(case["facts"]) for case in goldset["cases"]))
+    budget = RunBudget(2 * sum(len(case["facts"]) for case in goldset["cases"]))
     decisions: dict[tuple[str, str], Any] = {}
     choice_sets: dict[tuple[str, str], tuple[str, ...]] = {}
     for case in goldset["cases"]:

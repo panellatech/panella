@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .normalize import STOPWORDS as NORMALIZE_STOPWORDS
+
 BLOCKING_STOPWORDS = frozenset({
     "i", "me", "we", "us", "you", "they", "he", "she", "it", "is", "am", "are", "was", "were",
     "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "shall",
@@ -15,3 +17,5 @@ BLOCKING_STOPWORDS = frozenset({
     "make", "makes", "made", "take", "takes", "took", "go", "goes", "went", "going", "say", "says",
     "said", "tell", "tells", "told", "know", "knows", "knew", "think", "thinks", "thought",
 })
+
+SCORING_DROP = frozenset(NORMALIZE_STOPWORDS) | BLOCKING_STOPWORDS

@@ -12,7 +12,7 @@ from typing import Any, Mapping
 
 import yaml
 
-from .blocking_constants import BLOCKING_STOPWORDS
+from .blocking_constants import BLOCKING_STOPWORDS, SCORING_DROP
 from .normalize import extractor_normalize_domain, resolver_normalize
 
 MIN_REGISTRY_SLOTS = 90
@@ -279,6 +279,8 @@ def load_registry(
         high_risk, taxonomy_domain = raw_slot["high_risk"], raw_slot["taxonomy_domain"]
         if not all(isinstance(value, str) and value for value in (slot_id, kind, domain, description)):
             _fail(f"slot {index} has invalid string fields")
+        if len(_tokens(description) - SCORING_DROP - _tokens(domain)) < 4:
+            _fail(f"{slot_id} description has fewer than four content tokens")
         if kind not in _KINDS or slot_id != f"{kind}:{domain}":
             _fail(f"{slot_id} must equal kind:domain")
         if not isinstance(taxonomy_domain, str) or taxonomy_domain not in domains:

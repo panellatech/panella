@@ -10,7 +10,7 @@ from decimal import Decimal, ROUND_HALF_EVEN
 from pathlib import Path
 from typing import Any
 
-from .blocking import assemble_blocking
+from .blocking import BLOCKING_RULES_HASH, assemble_blocking
 from .engine import MIN_CAL_SAMPLES, RESOLVER_CODE_VERSION
 from .normalize import normalizer_rules_hash
 from .registry import load_registry
@@ -116,6 +116,7 @@ def manifest_dict(manifest: CalibrationManifest) -> dict[str, Any]:
         "prompt_template_hash": manifest.prompt_template_hash,
         "registry_hash": manifest.registry_hash,
         "normalizer_rules_hash": manifest.normalizer_rules_hash,
+        "blocking_rules_hash": manifest.blocking_rules_hash,
         "resolver_code_version": manifest.resolver_code_version,
         "fitted_on_goldset_hashes": list(manifest.fitted_on_goldset_hashes),
         "fitted_on_evidence_hash": manifest.fitted_on_evidence_hash,
@@ -131,7 +132,7 @@ def build_manifest(
     *, model_id: str, prompt_template_hash: str, fitted_on_evidence_hash: str, fitted_on_git_commit: str,
     fitted_on_goldset_hashes: tuple[str, ...] | list[str], slices: Mapping[str, CalibrationSlice | None],
     calibration_version: str = "k1-calibration-v1", registry_hash: str | None = None,
-    normalizer_hash: str | None = None, resolver_code_version: str = RESOLVER_CODE_VERSION,
+    normalizer_hash: str | None = None, blocking_hash: str | None = None, resolver_code_version: str = RESOLVER_CODE_VERSION,
 ) -> tuple[CalibrationManifest, str]:
     registry = load_registry()
     actual_slices: dict[str, CalibrationSlice] = {}
@@ -141,7 +142,7 @@ def build_manifest(
         actual_slices[name] = fitted if fitted is not None else CalibrationSlice(0, (), (), 0.0)
     manifest = CalibrationManifest(
         calibration_version, model_id, prompt_template_hash, registry_hash or registry.content_hash,
-        normalizer_hash or normalizer_rules_hash, resolver_code_version, tuple(fitted_on_goldset_hashes),
+        normalizer_hash or normalizer_rules_hash, blocking_hash or BLOCKING_RULES_HASH, resolver_code_version, tuple(fitted_on_goldset_hashes),
         fitted_on_evidence_hash, fitted_on_git_commit, actual_slices,
     )
     return manifest, canonical_manifest_hash(manifest)
@@ -178,7 +179,7 @@ def load_manifest(path: Path | str) -> tuple[CalibrationManifest, str]:
         document = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError("cannot parse calibration manifest") from exc
-    required = {"calibration_version", "model_id", "prompt_template_hash", "registry_hash", "normalizer_rules_hash", "resolver_code_version", "fitted_on_goldset_hashes", "fitted_on_evidence_hash", "fitted_on_git_commit", "slices", "manifest_hash"}
+    required = {"calibration_version", "model_id", "prompt_template_hash", "registry_hash", "normalizer_rules_hash", "blocking_rules_hash", "resolver_code_version", "fitted_on_goldset_hashes", "fitted_on_evidence_hash", "fitted_on_git_commit", "slices", "manifest_hash"}
     if not isinstance(document, dict) or set(document) != required:
         raise ValueError("manifest has an invalid schema")
     try:
@@ -194,7 +195,7 @@ def load_manifest(path: Path | str) -> tuple[CalibrationManifest, str]:
             raise ValueError("invalid manifest fields")
         manifest = CalibrationManifest(
             document["calibration_version"], document["model_id"], document["prompt_template_hash"], document["registry_hash"],
-            document["normalizer_rules_hash"], document["resolver_code_version"], tuple(document["fitted_on_goldset_hashes"]),
+            document["normalizer_rules_hash"], document["blocking_rules_hash"], document["resolver_code_version"], tuple(document["fitted_on_goldset_hashes"]),
             document["fitted_on_evidence_hash"], document["fitted_on_git_commit"], slices,
         )
     except (KeyError, TypeError, ValueError) as exc:
@@ -270,6 +271,6 @@ def verify(
         expected = fitted[name] if fitted[name] is not None else CalibrationSlice(0, (), (), 0.0)
         if manifest.slices[name] != expected:
             raise ValueError(f"refit mismatch for {name}")
-    if manifest.registry_hash != registry.content_hash or manifest.normalizer_rules_hash != normalizer_rules_hash or manifest.resolver_code_version != RESOLVER_CODE_VERSION:
+    if manifest.registry_hash != registry.content_hash or manifest.normalizer_rules_hash != normalizer_rules_hash or manifest.blocking_rules_hash != BLOCKING_RULES_HASH or manifest.resolver_code_version != RESOLVER_CODE_VERSION:
         raise ValueError("live component binding mismatch")
     return manifest, digest

@@ -6,7 +6,7 @@ import hashlib
 import math
 from dataclasses import dataclass
 
-from .blocking import assemble_blocking
+from .blocking import BLOCKING_RULES_HASH, assemble_blocking
 from .escalation import requires_hr_escalation
 from .normalize import NORMALIZER_VERSION, normalizer_rules_hash, resolver_normalize
 from .registry import MIN_REGISTRY_SLOTS, PINNED_REGISTRY_HASH, RegistrySlot, SlotRegistry, load_registry
@@ -29,7 +29,7 @@ from .types import (
     VersionStamp,
 )
 
-RESOLVER_CODE_VERSION = "1.0.0"
+RESOLVER_CODE_VERSION = "1.1.0"
 MIN_CAL_SAMPLES = {"benign": 50, "hr": 30}
 
 
@@ -118,6 +118,7 @@ class ResolverEngine:
             ),
             ("registry_hash", manifest.registry_hash == self.registry.content_hash),
             ("normalizer_rules_hash", manifest.normalizer_rules_hash == normalizer_rules_hash),
+            ("blocking_rules_hash", manifest.blocking_rules_hash == BLOCKING_RULES_HASH),
             ("resolver_code_version", manifest.resolver_code_version == RESOLVER_CODE_VERSION),
             ("model_id", manifest.model_id == self.provider.model_id),
             ("prompt_template_hash", manifest.prompt_template_hash == self.provider.prompt_template_hash),
@@ -132,6 +133,7 @@ class ResolverEngine:
             resolver_code_version=RESOLVER_CODE_VERSION,
             registry_hash=self.registry.content_hash,
             normalizer_rules_hash=normalizer_rules_hash,
+            blocking_rules_hash=BLOCKING_RULES_HASH,
             normalizer_version=NORMALIZER_VERSION,
             calibration_hash=self.config.manifest_hash,
         )
@@ -319,7 +321,7 @@ class ResolverEngine:
                 request, budget, risk_evidence, "not_attempted_disabled", guard_fired=guard_fired,
                 disabled_reason="global_disabled",
             )
-        if budget.calls_made >= budget.max_calls:
+        if budget.max_calls - budget.calls_made < 2:
             return self._abstain(request, budget, risk_evidence, "not_attempted_budget_exhausted", guard_fired=guard_fired)
 
         blocking = assemble_blocking(
@@ -335,6 +337,9 @@ class ResolverEngine:
                 request, budget, risk_evidence, "not_attempted_empty_choice_set", guard_fired=guard_fired,
                 blocking_receipt=blocking.receipt,
             )
+        pure_hr_top_up = blocking.receipt.slice == "hr" and not risk_evidence.any
+        if pure_hr_top_up and (not self._slice_is_valid("benign") or not self._slice_is_valid("hr")):
+            return self._abstain(request, budget, risk_evidence, "not_attempted_disabled", guard_fired=guard_fired, blocking_receipt=blocking.receipt, disabled_reason="tau_applied_component_unavailable")
         if not self._slice_is_valid(blocking.receipt.slice):
             reason = "hr_slice_required_but_disabled" if blocking.receipt.slice == "hr" and risk_evidence.any else "slice_disabled"
             return self._abstain(
@@ -396,7 +401,8 @@ class ResolverEngine:
         if calibrated is None:
             raise RuntimeError("successful provider output must have calibrated confidence")
         calibration = self.config.manifest.slices[blocking.receipt.slice]  # type: ignore[union-attr]
-        if calibrated < calibration.tau:
+        tau = max(self.config.manifest.slices["benign"].tau, self.config.manifest.slices["hr"].tau) if pure_hr_top_up else calibration.tau  # type: ignore[union-attr]
+        if calibrated < tau:
             return self._abstain(
                 request, budget, risk_evidence, "low_confidence", guard_fired=guard_fired,
                 blocking_receipt=blocking.receipt, llm_receipt=receipt,

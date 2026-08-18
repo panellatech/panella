@@ -21,6 +21,7 @@ from eval.goldsets.resolver_gate import (
     _require_zero_arg_evaluator,
     _worktree_binding,
     canonical_hash,
+    config_hash,
     consume_ticket,
     gate_metrics,
     run_ticket,
@@ -501,7 +502,7 @@ def test_ticket_head_clean_order_and_per_file_tamper_burns(tmp_path: Path, monke
     config = {"llm_enabled": False}
     head = "a" * 64
     monkeypatch.setattr("eval.goldsets.resolver_gate._worktree_binding", lambda: {"actual_commit": head, "dirty": False})
-    ticket = {"nonce": "n1", "public_commit": head, "holdout_sums_sha256": hashlib.sha256(sums.read_bytes()).hexdigest(), "holdout_provenance_sha256": hashlib.sha256(provenance.read_bytes()).hexdigest(), "holdout_counts_sha256": hashlib.sha256(holdout_counts.read_bytes()).hexdigest(), "config_hash": canonical_hash({"config": config, "goldset_path": "toy", "runner_version": "v1"}), "manifest_hash": None, "evidence_hash": None, "created": "now"}
+    ticket = {"nonce": "n1", "public_commit": head, "holdout_sums_sha256": hashlib.sha256(sums.read_bytes()).hexdigest(), "holdout_provenance_sha256": hashlib.sha256(provenance.read_bytes()).hexdigest(), "holdout_counts_sha256": hashlib.sha256(holdout_counts.read_bytes()).hexdigest(), "config_hash": config_hash(config, goldset_path="toy", runner_version="v1"), "manifest_hash": None, "evidence_hash": None, "created": "now"}
     ticket_path, ledger = tmp_path / "ticket.json", tmp_path / "ledger.jsonl"
     ticket_path.write_text(json.dumps(ticket, sort_keys=True, separators=(",", ":")), encoding="utf-8")
     ledger.write_text(json.dumps({"nonce": "n1", "ticket_sha256": hashlib.sha256(ticket_path.read_bytes()).hexdigest()}) + "\n", encoding="utf-8")
@@ -553,7 +554,7 @@ def _gate_ticket_harness(
         "holdout_sums_sha256": hashlib.sha256(sums.read_bytes()).hexdigest(),
         "holdout_provenance_sha256": hashlib.sha256(provenance.read_bytes()).hexdigest(),
         "holdout_counts_sha256": hashlib.sha256(holdout_counts.read_bytes()).hexdigest(),
-        "config_hash": canonical_hash({"config": config, "goldset_path": "toy", "runner_version": "v1"}),
+        "config_hash": config_hash(config, goldset_path="toy", runner_version="v1"),
         "manifest_hash": manifest_hash,
         "evidence_hash": evidence_hash,
         "created": "now",
@@ -611,7 +612,7 @@ def test_ticket_without_counts_pin_rejected(tmp_path: Path, monkeypatch: pytest.
     with pytest.raises(ValueError, match="invalid gate ticket schema"):
         consume_ticket(
             ticket_path,
-            live_config_hash=canonical_hash({"config": harness["config"], "goldset_path": "toy", "runner_version": "v1"}),
+            live_config_hash=config_hash(harness["config"], goldset_path="toy", runner_version="v1"),
             ledger_path=Path(harness["ledger_path"]),
         )
     assert ticket_path.exists()
@@ -683,7 +684,7 @@ def test_copied_ticket_cannot_be_consumed_twice(tmp_path: Path, monkeypatch: pyt
     ticket_bytes = Path(harness["ticket_path"]).read_bytes()
     ticket_a.write_bytes(ticket_bytes)
     ticket_b.write_bytes(ticket_bytes)
-    live_config_hash = canonical_hash({"config": harness["config"], "goldset_path": "toy", "runner_version": "v1"})
+    live_config_hash = config_hash(harness["config"], goldset_path="toy", runner_version="v1")
 
     _, consumed, _ = consume_ticket(ticket_a, live_config_hash=live_config_hash, ledger_path=Path(harness["ledger_path"]))
     assert consumed == ledger_dir / "consumed-n-copied.json" and consumed.exists()
@@ -702,7 +703,7 @@ def test_concurrent_copies_yield_exactly_one_consumption(tmp_path: Path, monkeyp
     ticket_bytes = Path(harness["ticket_path"]).read_bytes()
     ticket_a.write_bytes(ticket_bytes)
     ticket_b.write_bytes(ticket_bytes)
-    live_config_hash = canonical_hash({"config": harness["config"], "goldset_path": "toy", "runner_version": "v1"})
+    live_config_hash = config_hash(harness["config"], goldset_path="toy", runner_version="v1")
     barrier = threading.Barrier(2)
     outcomes: list[object] = []
 
@@ -736,7 +737,7 @@ def test_partially_claimed_marker_blocks_consumption(tmp_path: Path, monkeypatch
     with pytest.raises(ValueError, match="already consumed"):
         consume_ticket(
             ticket_path,
-            live_config_hash=canonical_hash({"config": harness["config"], "goldset_path": "toy", "runner_version": "v1"}),
+            live_config_hash=config_hash(harness["config"], goldset_path="toy", runner_version="v1"),
             ledger_path=Path(harness["ledger_path"]),
         )
     assert ticket_path.exists()

@@ -26,6 +26,7 @@ from typing import Any, Callable
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from panella.resolver.calibrate import DEFAULT_PROBE_PATH, verify
+from panella.resolver.blocking import BLOCKING_RULES_HASH
 
 ROOT = Path(__file__).resolve().parents[2]
 LEDGER_PATH = ROOT / "eval/out/k1_gate_ledger.jsonl"
@@ -48,7 +49,7 @@ def file_hash(path: Path) -> str:
 
 
 def config_hash(config: dict[str, Any], *, goldset_path: str, runner_version: str) -> str:
-    return canonical_hash({"config": config, "goldset_path": goldset_path, "runner_version": runner_version})
+    return canonical_hash({"config": config, "goldset_path": goldset_path, "runner_version": runner_version, "blocking_rules_hash": BLOCKING_RULES_HASH})
 
 
 def _ledger_entries(path: Path) -> set[tuple[str, str]]:

@@ -62,7 +62,7 @@ def run(
     # Real transports (codex CLI subprocess) take seconds per call; the 1000ms default
     # only serves the instant hermetic fake — real runs must pass an explicit timeout_ms.
     engine = ResolverEngine(ResolverConfig(True, timeout_ms, bootstrap, bootstrap_hash, "bootstrap-only"), provider=provider)
-    budget = RunBudget(len(probes))
+    budget = RunBudget(2 * len(probes))
     rows: list[dict[str, Any]] = []
     for probe in probes:
         decision = engine.resolve(

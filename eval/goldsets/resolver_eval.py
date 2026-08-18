@@ -247,7 +247,7 @@ def pair_face(goldset: dict[str, Any], engine: ResolverEngine) -> dict[str, Any]
     """Resolve each case chronologically and apply the frozen derived classifier."""
     predictions: list[dict[str, str]] = []
     decisions: dict[tuple[str, str], Any] = {}
-    budget = RunBudget(sum(len(case["facts"]) for case in goldset["cases"]))
+    budget = RunBudget(2 * sum(len(case["facts"]) for case in goldset["cases"]))
     for case in goldset["cases"]:
         existing: list[ExistingSlot] = []
         facts = sorted(case["facts"], key=lambda fact: (fact["date"], fact["fact_id"]))
@@ -297,7 +297,7 @@ def reduce_item(item: GoldItem, candidates: list[PreferenceCandidate], decisions
 def extraction_face(items: list[GoldItem], extracted: dict[str, list[PreferenceCandidate]], engine: ResolverEngine) -> dict[str, Any]:
     """Adapt candidate keys through resolver decisions without mutating candidate properties."""
     contexts: dict[str, list[ExistingSlot]] = defaultdict(list)
-    budget = RunBudget(sum(len(value) for value in extracted.values()))
+    budget = RunBudget(2 * sum(len(value) for value in extracted.values()))
     categories: dict[str, str] = {}
     adapted: dict[str, list[PreferenceCandidate]] = {}
     wrong_bind_count = 0
