@@ -7,11 +7,14 @@ import hashlib
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Any, Mapping
+from dataclasses import dataclass
+from fractions import Fraction
+from typing import Any, Iterable, Mapping
 
 from eval.goldsets.key_correctness_eval import load_items
 from panella.resolver.blocking import assemble_blocking
-from panella.resolver.engine import ResolverEngine
+from panella.resolver.engine import ResolverEngine, prepare_guard
+from panella.resolver.registry import SlotRegistry, load_registry
 from panella.resolver.risk import compute_risk_evidence
 from panella.resolver.types import ExistingSlot, ResolveRequest, ResolverContext, RunBudget
 
@@ -177,21 +180,460 @@ def _run_pair() -> tuple[dict[str, Any], list[dict[str, Any]]]:
     }, [{"uid": uid, "slot_id": decision.slot_id} for uid, decision in det_hits]
 
 
+_PRODUCTION_CARDINALITIES = {"facts": 461, "pairs": 340, "sup_pairs": 80, "negative_pairs": 260}
+_INPUT_HASH_KEYS = (
+    "pair_goldset",
+    "candidates",
+    "extraction_source_items",
+    "extraction_source_fixture",
+    "retention_ledger",
+)
+_CORE_METRIC_KEYS = (
+    "negative_overlap",
+    "migration",
+    "overflow",
+    "empty_pair_face",
+    "empty_extraction_face",
+    "cohort",
+    "pool_size_distribution",
+)
+
+
+@dataclass(frozen=True)
+class DiagnosticInputs:
+    """All v2b inputs are explicit so tests can never fall through to real corpora."""
+
+    pair_goldset_path: Path
+    pair_goldset_sha256: str
+    candidate_path: Path
+    candidate_allowlist: frozenset[str]
+    extraction_source_items_path: Path
+    extraction_source_items_sha256: str
+    extraction_source_fixture_path: Path
+    extraction_source_fixture_sha256: str
+    retention_ledger_path: Path
+    retention_ledger_sha256: str
+    out_dir: Path
+    expected_cardinalities: Mapping[str, int]
+
+    def input_hashes(self) -> dict[str, str]:
+        return {
+            "pair_goldset": self.pair_goldset_sha256,
+            "candidates": _sha256(self.candidate_path),
+            "extraction_source_items": self.extraction_source_items_sha256,
+            "extraction_source_fixture": self.extraction_source_fixture_sha256,
+            "retention_ledger": self.retention_ledger_sha256,
+        }
+
+
+def _load_json(path: Path, *, label: str, expected_hash: str) -> Any:
+    if _sha256(path) != expected_hash:
+        raise ValueError(f"{label} hash does not match its pin")
+    try:
+        return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_reject_duplicate_keys)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{label} is malformed JSON") from exc
+
+
+def _require_cardinalities(observed: Mapping[str, int], expected: Mapping[str, int]) -> None:
+    if set(expected) != set(_PRODUCTION_CARDINALITIES) or any(
+        isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in expected.values()
+    ):
+        raise ValueError("expected cardinalities have an invalid schema")
+    if dict(observed) != dict(expected):
+        raise ValueError(f"diagnostic cardinality mismatch: observed={dict(observed)} expected={dict(expected)}")
+
+
+def _candidate_rows(inputs: DiagnosticInputs) -> dict[str, list[dict[str, Any]]]:
+    digest = _sha256(inputs.candidate_path)
+    if digest not in inputs.candidate_allowlist:
+        raise ValueError("candidate artifact hash is not allowlisted")
+    document = _load_json(inputs.candidate_path, label="candidate artifact", expected_hash=digest)
+    rows_by_uid = document.get("candidates") if isinstance(document, dict) else None
+    if not isinstance(rows_by_uid, dict) or not rows_by_uid:
+        raise ValueError("candidate artifact must contain a non-empty candidates mapping")
+    if document.get("n_items") != len(rows_by_uid):
+        raise ValueError("candidate artifact n_items does not match candidates")
+    if not all(isinstance(uid, str) and uid and isinstance(rows, list) for uid, rows in rows_by_uid.items()):
+        raise ValueError("candidate artifact has invalid uid rows")
+    return rows_by_uid
+
+
+def _request_from_candidate(uid: str, index: int, row: Mapping[str, Any]) -> ResolveRequest:
+    if row.get("source_sid") != uid:
+        raise ValueError("candidate row source_sid does not match its item uid")
+    candidate = row.get("candidate", row)
+    if not isinstance(candidate, Mapping):
+        raise ValueError("candidate row has no candidate mapping")
+    raw_domain = candidate.get("raw_domain", candidate.get("domain"))
+    evidence_text = candidate.get("evidence_text", candidate.get("evidence"))
+    if not all(isinstance(value, str) for value in (candidate.get("kind"), raw_domain, candidate.get("value"), evidence_text)):
+        raise ValueError("candidate row lacks resolver request fields")
+    effective_at = candidate.get("effective_at")
+    if effective_at is not None and not isinstance(effective_at, str):
+        raise ValueError("candidate effective_at must be a string or null")
+    return ResolveRequest(
+        f"{uid}/c{index}",
+        candidate["kind"],
+        raw_domain,
+        candidate["value"],
+        evidence_text,
+        effective_at,
+    )
+
+
+def _pair_requests(document: Mapping[str, Any]) -> tuple[list[ResolveRequest], list[dict[str, Any]]]:
+    cases = document.get("cases")
+    if not isinstance(cases, list):
+        raise ValueError("pair goldset must contain cases")
+    requests: list[ResolveRequest] = []
+    pairs: list[dict[str, Any]] = []
+    for case in cases:
+        if not isinstance(case, Mapping) or not isinstance(case.get("case_id"), str) or not isinstance(case.get("facts"), list) or not isinstance(case.get("pairs"), list):
+            raise ValueError("pair goldset case is malformed")
+        case_id = case["case_id"]
+        seen: set[str] = set()
+        for fact in case["facts"]:
+            if not isinstance(fact, Mapping) or not isinstance(fact.get("fact_id"), str) or not isinstance(fact.get("probe"), Mapping):
+                raise ValueError("pair goldset fact is malformed")
+            fact_id, probe = fact["fact_id"], fact["probe"]
+            if fact_id in seen or not all(isinstance(probe.get(name), str) for name in ("kind", "raw_domain", "value")) or not isinstance(fact.get("content"), str):
+                raise ValueError("pair goldset fact is invalid")
+            seen.add(fact_id)
+            requests.append(ResolveRequest(f"{case_id}/{fact_id}", probe["kind"], probe["raw_domain"], probe["value"], fact["content"], fact.get("date")))
+        for pair in case["pairs"]:
+            if not isinstance(pair, Mapping) or not isinstance(pair.get("earlier_id"), str) or not isinstance(pair.get("later_id"), str) or pair["earlier_id"] not in seen or pair["later_id"] not in seen:
+                raise ValueError("pair goldset pair is invalid")
+            pairs.append({"case_id": case_id, **dict(pair)})
+    return requests, pairs
+
+
+def _deterministic_row(request: ResolveRequest, registry: SlotRegistry, ledger_cases: Mapping[str, Any]) -> dict[str, Any]:
+    risk = compute_risk_evidence(request, registry)
+    prepared = prepare_guard(request, registry, risk)
+    target_id = prepared.target.slot_id if prepared.target is not None else None
+    ledger = ledger_cases.get(request.request_uid)
+    retained = isinstance(ledger, Mapping) and ledger.get("hit_slot") == target_id
+    return {"slot_id": target_id, "method": prepared.method if target_id is not None else "none", "guard_fired": prepared.guard_fired, "retention_ledger": retained}
+
+
+def _run_requests(
+    requests: Iterable[ResolveRequest], registry: SlotRegistry, ledger_cases: Mapping[str, Any], *, choice_set_k: int | None = None, theta: tuple[int, int] | None = None
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for request in requests:
+        risk = compute_risk_evidence(request, registry)
+        prepared = prepare_guard(request, registry, risk)
+        kwargs: dict[str, Any] = {}
+        if choice_set_k is not None:
+            kwargs["choice_set_k"] = choice_set_k
+        if theta is not None:
+            kwargs["theta"] = theta
+        blocked = assemble_blocking(
+            request,
+            registry,
+            risk,
+            guarded_target_id=prepared.target.slot_id if prepared.guard_fired and prepared.target is not None else None,
+            **kwargs,
+        )
+        rows[request.request_uid] = {
+            "request": request,
+            "risk_any": risk.any,
+            "receipt": blocked.receipt,
+            "forced_overflow": blocked.forced_overflow,
+            "det": _deterministic_row(request, registry, ledger_cases),
+        }
+    return rows, {"empty": sum(not row["receipt"].choice_set for row in rows.values()), "total": len(rows)}
+
+
+def _cohort_metrics(pairs: Iterable[Mapping[str, Any]], pair_rows: Mapping[str, Mapping[str, Any]]) -> tuple[dict[str, int], dict[str, Any]]:
+    cohort = {"both_det_same": 0, "det_diff": 0, "reachable": 0, "structural": 0}
+    mrr_num = Fraction(0, 1)
+    mrr_den = 0
+    for pair in pairs:
+        if pair.get("label") != "supersede":
+            continue
+        earlier = pair_rows[f"{pair['case_id']}/{pair['earlier_id']}"]
+        later = pair_rows[f"{pair['case_id']}/{pair['later_id']}"]
+        dets = [row for row in (earlier, later) if row["det"]["slot_id"] is not None and not row["det"]["guard_fired"]]
+        if len(dets) == 2:
+            if dets[0]["det"]["slot_id"] == dets[1]["det"]["slot_id"]:
+                cohort["both_det_same"] += 1
+            else:
+                cohort["det_diff"] += 1
+            continue
+        if len(dets) == 1:
+            mrr_den += 1
+            anchor = dets[0]["det"]["slot_id"]
+            missed = later if dets[0] is earlier else earlier
+            choices = missed["receipt"].choice_set
+            if anchor in choices:
+                cohort["reachable"] += 1
+                mrr_num += Fraction(1, choices.index(anchor) + 1)
+            else:
+                cohort["structural"] += 1
+            continue
+        if set(earlier["receipt"].choice_set) & set(later["receipt"].choice_set):
+            cohort["reachable"] += 1
+        else:
+            cohort["structural"] += 1
+    if not mrr_den:
+        return cohort, {"num": 0, "den": 0, "gold_source": "det_anchor_proxy"}
+    mrr = mrr_num / mrr_den
+    return cohort, {"num": mrr.numerator, "den": mrr.denominator, "gold_source": "det_anchor_proxy"}
+
+
+def _metrics(pair_rows: Mapping[str, Mapping[str, Any]], extraction_rows: Mapping[str, Mapping[str, Any]], pairs: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    pairs = list(pairs)
+    negative = [pair for pair in pairs if pair.get("label") != "supersede"]
+    overlap = sum(
+        bool(set(pair_rows[f"{pair['case_id']}/{pair['earlier_id']}"]["receipt"].choice_set) & set(pair_rows[f"{pair['case_id']}/{pair['later_id']}"]["receipt"].choice_set))
+        for pair in negative
+    )
+    all_rows = [*pair_rows.values(), *extraction_rows.values()]
+    cohort, mrr = _cohort_metrics(pairs, pair_rows)
+    return {
+        "negative_overlap": {"n": overlap, "d": len(negative)},
+        "migration": {"n": sum(row["receipt"].slice == "hr" and not row["risk_any"] for row in pair_rows.values()), "d": len(pair_rows)},
+        "overflow": {"n": sum(row["forced_overflow"] for row in pair_rows.values()), "d": len(pair_rows)},
+        "empty_pair_face": {"n": sum(not row["receipt"].choice_set for row in pair_rows.values()), "d": len(pair_rows)},
+        "empty_extraction_face": {"n": sum(not row["receipt"].choice_set for row in extraction_rows.values()), "d": len(extraction_rows)},
+        "cohort": cohort,
+        "det_miss_recall": {"n": cohort["reachable"], "d": cohort["reachable"] + cohort["structural"]},
+        "det_anchor_mrr": mrr,
+        "pool_size_distribution": {str(size): count for size, count in sorted(Counter(len(row["receipt"].choice_set) for row in all_rows).items())},
+    }
+
+
+def _is_count(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def _validate_core_metrics(metrics: Any, *, expected_cardinalities: Mapping[str, int]) -> None:
+    if not isinstance(metrics, Mapping) or set(metrics) != set(_CORE_METRIC_KEYS):
+        raise ValueError("baseline bundle metrics are invalid")
+    for name in ("negative_overlap", "migration", "overflow", "empty_pair_face", "empty_extraction_face"):
+        value = metrics[name]
+        if not isinstance(value, Mapping) or set(value) != {"n", "d"} or not _is_count(value["n"]) or not _is_count(value["d"]) or value["n"] > value["d"]:
+            raise ValueError(f"baseline bundle {name} metric is invalid")
+    if (
+        metrics["negative_overlap"]["d"] != expected_cardinalities["negative_pairs"]
+        or metrics["migration"]["d"] != expected_cardinalities["facts"]
+        or metrics["overflow"]["d"] != expected_cardinalities["facts"]
+        or metrics["empty_pair_face"]["d"] != expected_cardinalities["facts"]
+    ):
+        raise ValueError("baseline bundle fixed pair denominator mismatch")
+    cohort = metrics["cohort"]
+    if not isinstance(cohort, Mapping) or set(cohort) != {"both_det_same", "det_diff", "reachable", "structural"} or not all(_is_count(value) for value in cohort.values()) or sum(cohort.values()) != expected_cardinalities["sup_pairs"]:
+        raise ValueError("baseline bundle cohort metric is invalid")
+    pool = metrics["pool_size_distribution"]
+    if not isinstance(pool, Mapping) or not pool or not all(isinstance(key, str) and key.isdecimal() and _is_count(value) for key, value in pool.items()):
+        raise ValueError("baseline bundle pool-size distribution is invalid")
+
+
+def _validate_baseline_bundle(bundle: Any, *, input_hashes: Mapping[str, str], registry_hash: str, expected_cardinalities: Mapping[str, int]) -> dict[str, Any]:
+    if not isinstance(bundle, Mapping) or set(bundle) != {"c1_merged", "cbfd01c"}:
+        raise ValueError("baseline bundle must contain exactly c1_merged and cbfd01c")
+    c1 = bundle["c1_merged"]
+    if not isinstance(c1, Mapping) or set(c1) != {"commit", "registry_hash", "produced_by", "description_remediation_commit", "input_hashes", "deterministic_by_uid", "metrics"}:
+        raise ValueError("baseline bundle c1_merged has an invalid schema")
+    if not all(isinstance(c1[name], str) and c1[name] for name in ("commit", "registry_hash", "produced_by", "description_remediation_commit")):
+        raise ValueError("baseline bundle c1_merged provenance is invalid")
+    if c1["registry_hash"] != registry_hash or c1["input_hashes"] != dict(input_hashes):
+        raise ValueError("baseline bundle c1_merged identity mismatch")
+    if not isinstance(c1["deterministic_by_uid"], Mapping):
+        raise ValueError("baseline bundle deterministic map is invalid")
+    _validate_core_metrics(c1["metrics"], expected_cardinalities=expected_cardinalities)
+    cbfd = bundle["cbfd01c"]
+    if not isinstance(cbfd, Mapping) or "commit" not in cbfd or not isinstance(cbfd["commit"], str) or not cbfd["commit"]:
+        raise ValueError("baseline bundle cbfd01c is invalid")
+    if set(cbfd) == {"commit", "absent"}:
+        if not isinstance(cbfd["absent"], str) or not cbfd["absent"]:
+            raise ValueError("baseline bundle cbfd01c absent reason is invalid")
+    elif set(cbfd) == {"commit", "metrics"}:
+        _validate_core_metrics(cbfd["metrics"], expected_cardinalities=expected_cardinalities)
+    else:
+        raise ValueError("baseline bundle cbfd01c has an invalid schema")
+    return dict(bundle)
+
+
+def build_baseline(
+    inputs: DiagnosticInputs, *, registry: SlotRegistry | None = None, commit: str, produced_by: str, description_remediation_commit: str
+) -> dict[str, Any]:
+    """Create the c1 v1 baseline only; no v2 score helper is imported on this path."""
+    pair_doc = _load_json(inputs.pair_goldset_path, label="pair goldset", expected_hash=inputs.pair_goldset_sha256)
+    source_items = _load_json(inputs.extraction_source_items_path, label="extraction source items", expected_hash=inputs.extraction_source_items_sha256)
+    _load_json(inputs.extraction_source_fixture_path, label="extraction source fixture", expected_hash=inputs.extraction_source_fixture_sha256)
+    ledger = _load_json(inputs.retention_ledger_path, label="retention ledger", expected_hash=inputs.retention_ledger_sha256)
+    if not isinstance(pair_doc, Mapping) or not isinstance(source_items, (list, Mapping)) or not isinstance(ledger, Mapping) or not isinstance(ledger.get("cases"), list):
+        raise ValueError("diagnostic inputs have an invalid shape")
+    pair_requests, pairs = _pair_requests(pair_doc)
+    candidates = _candidate_rows(inputs)
+    source_uids = {item.item_id for item in load_items(inputs.extraction_source_items_path, inputs.extraction_source_fixture_path)}
+    if set(candidates) != source_uids:
+        raise ValueError("candidate item set is not an exact bijection to the pinned source items")
+    ledger_cases = {item.get("request_uid"): item for item in ledger["cases"] if isinstance(item, Mapping) and isinstance(item.get("request_uid"), str)}
+    if len(ledger_cases) != len(ledger["cases"]):
+        raise ValueError("retention ledger has invalid cases")
+    extraction_requests = [_request_from_candidate(uid, index, row) for uid, rows in candidates.items() for index, row in enumerate(rows)]
+    observed = {"facts": len(pair_requests), "pairs": len(pairs), "sup_pairs": sum(pair.get("label") == "supersede" for pair in pairs), "negative_pairs": sum(pair.get("label") != "supersede" for pair in pairs)}
+    _require_cardinalities(observed, inputs.expected_cardinalities)
+    live_registry = registry or load_registry()
+    pair_rows, _ = _run_requests(pair_requests, live_registry, ledger_cases)
+    extraction_rows, _ = _run_requests(extraction_requests, live_registry, ledger_cases)
+    metrics = _metrics(pair_rows, extraction_rows, pairs)
+    deterministic_by_uid = {uid: row["det"] for uid, row in sorted({**pair_rows, **extraction_rows}.items())}
+    return {
+        "commit": commit,
+        "registry_hash": live_registry.content_hash,
+        "produced_by": produced_by,
+        "description_remediation_commit": description_remediation_commit,
+        "input_hashes": inputs.input_hashes(),
+        "deterministic_by_uid": deterministic_by_uid,
+        "metrics": {name: metrics[name] for name in _CORE_METRIC_KEYS},
+    }
+
+
+def _rate_at_most(value: Mapping[str, int], baseline: Mapping[str, int], *, allowance_num: int, allowance_den: int) -> bool:
+    n, d, bn, bd = value["n"], value["d"], baseline["n"], baseline["d"]
+    return d > 0 and bd > 0 and allowance_den * n * bd <= allowance_den * bn * d + allowance_num * bd * d
+
+
+def _theta_sort_key(theta: tuple[int, int]) -> Fraction:
+    if len(theta) != 2 or theta[0] <= 0 or theta[1] <= 0:
+        raise ValueError("theta must be a positive rational pair")
+    return Fraction(theta[0], theta[1])
+
+
+def evaluate_predicates(metrics: Mapping[str, Any], baseline_metrics: Mapping[str, Any], *, det_zero_delta: bool) -> dict[str, bool]:
+    """Evaluate frozen sweep predicates using only integer cross multiplication."""
+    negative = _rate_at_most(metrics["negative_overlap"], baseline_metrics["negative_overlap"], allowance_num=1, allowance_den=50)
+    migration = _rate_at_most(metrics["migration"], baseline_metrics["migration"], allowance_num=1, allowance_den=50)
+    overflow = metrics["overflow"]["d"] > 0 and metrics["overflow"]["n"] * baseline_metrics["overflow"]["d"] <= baseline_metrics["overflow"]["n"] * metrics["overflow"]["d"]
+    pollution = metrics["pollution"]["d"] > 0 and 4 * metrics["pollution"]["n"] <= metrics["pollution"]["d"]
+    return {"negative_overlap_ok": negative, "migration_ok": migration, "overflow_ok": overflow, "pollution_ok": pollution, "det_zero_delta_ok": det_zero_delta, "feasible": negative and migration and overflow and pollution and det_zero_delta}
+
+
+def select_grid(cells: list[dict[str, Any]]) -> tuple[dict[str, int | tuple[int, int]] | None, list[str]]:
+    """Select maximum recall, then smaller K, then greater θ; all comparisons are rational."""
+    ordered = sorted(cells, key=lambda cell: (cell["k"], _theta_sort_key(tuple(cell["theta"]))))
+    trace: list[str] = []
+    viable = []
+    for cell in ordered:
+        predicates = cell["predicates"]
+        failed = next((name for name in ("negative_overlap_ok", "migration_ok", "overflow_ok", "pollution_ok", "det_zero_delta_ok") if not predicates[name]), None)
+        predicates["first_failure"] = failed
+        if failed is None:
+            viable.append(cell)
+        else:
+            trace.append(f"reject k={cell['k']} theta={cell['theta']}: {failed}")
+    if not viable:
+        return None, trace
+    chosen = viable[0]
+    for cell in viable[1:]:
+        lhs, rhs = cell["metrics"]["det_miss_recall"], chosen["metrics"]["det_miss_recall"]
+        better = lhs["n"] * rhs["d"] > rhs["n"] * lhs["d"] if lhs["d"] and rhs["d"] else lhs["d"] > rhs["d"]
+        tied = lhs["n"] * rhs["d"] == rhs["n"] * lhs["d"] if lhs["d"] and rhs["d"] else lhs["d"] == rhs["d"]
+        if better or (tied and (cell["k"] < chosen["k"] or (cell["k"] == chosen["k"] and _theta_sort_key(tuple(cell["theta"])) > _theta_sort_key(tuple(chosen["theta"]))))):
+            chosen = cell
+    trace.append(f"select k={chosen['k']} theta={chosen['theta']}")
+    return {"k": chosen["k"], "theta": tuple(chosen["theta"])}, trace
+
+
+def sweep_document(*, baseline_bundle: Mapping[str, Any], baseline_bundle_sha256: str, input_hashes: Mapping[str, str], cells: list[dict[str, Any]], produced_at_commit: str) -> dict[str, Any]:
+    """Materialize the frozen v2b schema from already measured hermetic or chief-run cells."""
+    selected, trace = select_grid(cells)
+    return {"schema_version": "v2b-sweep-1", "produced_at_commit": produced_at_commit, "baseline_bundle_sha256": baseline_bundle_sha256, "input_hashes": dict(input_hashes), "cells": sorted(cells, key=lambda cell: (cell["k"], _theta_sort_key(tuple(cell["theta"])))), "selected_grid": selected, "selection_trace": trace}
+
+
+def build_sweep_cells(inputs: DiagnosticInputs, baseline_bundle: Mapping[str, Any], *, registry: SlotRegistry | None = None) -> list[dict[str, Any]]:
+    """Run the frozen v2 grid.  The score-v2 import is intentionally isolated here.
+
+    This route is unavailable until P2 supplies score_components; baseline generation
+    above therefore remains executable against the shipped v1 blocker.
+    """
+    from panella.resolver.blocking import score_components  # P2-only function-level dependency.
+
+    live_registry = registry or load_registry()
+    bundle = _validate_baseline_bundle(baseline_bundle, input_hashes=inputs.input_hashes(), registry_hash=live_registry.content_hash, expected_cardinalities=inputs.expected_cardinalities)
+    pair_doc = _load_json(inputs.pair_goldset_path, label="pair goldset", expected_hash=inputs.pair_goldset_sha256)
+    ledger = _load_json(inputs.retention_ledger_path, label="retention ledger", expected_hash=inputs.retention_ledger_sha256)
+    if not isinstance(pair_doc, Mapping) or not isinstance(ledger, Mapping) or not isinstance(ledger.get("cases"), list):
+        raise ValueError("diagnostic inputs have an invalid shape")
+    pair_requests, pairs = _pair_requests(pair_doc)
+    candidates = _candidate_rows(inputs)
+    source_uids = {item.item_id for item in load_items(inputs.extraction_source_items_path, inputs.extraction_source_fixture_path)}
+    if set(candidates) != source_uids:
+        raise ValueError("candidate item set is not an exact bijection to the pinned source items")
+    ledger_cases = {item.get("request_uid"): item for item in ledger["cases"] if isinstance(item, Mapping) and isinstance(item.get("request_uid"), str)}
+    extraction_requests = [_request_from_candidate(uid, index, row) for uid, rows in candidates.items() for index, row in enumerate(rows)]
+    observed = {"facts": len(pair_requests), "pairs": len(pairs), "sup_pairs": sum(pair.get("label") == "supersede" for pair in pairs), "negative_pairs": sum(pair.get("label") != "supersede" for pair in pairs)}
+    _require_cardinalities(observed, inputs.expected_cardinalities)
+    cells: list[dict[str, Any]] = []
+    for k in (8, 12, 16):
+        for theta in sorted(((3, 20), (1, 5), (3, 10)), key=_theta_sort_key):
+            pair_rows, _ = _run_requests(pair_requests, live_registry, ledger_cases, choice_set_k=k, theta=theta)
+            extraction_rows, _ = _run_requests(extraction_requests, live_registry, ledger_cases, choice_set_k=k, theta=theta)
+            live_det = {uid: row["det"] for uid, row in sorted({**pair_rows, **extraction_rows}.items())}
+            metrics = _metrics(pair_rows, extraction_rows, pairs)
+            pollution_n = pollution_d = 0
+            for row in [*pair_rows.values(), *extraction_rows.values()]:
+                receipt = row["receipt"]
+                forced_ids = receipt.forced_ids
+                cand_tokens = row.get("candidate_tokens", None)
+                if cand_tokens is None:
+                    from panella.resolver.blocking import request_candidate_tokens
+                    cand_tokens = request_candidate_tokens(row["request"])
+                for slot_id in receipt.choice_set[len(forced_ids):]:
+                    pollution_d += 1
+                    if score_components(live_registry.by_id[slot_id], cand_tokens)[0] == 0:
+                        pollution_n += 1
+            metrics["pollution"] = {"n": pollution_n, "d": pollution_d}
+            predicates = evaluate_predicates(metrics, bundle["c1_merged"]["metrics"], det_zero_delta=live_det == bundle["c1_merged"]["deterministic_by_uid"])
+            cells.append({"k": k, "theta": list(theta), "metrics": metrics, "predicates": predicates})
+    return cells
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--candidates", type=Path)
+    parser.add_argument("--baseline-out", type=Path)
+    parser.add_argument("--baseline-bundle", type=Path)
+    parser.add_argument("--sweep-out", type=Path)
+    parser.add_argument("--produced-by")
+    parser.add_argument("--commit")
+    parser.add_argument("--description-remediation-commit")
     args = parser.parse_args(argv)
-    if args.candidates is not None:
-        _load_candidates(args.candidates)
-    report, _ = _run_pair()
-    unresolved = report["pair_classification"].get("unresolved_semantic", 0) > 0
-    retention = report["det"]["retention"]
-    passed = not unresolved and retention["pass"] and retention["approved_remap_eliminated"]
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    out = OUT_DIR / "resolver_blocking_diag_v2a.json"
-    out.write_text(json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
-    print(json.dumps({"output": str(out), "pass": passed}, separators=(",", ":")))
-    return 0 if passed else 1
+    if args.sweep_out is not None:
+        if args.candidates is None or args.baseline_bundle is None or not args.commit:
+            raise SystemExit("--sweep-out requires --candidates, --baseline-bundle, and --commit")
+        inputs = DiagnosticInputs(PAIR_GOLDSET, PAIR_GOLDSET_SHA256, args.candidates, CANDIDATE_HASH_ALLOWLIST, EXTRACTION_SOURCES["source_items"], _sha256(EXTRACTION_SOURCES["source_items"]), EXTRACTION_SOURCES["source_fixture"], _sha256(EXTRACTION_SOURCES["source_fixture"]), LEDGER_PATH, _sha256(LEDGER_PATH), args.sweep_out.parent, _PRODUCTION_CARDINALITIES)
+        raw_bundle = args.baseline_bundle.read_bytes()
+        bundle = json.loads(raw_bundle)
+        cells = build_sweep_cells(inputs, bundle)
+        document = sweep_document(baseline_bundle=bundle, baseline_bundle_sha256=hashlib.sha256(raw_bundle).hexdigest(), input_hashes=inputs.input_hashes(), cells=cells, produced_at_commit=args.commit)
+        args.sweep_out.write_text(json.dumps(document, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+        print(json.dumps({"output": str(args.sweep_out), "selected_grid": document["selected_grid"]}, separators=(",", ":")))
+        return 0 if document["selected_grid"] is not None else 1
+    if args.baseline_out is None:
+        if args.candidates is not None:
+            _load_candidates(args.candidates)
+        report, _ = _run_pair()
+        unresolved = report["pair_classification"].get("unresolved_semantic", 0) > 0
+        retention = report["det"]["retention"]
+        passed = not unresolved and retention["pass"] and retention["approved_remap_eliminated"]
+        OUT_DIR.mkdir(parents=True, exist_ok=True)
+        out = OUT_DIR / "resolver_blocking_diag_v2a.json"
+        out.write_text(json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+        print(json.dumps({"output": str(out), "pass": passed}, separators=(",", ":")))
+        return 0 if passed else 1
+    if args.candidates is None or not all((args.produced_by, args.commit, args.description_remediation_commit)):
+        raise SystemExit("--baseline-out requires --candidates, --produced-by, --commit, and --description-remediation-commit")
+    inputs = DiagnosticInputs(PAIR_GOLDSET, PAIR_GOLDSET_SHA256, args.candidates, CANDIDATE_HASH_ALLOWLIST, EXTRACTION_SOURCES["source_items"], _sha256(EXTRACTION_SOURCES["source_items"]), EXTRACTION_SOURCES["source_fixture"], _sha256(EXTRACTION_SOURCES["source_fixture"]), LEDGER_PATH, _sha256(LEDGER_PATH), args.baseline_out.parent, _PRODUCTION_CARDINALITIES)
+    baseline = build_baseline(inputs, commit=args.commit, produced_by=args.produced_by, description_remediation_commit=args.description_remediation_commit)
+    args.baseline_out.write_text(json.dumps({"c1_merged": baseline}, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+    print(json.dumps({"output": str(args.baseline_out)}, separators=(",", ":")))
+    return 0
 
 
 if __name__ == "__main__":

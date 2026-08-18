@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from .blocking import assemble_blocking
 from .escalation import requires_hr_escalation
 from .normalize import NORMALIZER_VERSION, normalizer_rules_hash, resolver_normalize
-from .registry import MIN_REGISTRY_SLOTS, PINNED_REGISTRY_HASH, SlotRegistry, load_registry
+from .registry import MIN_REGISTRY_SLOTS, PINNED_REGISTRY_HASH, RegistrySlot, SlotRegistry, load_registry
 from .risk import compute_risk_evidence
 from .types import (
     BlockingReceipt,
@@ -31,6 +31,35 @@ from .types import (
 
 RESOLVER_CODE_VERSION = "1.0.0"
 MIN_CAL_SAMPLES = {"benign": 50, "hr": 30}
+
+
+@dataclass(frozen=True)
+class GuardPreparation:
+    """The deterministic target and whether it must be replayed through blocking."""
+
+    target: RegistrySlot | None
+    method: str
+    guard_fired: bool
+
+
+def prepare_guard(
+    request: ResolveRequest, registry: SlotRegistry, risk_evidence: RiskEvidence
+) -> GuardPreparation:
+    """Apply the resolver's deterministic lookup and escalation preparation exactly once."""
+    normalized = resolver_normalize(request.raw_domain)
+    target = registry.by_id.get(f"{request.kind}:{normalized}")
+    method = "exact"
+    if target is None:
+        # Cross-kind aliases are deliberate: extractor kind coercion is noisy, while registry kind is canonical.
+        # High-risk slots allow only exact original-surface aliases; risk-evidence escalation remains the backstop.
+        target = registry.alias_raw.get(request.raw_domain)
+        method = "alias"
+    if target is None:
+        folded_target = registry.alias_folded.get(normalized)
+        if folded_target is not None and not folded_target.high_risk:
+            target = folded_target
+            method = "alias"
+    return GuardPreparation(target, method, requires_hr_escalation(target, risk_evidence))
 
 
 @dataclass(frozen=True)
@@ -263,20 +292,8 @@ class ResolverEngine:
             raise ValueError("duplicate request_uid in run budget")
         budget.seen_uids.add(request.request_uid)
         risk_evidence = compute_risk_evidence(request, self.registry)
-        normalized = resolver_normalize(request.raw_domain)
-        target = self.registry.by_id.get(f"{request.kind}:{normalized}")
-        method = "exact"
-        if target is None:
-            # Cross-kind aliases are deliberate: extractor kind coercion is noisy, while registry kind is canonical.
-            # High-risk slots allow only exact original-surface aliases; risk-evidence escalation remains the backstop.
-            target = self.registry.alias_raw.get(request.raw_domain)
-            method = "alias"
-        if target is None:
-            folded_target = self.registry.alias_folded.get(normalized)
-            if folded_target is not None and not folded_target.high_risk:
-                target = folded_target
-                method = "alias"
-        guard_fired = requires_hr_escalation(target, risk_evidence)
+        guard = prepare_guard(request, self.registry, risk_evidence)
+        target, method, guard_fired = guard.target, guard.method, guard.guard_fired
         if target is not None and not guard_fired:
             return self._resolved(
                 target.slot_id,

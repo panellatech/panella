@@ -23,6 +23,7 @@ from panella.resolver import (
     TransportAttempt,
 )
 from panella.resolver.blocking import CHOICE_SET_K, assemble_blocking
+from panella.resolver.engine import prepare_guard
 from panella.resolver.normalize import NORMALIZER_VERSION, compute_normalizer_rules_hash, normalizer_rules_hash, resolver_normalize
 from panella.resolver.registry import (
     PINNED_REGISTRY_HASH,
@@ -92,7 +93,11 @@ def test_deterministic_pass_for_empty_risk_and_escalation_for_other_hr_evidence(
     raw_domain: str, value: str, expected_guard: bool
 ) -> None:
     engine = ResolverEngine()
-    decision = engine.resolve(request(raw_domain=raw_domain, value=value), ResolverContext(()), RunBudget(1))
+    probe = request(raw_domain=raw_domain, value=value)
+    prepared = prepare_guard(probe, engine.registry, compute_risk_evidence(probe, engine.registry))
+    decision = engine.resolve(probe, ResolverContext(()), RunBudget(1))
+    assert prepared.guard_fired is expected_guard
+    assert prepared.target is not None and prepared.target.slot_id == "fact:employer"
     assert decision.guard_fired is expected_guard
     if expected_guard:
         assert decision.action == "ABSTAIN_ADD"

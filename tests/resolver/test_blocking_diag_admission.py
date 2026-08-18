@@ -1,13 +1,21 @@
-"""Hermetic admission tests for the diag candidate-artifact gate (c1-e2.1)."""
+"""Hermetic coverage for the v2b blocking diagnostic seam and selection contract."""
 
 from __future__ import annotations
 
+import hashlib
 import json
+from dataclasses import replace
+from types import MappingProxyType, SimpleNamespace
 
 import pytest
 
 from eval.goldsets import resolver_blocking_diag as diag
 from eval.goldsets.key_correctness_eval import load_items
+from panella.resolver.registry import RegistrySlot, SlotRegistry
+
+
+def _hash(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _fake_artifact(tmp_path, **overrides):
@@ -122,3 +130,248 @@ def test_main_exit_and_report_pass_cover_every_pair_face(
 
     assert diag.main([]) == expected_exit
     assert json.loads(capsys.readouterr().out)["pass"] is (expected_exit == 0)
+
+
+def _registry() -> SlotRegistry:
+    slot = RegistrySlot(
+        "preference:sport", "preference", "sport", "sport updates", False, (), (), (), None, "test", ()
+    )
+    return SlotRegistry("test", (slot,), "r" * 64, "s" * 64, "t" * 64, MappingProxyType({slot.slot_id: slot}), MappingProxyType({}), MappingProxyType({}))
+
+
+def _inputs(tmp_path):
+    pair = {
+        "cases": [{
+            "case_id": "case",
+            "facts": [
+                {"fact_id": "f1", "probe": {"kind": "preference", "raw_domain": "sports", "value": "daily"}, "content": "daily sports", "date": "2026-01-01"},
+                {"fact_id": "f2", "probe": {"kind": "preference", "raw_domain": "unmapped", "value": "sports"}, "content": "sports", "date": "2026-01-02"},
+                {"fact_id": "f3", "probe": {"kind": "preference", "raw_domain": "unmapped_two", "value": "sports"}, "content": "sports", "date": "2026-01-03"},
+            ],
+            "pairs": [
+                {"earlier_id": "f1", "later_id": "f2", "label": "supersede"},
+                {"earlier_id": "f2", "later_id": "f3", "label": "supersede"},
+                {"earlier_id": "f1", "later_id": "f3", "label": "unrelated"},
+            ],
+        }]
+    }
+    candidates = {"n_items": 1, "candidates": {"item": [{"source_sid": "item", "kind": "preference", "raw_domain": "unmapped", "value": "", "evidence_text": ""}]}}
+    ledger = {"cases": [{"request_uid": "case/f1", "hit_slot": "preference:sport", "initial_state": "must_retain_correct"}]}
+    paths = {}
+    for name, document in {"pair": pair, "candidates": candidates, "items": {"extra_items": [{"id": "item", "text": "synthetic source"}]}, "fixture": {"lifecycles": []}, "ledger": ledger}.items():
+        path = tmp_path / f"{name}.json"
+        path.write_text(json.dumps(document), encoding="utf-8")
+        paths[name] = path
+    return diag.DiagnosticInputs(
+        paths["pair"], _hash(paths["pair"]), paths["candidates"], frozenset({_hash(paths["candidates"])}),
+        paths["items"], _hash(paths["items"]), paths["fixture"], _hash(paths["fixture"]),
+        paths["ledger"], _hash(paths["ledger"]), tmp_path / "out",
+        {"facts": 3, "pairs": 3, "sup_pairs": 2, "negative_pairs": 1},
+    )
+
+
+def _bundle(inputs, baseline):
+    return {"c1_merged": baseline, "cbfd01c": {"commit": "cbfd01c", "absent": "historical baseline unavailable"}}
+
+
+def _cohort_row(slot_id, choice_set, *, guard_fired=False):
+    return {
+        "det": {"slot_id": slot_id, "guard_fired": guard_fired},
+        "receipt": SimpleNamespace(choice_set=choice_set),
+    }
+
+
+def test_zero_deterministic_pair_with_intersection_is_reachable():
+    pairs = [{"case_id": "case", "earlier_id": "earlier", "later_id": "later", "label": "supersede"}]
+    rows = {
+        "case/earlier": _cohort_row(None, ("shared", "earlier-only")),
+        "case/later": _cohort_row(None, ("shared", "later-only")),
+    }
+
+    cohort, mrr = diag._cohort_metrics(pairs, rows)
+
+    assert cohort == {"both_det_same": 0, "det_diff": 0, "reachable": 1, "structural": 0}
+    assert mrr == {"num": 0, "den": 0, "gold_source": "det_anchor_proxy"}
+
+
+def test_zero_deterministic_pair_without_intersection_is_structural():
+    pairs = [{"case_id": "case", "earlier_id": "earlier", "later_id": "later", "label": "supersede"}]
+    rows = {
+        "case/earlier": _cohort_row(None, ("earlier-only",)),
+        "case/later": _cohort_row(None, ("later-only",)),
+    }
+
+    cohort, _ = diag._cohort_metrics(pairs, rows)
+
+    assert cohort == {"both_det_same": 0, "det_diff": 0, "reachable": 0, "structural": 1}
+
+
+def test_deterministic_anchor_mrr_is_mean_reciprocal_rank():
+    pairs = [
+        {"case_id": "case", "earlier_id": "one-anchor", "later_id": "one-missed", "label": "supersede"},
+        {"case_id": "case", "earlier_id": "two-anchor", "later_id": "two-missed", "label": "supersede"},
+    ]
+    rows = {
+        "case/one-anchor": _cohort_row("one", ()),
+        "case/one-missed": _cohort_row(None, ("one",)),
+        "case/two-anchor": _cohort_row("two", ()),
+        "case/two-missed": _cohort_row(None, ("other", "two")),
+    }
+
+    cohort, mrr = diag._cohort_metrics(pairs, rows)
+
+    assert cohort == {"both_det_same": 0, "det_diff": 0, "reachable": 2, "structural": 0}
+    assert mrr == {"num": 3, "den": 4, "gold_source": "det_anchor_proxy"}
+
+
+def test_core_metrics_rejects_incomplete_cohort_partition():
+    metrics = {
+        "negative_overlap": {"n": 0, "d": 1},
+        "migration": {"n": 0, "d": 2},
+        "overflow": {"n": 0, "d": 2},
+        "empty_pair_face": {"n": 0, "d": 2},
+        "empty_extraction_face": {"n": 0, "d": 1},
+        "cohort": {"both_det_same": 1, "det_diff": 0, "reachable": 0, "structural": 0},
+        "pool_size_distribution": {"0": 3},
+    }
+
+    with pytest.raises(ValueError, match="cohort"):
+        diag._validate_core_metrics(metrics, expected_cardinalities={"facts": 2, "pairs": 2, "sup_pairs": 2, "negative_pairs": 1})
+
+
+@pytest.mark.parametrize("metric", ("migration", "overflow"))
+def test_core_metrics_requires_pair_face_denominator(metric):
+    metrics = {
+        "negative_overlap": {"n": 0, "d": 1},
+        "migration": {"n": 0, "d": 2},
+        "overflow": {"n": 0, "d": 2},
+        "empty_pair_face": {"n": 0, "d": 2},
+        "empty_extraction_face": {"n": 0, "d": 1},
+        "cohort": {"both_det_same": 2, "det_diff": 0, "reachable": 0, "structural": 0},
+        "pool_size_distribution": {"0": 3},
+    }
+    metrics[metric]["d"] = 3
+
+    with pytest.raises(ValueError, match="denominator"):
+        diag._validate_core_metrics(metrics, expected_cardinalities={"facts": 2, "pairs": 2, "sup_pairs": 2, "negative_pairs": 1})
+
+
+def test_migration_and_overflow_metrics_exclude_extraction_face():
+    pair_rows = {
+        "pair": {
+            "receipt": SimpleNamespace(slice="hr", choice_set=()),
+            "risk_any": False,
+            "forced_overflow": False,
+        }
+    }
+    extraction_rows = {
+        "extraction": {
+            "receipt": SimpleNamespace(slice="hr", choice_set=()),
+            "risk_any": False,
+            "forced_overflow": True,
+        }
+    }
+
+    metrics = diag._metrics(pair_rows, extraction_rows, [])
+
+    assert metrics["migration"] == {"n": 1, "d": 1}
+    assert metrics["overflow"] == {"n": 0, "d": 1}
+    assert metrics["pool_size_distribution"] == {"0": 2}
+
+
+def _cell(k=8, theta=(3, 20), *, recall=(1, 2), pollution=(0, 1), predicates=None):
+    base = {
+        "negative_overlap": {"n": 0, "d": 1}, "migration": {"n": 0, "d": 4}, "overflow": {"n": 0, "d": 4},
+        "pollution": {"n": pollution[0], "d": pollution[1]}, "empty_pair_face": {"n": 0, "d": 3}, "empty_extraction_face": {"n": 1, "d": 1},
+        "cohort": {"both_det_same": 0, "det_diff": 0, "reachable": recall[0], "structural": recall[1] - recall[0]},
+        "det_miss_recall": {"n": recall[0], "d": recall[1]}, "det_anchor_mrr": {"num": 1, "den": 1, "gold_source": "det_anchor_proxy"}, "pool_size_distribution": {"0": 1, "1": 3},
+    }
+    return {"k": k, "theta": list(theta), "metrics": base, "predicates": predicates or {"negative_overlap_ok": True, "migration_ok": True, "overflow_ok": True, "pollution_ok": True, "det_zero_delta_ok": True, "feasible": True}}
+
+
+def test_baseline_is_hermetic_and_replays_guarded_target(tmp_path):
+    inputs = _inputs(tmp_path)
+    baseline = diag.build_baseline(inputs, registry=_registry(), commit="c1", produced_by="chief", description_remediation_commit="c0")
+    assert baseline["metrics"]["cohort"] == {"both_det_same": 0, "det_diff": 0, "reachable": 2, "structural": 0}
+    assert baseline["metrics"]["migration"]["d"] == inputs.expected_cardinalities["facts"]
+    assert baseline["metrics"]["overflow"]["d"] == inputs.expected_cardinalities["facts"]
+    assert "det_miss_recall" not in baseline["metrics"]
+    assert baseline["metrics"]["empty_extraction_face"] == {"n": 1, "d": 1}
+    assert baseline["deterministic_by_uid"]["case/f1"]["retention_ledger"] is True
+
+
+def test_baseline_out_cli_runs_against_v1_with_temp_output(tmp_path, monkeypatch):
+    inputs = _inputs(tmp_path)
+    monkeypatch.setattr(diag, "PAIR_GOLDSET", inputs.pair_goldset_path)
+    monkeypatch.setattr(diag, "PAIR_GOLDSET_SHA256", inputs.pair_goldset_sha256)
+    monkeypatch.setattr(diag, "EXTRACTION_SOURCES", {"source_items": inputs.extraction_source_items_path, "source_fixture": inputs.extraction_source_fixture_path})
+    monkeypatch.setattr(diag, "LEDGER_PATH", inputs.retention_ledger_path)
+    monkeypatch.setattr(diag, "CANDIDATE_HASH_ALLOWLIST", inputs.candidate_allowlist)
+    monkeypatch.setattr(diag, "_PRODUCTION_CARDINALITIES", dict(inputs.expected_cardinalities))
+    monkeypatch.setattr(diag, "load_registry", _registry)
+    output = tmp_path / "baseline.json"
+    assert diag.main(["--candidates", str(inputs.candidate_path), "--baseline-out", str(output), "--produced-by", "chief", "--commit", "c1", "--description-remediation-commit", "c0"]) == 0
+    assert set(json.loads(output.read_text(encoding="utf-8"))) == {"c1_merged"}
+
+
+def test_cardinality_and_candidate_source_sid_fail_closed(tmp_path):
+    inputs = _inputs(tmp_path)
+    with pytest.raises(ValueError, match="cardinality"):
+        diag.build_baseline(
+            replace(inputs, expected_cardinalities={"facts": 4, "pairs": 3, "sup_pairs": 2, "negative_pairs": 1}),
+            registry=_registry(), commit="c1", produced_by="chief", description_remediation_commit="c0",
+        )
+    document = json.loads(inputs.candidate_path.read_text(encoding="utf-8"))
+    document["candidates"]["item"][0]["source_sid"] = "wrong"
+    inputs.candidate_path.write_text(json.dumps(document), encoding="utf-8")
+    bad = replace(inputs, candidate_allowlist=frozenset({_hash(inputs.candidate_path)}))
+    with pytest.raises(ValueError, match="source_sid"):
+        diag.build_baseline(bad, registry=_registry(), commit="c1", produced_by="chief", description_remediation_commit="c0")
+
+
+def test_baseline_bundle_two_cbfd_forms_and_fail_closed_validation(tmp_path):
+    inputs = _inputs(tmp_path)
+    baseline = diag.build_baseline(inputs, registry=_registry(), commit="c1", produced_by="chief", description_remediation_commit="c0")
+    absent = _bundle(inputs, baseline)
+    assert diag._validate_baseline_bundle(absent, input_hashes=inputs.input_hashes(), registry_hash="r" * 64, expected_cardinalities=inputs.expected_cardinalities)["c1_merged"] == baseline
+    present = _bundle(inputs, baseline)
+    present["cbfd01c"] = {"commit": "cbfd01c", "metrics": baseline["metrics"]}
+    diag._validate_baseline_bundle(present, input_hashes=inputs.input_hashes(), registry_hash="r" * 64, expected_cardinalities=inputs.expected_cardinalities)
+    broken = _bundle(inputs, baseline)
+    broken["unknown"] = True
+    with pytest.raises(ValueError, match="exactly"):
+        diag._validate_baseline_bundle(broken, input_hashes=inputs.input_hashes(), registry_hash="r" * 64, expected_cardinalities=inputs.expected_cardinalities)
+    broken = _bundle(inputs, baseline)
+    broken["c1_merged"] = dict(baseline, registry_hash="wrong")
+    with pytest.raises(ValueError, match="identity"):
+        diag._validate_baseline_bundle(broken, input_hashes=inputs.input_hashes(), registry_hash="r" * 64, expected_cardinalities=inputs.expected_cardinalities)
+    broken = _bundle(inputs, baseline)
+    broken["c1_merged"] = dict(baseline, metrics=dict(baseline["metrics"], negative_overlap={"n": 0, "d": 99}))
+    with pytest.raises(ValueError, match="denominator"):
+        diag._validate_baseline_bundle(broken, input_hashes=inputs.input_hashes(), registry_hash="r" * 64, expected_cardinalities=inputs.expected_cardinalities)
+
+
+def test_cross_multiplied_predicates_and_theta_order():
+    baseline = {"negative_overlap": {"n": 1, "d": 50}, "migration": {"n": 0, "d": 50}, "overflow": {"n": 1, "d": 50}}
+    metrics = {"negative_overlap": {"n": 2, "d": 50}, "migration": {"n": 1, "d": 50}, "overflow": {"n": 1, "d": 50}, "pollution": {"n": 1, "d": 4}}
+    assert diag.evaluate_predicates(metrics, baseline, det_zero_delta=True)["feasible"] is True
+    assert diag._theta_sort_key((3, 20)) < diag._theta_sort_key((1, 5))
+    assert diag._theta_sort_key((3, 20)) < diag._theta_sort_key((3, 10))
+
+
+def test_selection_schema_failure_order_tie_break_and_infeasible_cell(tmp_path):
+    failed = _cell(predicates={"negative_overlap_ok": True, "migration_ok": False, "overflow_ok": False, "pollution_ok": False, "det_zero_delta_ok": False, "feasible": False})
+    lower_theta = _cell(theta=(3, 20), recall=(1, 2))
+    higher_theta = _cell(theta=(1, 5), recall=(1, 2))
+    selected, trace = diag.select_grid([failed, lower_theta, higher_theta])
+    assert failed["predicates"]["first_failure"] == "migration_ok"
+    assert selected == {"k": 8, "theta": (1, 5)}
+    assert trace[0].endswith("migration_ok")
+    impossible = _cell(pollution=(0, 0), predicates={"negative_overlap_ok": True, "migration_ok": True, "overflow_ok": True, "pollution_ok": False, "det_zero_delta_ok": True, "feasible": False})
+    assert diag.select_grid([impossible])[0] is None
+    document = diag.sweep_document(baseline_bundle={"c1_merged": {}}, baseline_bundle_sha256="a" * 64, input_hashes={name: "b" * 64 for name in diag._INPUT_HASH_KEYS}, cells=[failed, lower_theta, higher_theta], produced_at_commit="c2")
+    assert set(document) == {"schema_version", "produced_at_commit", "baseline_bundle_sha256", "input_hashes", "cells", "selected_grid", "selection_trace"}
+    assert set(document["cells"][0]) == {"k", "theta", "metrics", "predicates"}
+    assert set(document["cells"][0]["metrics"]) == {"negative_overlap", "migration", "overflow", "pollution", "empty_pair_face", "empty_extraction_face", "cohort", "det_miss_recall", "det_anchor_mrr", "pool_size_distribution"}
+    assert set(document["cells"][0]["predicates"]) == {"negative_overlap_ok", "migration_ok", "overflow_ok", "pollution_ok", "det_zero_delta_ok", "feasible", "first_failure"}
+    assert document["cells"][-1]["predicates"]["first_failure"] is None
