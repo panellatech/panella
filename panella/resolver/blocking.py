@@ -6,27 +6,39 @@ import hashlib
 import json
 from dataclasses import dataclass
 from fractions import Fraction
+from typing import Literal
 
 from .blocking_constants import BLOCKING_STOPWORDS, SCORING_DROP
 from .normalize import resolver_normalize
 from .registry import RegistrySlot, SlotRegistry
 from .types import BlockingReceipt, ResolveRequest, RiskEvidence, SlotView
 
-CHOICE_SET_K = 8  # sweep seed — NOT frozen; chief freezes via follow-up commit after the K1-c §4.4 sweep (selection evidence required)
+V1_CHOICE_SET_K = 8
+CHOICE_SET_K = 8  # v2-instrument sweep seed — NOT a production setting.
 THETA = (3, 20)  # sweep seed — NOT frozen; chief freezes via follow-up commit after the K1-c §4.4 sweep (selection evidence required)
 MAX_FORCED = 8  # frozen; sole overflow anchor (E2); decoupled from CHOICE_SET_K
 
 
-def blocking_rules_canonical(k: int, theta: tuple[int, int]) -> str:
+def blocking_v2_instrument_rules_canonical(k: int, theta: tuple[int, int]) -> str:
     """Return the frozen content-addressed blocking-rules representation."""
     return json.dumps({"choice_set_k": k, "max_forced": MAX_FORCED, "theta": list(theta), "weights": [3, 2, 1], "blocking_stopwords": sorted(BLOCKING_STOPWORDS), "trigram": {"n": 3, "framing": "^$"}}, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def blocking_rules_hash_for(k: int, theta: tuple[int, int]) -> str:
-    return hashlib.sha256(blocking_rules_canonical(k, theta).encode("utf-8")).hexdigest()
+def blocking_v2_instrument_rules_hash_for(k: int, theta: tuple[int, int]) -> str:
+    return hashlib.sha256(blocking_v2_instrument_rules_canonical(k, theta).encode("utf-8")).hexdigest()
 
 
-BLOCKING_RULES_HASH = blocking_rules_hash_for(CHOICE_SET_K, THETA)
+def blocking_v1_operative_rules_canonical() -> str:
+    """Return the canonical description of the production v1 blocker."""
+    return json.dumps({"scoring": "v1-operative", "choice_set_k": 8, "max_forced": 8, "candidate_surfaces": ["raw_domain", "value", "evidence_text"], "weights": [3, 2, 1], "token_filter": "resolver_normalize-only", "blocking_terms": False, "trigram": False, "eligibility": "score>0", "ordering": ["score desc", "slot_id asc"], "forced_prefix": True, "slice_rule": "hr iff risk.any or choice-set contains high_risk"}, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def blocking_v1_operative_rules_hash() -> str:
+    return hashlib.sha256(blocking_v1_operative_rules_canonical().encode("utf-8")).hexdigest()
+
+
+# The production binding is intentionally v1-only.  v2 hashes belong solely to diagnostic artifacts.
+BLOCKING_RULES_HASH = blocking_v1_operative_rules_hash()
 
 
 @dataclass(frozen=True)
@@ -38,6 +50,18 @@ class BlockingResult:
 
 def _tokens(value: str) -> set[str]:
     return set(filter(None, resolver_normalize(value).split("_")))
+
+
+def _slot_score(slot: RegistrySlot, candidate_tokens: set[str]) -> int:
+    """Return the original v1 3/2/1 surface-overlap score."""
+    domain_tokens = _tokens(slot.domain)
+    alias_tokens = set().union(*(_tokens(alias) for alias in slot.aliases)) if slot.aliases else set()
+    description_tokens = _tokens(slot.description)
+    return (
+        3 * len(candidate_tokens & domain_tokens)
+        + 2 * len(candidate_tokens & alias_tokens)
+        + len(candidate_tokens & description_tokens)
+    )
 
 
 def request_candidate_tokens(request: ResolveRequest) -> set[str]:
@@ -64,22 +88,54 @@ def _choice_hash(choice_set: tuple[str, ...]) -> str:
     return hashlib.sha256("\n".join(choice_set).encode("utf-8")).hexdigest()
 
 
-def assemble_blocking(request: ResolveRequest, registry: SlotRegistry, risk_evidence: RiskEvidence, guarded_target_id: str | None = None, *, choice_set_k: int = CHOICE_SET_K, theta: tuple[int, int] = THETA) -> BlockingResult:
+def assemble_blocking(
+    request: ResolveRequest,
+    registry: SlotRegistry,
+    risk_evidence: RiskEvidence,
+    guarded_target_id: str | None = None,
+    *,
+    scoring_mode: Literal["v1", "v2_instrument"] = "v1",
+    choice_set_k: int | None = None,
+    theta: tuple[int, int] | None = None,
+) -> BlockingResult:
     """Build the forced-first K1 choice set and receipt without side effects."""
+    if scoring_mode == "v1":
+        if choice_set_k is not None or theta is not None:
+            raise ValueError("v1 scoring does not accept instrument parameters")
+    elif scoring_mode == "v2_instrument":
+        if choice_set_k is None or theta is None:
+            raise ValueError("v2_instrument scoring requires choice_set_k and theta")
+    else:
+        raise ValueError(f"unsupported blocking scoring mode: {scoring_mode}")
+
     forced = tuple(sorted(set(risk_evidence.matched_hr_slot_ids) | ({guarded_target_id} if guarded_target_id else set())))
     if len(forced) > MAX_FORCED:
         receipt = BlockingReceipt(forced, _choice_hash(forced), "hr", forced)
         return BlockingResult(receipt, (), True)
-    candidate_tokens = request_candidate_tokens(request)
-    ranked = []
-    for slot in registry.slots:
-        if slot.slot_id in forced:
-            continue
-        a, b_num, b_den = score_components(slot, candidate_tokens)
-        if a > 0 or b_num * theta[1] >= b_den * theta[0]:
-            ranked.append((a, b_num, b_den, slot.slot_id))
-    ranked.sort(key=lambda item: (-item[0], -Fraction(item[1], item[2] or 1), item[3]))
-    choice_ids = forced + tuple(slot_id for _, _, _, slot_id in ranked[: choice_set_k - len(forced)])
+
+    if scoring_mode == "v1":
+        candidate_tokens = _tokens(request.raw_domain) | _tokens(request.value) | _tokens(request.evidence_text)
+        ranked = sorted(
+            (
+                (score, slot.slot_id)
+                for slot in registry.slots
+                if slot.slot_id not in forced
+                if (score := _slot_score(slot, candidate_tokens)) > 0
+            ),
+            key=lambda item: (-item[0], item[1]),
+        )
+        choice_ids = forced + tuple(slot_id for _, slot_id in ranked[: V1_CHOICE_SET_K - len(forced)])
+    elif scoring_mode == "v2_instrument":
+        candidate_tokens = request_candidate_tokens(request)
+        ranked_v2 = []
+        for slot in registry.slots:
+            if slot.slot_id in forced:
+                continue
+            a, b_num, b_den = score_components(slot, candidate_tokens)
+            if a > 0 or b_num * theta[1] >= b_den * theta[0]:
+                ranked_v2.append((a, b_num, b_den, slot.slot_id))
+        ranked_v2.sort(key=lambda item: (-item[0], -Fraction(item[1], item[2] or 1), item[3]))
+        choice_ids = forced + tuple(slot_id for _, _, _, slot_id in ranked_v2[: choice_set_k - len(forced)])
     choice_slots = tuple(registry.by_id[slot_id] for slot_id in choice_ids)
     slice_name = "hr" if risk_evidence.any or any(slot.high_risk for slot in choice_slots) else "benign"
     receipt = BlockingReceipt(choice_ids, _choice_hash(choice_ids), slice_name, forced)

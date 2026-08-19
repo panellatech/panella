@@ -286,7 +286,7 @@ def _cell(k=8, theta=(3, 20), *, recall=(1, 2), pollution=(0, 1), predicates=Non
         "cohort": {"both_det_same": 0, "det_diff": 0, "reachable": recall[0], "structural": recall[1] - recall[0]},
         "det_miss_recall": {"n": recall[0], "d": recall[1]}, "det_anchor_mrr": {"num": 1, "den": 1, "gold_source": "det_anchor_proxy"}, "pool_size_distribution": {"0": 1, "1": 3},
     }
-    return {"k": k, "theta": list(theta), "metrics": base, "predicates": predicates or {"negative_overlap_ok": True, "migration_ok": True, "overflow_ok": True, "pollution_ok": True, "det_zero_delta_ok": True, "feasible": True}}
+    return {"k": k, "theta": list(theta), "v2_instrument_rules_hash": diag.blocking_v2_instrument_rules_hash_for(k, theta), "metrics": base, "predicates": predicates or {"negative_overlap_ok": True, "migration_ok": True, "overflow_ok": True, "pollution_ok": True, "det_zero_delta_ok": True, "feasible": True}}
 
 
 def test_baseline_is_hermetic_and_replays_guarded_target(tmp_path):
@@ -370,8 +370,24 @@ def test_selection_schema_failure_order_tie_break_and_infeasible_cell(tmp_path):
     impossible = _cell(pollution=(0, 0), predicates={"negative_overlap_ok": True, "migration_ok": True, "overflow_ok": True, "pollution_ok": False, "det_zero_delta_ok": True, "feasible": False})
     assert diag.select_grid([impossible])[0] is None
     document = diag.sweep_document(baseline_bundle={"c1_merged": {}}, baseline_bundle_sha256="a" * 64, input_hashes={name: "b" * 64 for name in diag._INPUT_HASH_KEYS}, cells=[failed, lower_theta, higher_theta], produced_at_commit="c2")
-    assert set(document) == {"schema_version", "produced_at_commit", "baseline_bundle_sha256", "input_hashes", "cells", "selected_grid", "selection_trace"}
-    assert set(document["cells"][0]) == {"k", "theta", "metrics", "predicates"}
+    assert set(document) == {"schema_version", "v1_operative_rules_hash", "produced_at_commit", "baseline_bundle_sha256", "input_hashes", "cells", "selected_grid", "selection_trace"}
+    assert document["schema_version"] == "v2b-sweep-2"
+    assert document["v1_operative_rules_hash"] == diag.blocking_v1_operative_rules_hash()
+    assert set(document["cells"][0]) == {"k", "theta", "v2_instrument_rules_hash", "metrics", "predicates"}
+    assert document["cells"][0]["v2_instrument_rules_hash"] == diag.blocking_v2_instrument_rules_hash_for(8, (3, 20))
     assert set(document["cells"][0]["metrics"]) == {"negative_overlap", "migration", "overflow", "pollution", "empty_pair_face", "empty_extraction_face", "cohort", "det_miss_recall", "det_anchor_mrr", "pool_size_distribution"}
     assert set(document["cells"][0]["predicates"]) == {"negative_overlap_ok", "migration_ok", "overflow_ok", "pollution_ok", "det_zero_delta_ok", "feasible", "first_failure"}
     assert document["cells"][-1]["predicates"]["first_failure"] is None
+
+
+def test_sweep_document_rejects_a_cell_with_a_mismatched_instrument_hash():
+    cell = _cell()
+    cell["v2_instrument_rules_hash"] = "0" * 64
+    with pytest.raises(ValueError, match="instrument rules hash"):
+        diag.sweep_document(
+            baseline_bundle={"c1_merged": {}},
+            baseline_bundle_sha256="a" * 64,
+            input_hashes={name: "b" * 64 for name in diag._INPUT_HASH_KEYS},
+            cells=[cell],
+            produced_at_commit="c2",
+        )

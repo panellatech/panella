@@ -9,10 +9,14 @@ from collections import Counter
 from pathlib import Path
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Literal, Mapping
 
 from eval.goldsets.key_correctness_eval import load_items
-from panella.resolver.blocking import assemble_blocking
+from panella.resolver.blocking import (
+    assemble_blocking,
+    blocking_v1_operative_rules_hash,
+    blocking_v2_instrument_rules_hash_for,
+)
 from panella.resolver.engine import ResolverEngine, prepare_guard
 from panella.resolver.registry import SlotRegistry, load_registry
 from panella.resolver.risk import compute_risk_evidence
@@ -121,7 +125,7 @@ def _resolve_pair_goldset() -> tuple[
             request = ResolveRequest(uid, probe["kind"], probe["raw_domain"], probe["value"], fact["content"], fact["date"])
             decision = engine.resolve(request, ResolverContext(tuple(existing)), budget)
             decisions[(case["case_id"], fact["fact_id"])] = decision
-            choice_sets[(case["case_id"], fact["fact_id"])] = assemble_blocking(request, engine.registry, compute_risk_evidence(request, engine.registry)).receipt.choice_set
+            choice_sets[(case["case_id"], fact["fact_id"])] = assemble_blocking(request, engine.registry, compute_risk_evidence(request, engine.registry), scoring_mode="v1").receipt.choice_set
             if decision.action in {"BIND", "ADD"}:
                 existing.append(ExistingSlot(decision.slot_id or "", fact["date"]))
     return goldset, decisions, choice_sets
@@ -318,7 +322,7 @@ def _deterministic_row(request: ResolveRequest, registry: SlotRegistry, ledger_c
 
 
 def _run_requests(
-    requests: Iterable[ResolveRequest], registry: SlotRegistry, ledger_cases: Mapping[str, Any], *, choice_set_k: int | None = None, theta: tuple[int, int] | None = None
+    requests: Iterable[ResolveRequest], registry: SlotRegistry, ledger_cases: Mapping[str, Any], *, scoring_mode: Literal["v1", "v2_instrument"], choice_set_k: int | None = None, theta: tuple[int, int] | None = None
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
     rows: dict[str, dict[str, Any]] = {}
     for request in requests:
@@ -334,6 +338,7 @@ def _run_requests(
             registry,
             risk,
             guarded_target_id=prepared.target.slot_id if prepared.guard_fired and prepared.target is not None else None,
+            scoring_mode=scoring_mode,
             **kwargs,
         )
         rows[request.request_uid] = {
@@ -479,8 +484,8 @@ def build_baseline(
     observed = {"facts": len(pair_requests), "pairs": len(pairs), "sup_pairs": sum(pair.get("label") == "supersede" for pair in pairs), "negative_pairs": sum(pair.get("label") != "supersede" for pair in pairs)}
     _require_cardinalities(observed, inputs.expected_cardinalities)
     live_registry = registry or load_registry()
-    pair_rows, _ = _run_requests(pair_requests, live_registry, ledger_cases)
-    extraction_rows, _ = _run_requests(extraction_requests, live_registry, ledger_cases)
+    pair_rows, _ = _run_requests(pair_requests, live_registry, ledger_cases, scoring_mode="v1")
+    extraction_rows, _ = _run_requests(extraction_requests, live_registry, ledger_cases, scoring_mode="v1")
     metrics = _metrics(pair_rows, extraction_rows, pairs)
     deterministic_by_uid = {uid: row["det"] for uid, row in sorted({**pair_rows, **extraction_rows}.items())}
     return {
@@ -542,8 +547,15 @@ def select_grid(cells: list[dict[str, Any]]) -> tuple[dict[str, int | tuple[int,
 
 def sweep_document(*, baseline_bundle: Mapping[str, Any], baseline_bundle_sha256: str, input_hashes: Mapping[str, str], cells: list[dict[str, Any]], produced_at_commit: str) -> dict[str, Any]:
     """Materialize the frozen v2b schema from already measured hermetic or chief-run cells."""
+    for cell in cells:
+        k, theta = cell.get("k"), cell.get("theta")
+        if not isinstance(k, int) or isinstance(k, bool) or not isinstance(theta, list) or len(theta) != 2:
+            raise ValueError("sweep cell has an invalid instrument grid")
+        expected_hash = blocking_v2_instrument_rules_hash_for(k, tuple(theta))
+        if cell.get("v2_instrument_rules_hash") != expected_hash:
+            raise ValueError("sweep cell v2 instrument rules hash does not match its grid")
     selected, trace = select_grid(cells)
-    return {"schema_version": "v2b-sweep-1", "produced_at_commit": produced_at_commit, "baseline_bundle_sha256": baseline_bundle_sha256, "input_hashes": dict(input_hashes), "cells": sorted(cells, key=lambda cell: (cell["k"], _theta_sort_key(tuple(cell["theta"])))), "selected_grid": selected, "selection_trace": trace}
+    return {"schema_version": "v2b-sweep-2", "v1_operative_rules_hash": blocking_v1_operative_rules_hash(), "produced_at_commit": produced_at_commit, "baseline_bundle_sha256": baseline_bundle_sha256, "input_hashes": dict(input_hashes), "cells": sorted(cells, key=lambda cell: (cell["k"], _theta_sort_key(tuple(cell["theta"])))), "selected_grid": selected, "selection_trace": trace}
 
 
 def build_sweep_cells(inputs: DiagnosticInputs, baseline_bundle: Mapping[str, Any], *, registry: SlotRegistry | None = None) -> list[dict[str, Any]]:
@@ -572,8 +584,8 @@ def build_sweep_cells(inputs: DiagnosticInputs, baseline_bundle: Mapping[str, An
     cells: list[dict[str, Any]] = []
     for k in (8, 12, 16):
         for theta in sorted(((3, 20), (1, 5), (3, 10)), key=_theta_sort_key):
-            pair_rows, _ = _run_requests(pair_requests, live_registry, ledger_cases, choice_set_k=k, theta=theta)
-            extraction_rows, _ = _run_requests(extraction_requests, live_registry, ledger_cases, choice_set_k=k, theta=theta)
+            pair_rows, _ = _run_requests(pair_requests, live_registry, ledger_cases, scoring_mode="v2_instrument", choice_set_k=k, theta=theta)
+            extraction_rows, _ = _run_requests(extraction_requests, live_registry, ledger_cases, scoring_mode="v2_instrument", choice_set_k=k, theta=theta)
             live_det = {uid: row["det"] for uid, row in sorted({**pair_rows, **extraction_rows}.items())}
             metrics = _metrics(pair_rows, extraction_rows, pairs)
             pollution_n = pollution_d = 0
@@ -590,7 +602,7 @@ def build_sweep_cells(inputs: DiagnosticInputs, baseline_bundle: Mapping[str, An
                         pollution_n += 1
             metrics["pollution"] = {"n": pollution_n, "d": pollution_d}
             predicates = evaluate_predicates(metrics, bundle["c1_merged"]["metrics"], det_zero_delta=live_det == bundle["c1_merged"]["deterministic_by_uid"])
-            cells.append({"k": k, "theta": list(theta), "metrics": metrics, "predicates": predicates})
+            cells.append({"k": k, "theta": list(theta), "v2_instrument_rules_hash": blocking_v2_instrument_rules_hash_for(k, theta), "metrics": metrics, "predicates": predicates})
     return cells
 
 

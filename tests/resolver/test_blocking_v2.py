@@ -11,8 +11,10 @@ from panella.resolver.blocking import (
     MAX_FORCED,
     THETA,
     assemble_blocking,
-    blocking_rules_canonical,
-    blocking_rules_hash_for,
+    blocking_v1_operative_rules_canonical,
+    blocking_v1_operative_rules_hash,
+    blocking_v2_instrument_rules_canonical,
+    blocking_v2_instrument_rules_hash_for,
     request_candidate_tokens,
     score_components,
 )
@@ -31,19 +33,39 @@ def test_reference_vectors_and_canonical_hash_sensitivity() -> None:
     note = replace(slot, domain="notetaking", aliases=(), description="")
     assert score_components(note, {"note"})[1:] == (6, 14)
     assert score_components(replace(slot, domain="cat"), {"dog"})[1:] == (0, 6)
-    assert '"choice_set_k":8' in blocking_rules_canonical(8, (3, 20))
-    assert blocking_rules_hash_for(CHOICE_SET_K, THETA) == BLOCKING_RULES_HASH
-    assert blocking_rules_hash_for(8, (3, 20)) != blocking_rules_hash_for(12, (3, 20))
-    assert blocking_rules_hash_for(8, (3, 20)) != blocking_rules_hash_for(8, (1, 5))
+    assert '"choice_set_k":8' in blocking_v2_instrument_rules_canonical(8, (3, 20))
+    assert blocking_v2_instrument_rules_hash_for(8, (3, 20)) != blocking_v2_instrument_rules_hash_for(12, (3, 20))
+    assert blocking_v2_instrument_rules_hash_for(8, (3, 20)) != blocking_v2_instrument_rules_hash_for(8, (1, 5))
+    assert blocking_v1_operative_rules_hash() == BLOCKING_RULES_HASH
+    assert blocking_v1_operative_rules_hash() != blocking_v2_instrument_rules_hash_for(CHOICE_SET_K, THETA)
+    assert blocking_v1_operative_rules_canonical() == ('{"blocking_terms":false,"candidate_surfaces":["raw_domain","value","evidence_text"],"choice_set_k":8,"eligibility":"score>0","forced_prefix":true,"max_forced":8,"ordering":["score desc","slot_id asc"],"scoring":"v1-operative","slice_rule":"hr iff risk.any or choice-set contains high_risk","token_filter":"resolver_normalize-only","trigram":false,"weights":[3,2,1]}')
+    assert blocking_v1_operative_rules_hash() == "7f1d3f106109b24710a54b1374f4b3b27dac65bd9d574a229fa8dac76f1ff993"
+    assert blocking_v2_instrument_rules_hash_for(8, (3, 20)) == "17e37dcc4c10d2f2cc86a5bdf1a7a3f38c2af7b4be9cbc3bf1d82bafcedfedc4"
+
+
+def test_v1_default_locks_original_surface_scoring_and_ordering() -> None:
+    registry = load_registry()
+    result = assemble_blocking(request("v1-lock", "streaming", "", ""), registry, RiskEvidence((), False, False))
+    assert result.receipt.choice_set == ("preference:streaming_subscription",)
+    assert result.receipt.forced_ids == ()
+
+
+def test_scoring_mode_parameter_contract_fails_closed() -> None:
+    registry = load_registry()
+    risk = RiskEvidence((), False, False)
+    with pytest.raises(ValueError, match="v1 scoring"):
+        assemble_blocking(request("v1-instrument-args"), registry, risk, choice_set_k=8)
+    with pytest.raises(ValueError, match="v2_instrument scoring"):
+        assemble_blocking(request("v2-missing-instrument-args"), registry, risk, scoring_mode="v2_instrument", choice_set_k=8)
 
 
 @pytest.mark.parametrize("k", (8, 12, 16))
 def test_forced_overflow_is_decoupled_from_choice_set_k(k: int) -> None:
     registry = load_registry()
     ids = tuple(slot.slot_id for slot in registry.slots[: MAX_FORCED + 1])
-    result = assemble_blocking(request(f"overflow-{k}"), registry, RiskEvidence(ids, True, True), choice_set_k=k, theta=(3, 20))
+    result = assemble_blocking(request(f"overflow-{k}"), registry, RiskEvidence(ids, True, True), scoring_mode="v2_instrument", choice_set_k=k, theta=(3, 20))
     assert result.forced_overflow and len(result.receipt.forced_ids) == MAX_FORCED + 1
-    exact = assemble_blocking(request(f"exact-{k}", value=" ".join(slot.domain for slot in registry.slots)), registry, RiskEvidence(ids[:MAX_FORCED], True, True), choice_set_k=k, theta=(3, 20))
+    exact = assemble_blocking(request(f"exact-{k}", value=" ".join(slot.domain for slot in registry.slots)), registry, RiskEvidence(ids[:MAX_FORCED], True, True), scoring_mode="v2_instrument", choice_set_k=k, theta=(3, 20))
     assert not exact.forced_overflow and exact.receipt.forced_ids == tuple(sorted(ids[:MAX_FORCED]))
     if k == 8:
         assert len(exact.receipt.choice_set) == 8
@@ -53,10 +75,10 @@ def test_forced_overflow_is_decoupled_from_choice_set_k(k: int) -> None:
 
 def test_empty_set_and_forced_prefix_use_explicit_sweep_values() -> None:
     registry = load_registry()
-    empty = assemble_blocking(request("empty"), registry, RiskEvidence((), False, False), choice_set_k=8, theta=(3, 20))
+    empty = assemble_blocking(request("empty"), registry, RiskEvidence((), False, False), scoring_mode="v2_instrument", choice_set_k=8, theta=(3, 20))
     assert empty.receipt.choice_set == () and empty.receipt.forced_ids == ()
     risk = compute_risk_evidence(request("forced", value="allergic"), registry)
-    blocked = assemble_blocking(request("forced", value="allergic"), registry, risk, choice_set_k=8, theta=(3, 20))
+    blocked = assemble_blocking(request("forced", value="allergic"), registry, risk, scoring_mode="v2_instrument", choice_set_k=8, theta=(3, 20))
     assert blocked.receipt.choice_set[: len(blocked.receipt.forced_ids)] == blocked.receipt.forced_ids
 
 
