@@ -22,7 +22,13 @@ from panella.resolver import (
     RunBudget,
     TransportAttempt,
 )
-from panella.resolver.blocking import BLOCKING_RULES_HASH, CHOICE_SET_K, MAX_FORCED, assemble_blocking
+from panella.resolver.blocking import (
+    BLOCKING_RULES_HASH,
+    MAX_FORCED,
+    V2_INSTRUMENT_SEED_K,
+    assemble_blocking,
+    blocking_v2_instrument_rules_hash_for,
+)
 from panella.resolver.engine import RESOLVER_CODE_VERSION, prepare_guard
 from panella.resolver.normalize import NORMALIZER_VERSION, compute_normalizer_rules_hash, normalizer_rules_hash, resolver_normalize
 from panella.resolver.registry import (
@@ -157,6 +163,7 @@ def test_short_circuit_hr_alias_propagates_risk_with_llm_disabled() -> None:
         (dataclasses.replace(valid_manifest(), model_id="different-model"), "evidence", "model_id"),
         (valid_manifest(), "different-evidence", "evidence_hash"),
         (valid_manifest(), None, "evidence_hash"),
+        (dataclasses.replace(valid_manifest(), blocking_rules_hash=blocking_v2_instrument_rules_hash_for(V2_INSTRUMENT_SEED_K, (3, 20))), "evidence", "blocking_rules_hash"),
     ),
 )
 def test_manifest_component_mismatch_disables_llm_and_preserves_high_risk(
@@ -304,6 +311,29 @@ def test_budget_row_has_no_receipts() -> None:
     assert decision.blocking_receipt is None and decision.llm_receipt is None
 
 
+@pytest.mark.parametrize("remaining", (0, 1))
+def test_enabled_llm_requires_two_reserved_logical_legs(remaining: int) -> None:
+    engine, provider = llm_engine(FallbackSuggestion("preference:code_editor", 1.0, (TransportAttempt("ok", 1),)))
+    budget = RunBudget(2, calls_made=2 - remaining)
+
+    decision = engine.resolve(request(uid=f"budget-{remaining}"), ResolverContext(()), budget)
+
+    assert decision.fallback_outcome == "not_attempted_budget_exhausted"
+    assert budget.calls_made == 2 - remaining
+    assert provider.calls == 0
+
+
+def test_enabled_llm_enters_with_two_reserved_logical_legs() -> None:
+    engine, provider = llm_engine(FallbackSuggestion("preference:code_editor", 1.0, (TransportAttempt("ok", 1),)))
+    budget = RunBudget(2)
+
+    decision = engine.resolve(request(uid="budget-two"), ResolverContext(()), budget)
+
+    assert decision.fallback_outcome == "selected"
+    assert budget.calls_made == 1
+    assert provider.calls == 1
+
+
 def test_upgraded_global_disabled_and_budget_rows_short_circuit_before_blocking() -> None:
     upgraded = request(uid="guard-global", raw_domain="employer", value="allergic")
     disabled = ResolverEngine().resolve(upgraded, ResolverContext(()), RunBudget(2))
@@ -350,6 +380,33 @@ def test_upgraded_slice_disabled_row_preserves_guard_and_receipt() -> None:
     assert decision.guard_fired is True
     assert decision.fallback_outcome == "not_attempted_disabled"
     assert decision.blocking_receipt is not None and decision.llm_receipt is None
+
+
+def test_pure_hr_top_up_requires_both_calibration_components() -> None:
+    manifest = valid_manifest()
+    disabled_hr = dataclasses.replace(manifest, slices={"benign": manifest.slices["benign"], "hr": CalibrationSlice(0, (), (), 0.0)})
+    provider = FakeProvider(FallbackSuggestion("fact:medical_allergy", 0.5, (TransportAttempt("ok", 1),)))
+    engine = ResolverEngine(ResolverConfig(True, 20, disabled_hr, canonical_manifest_hash(disabled_hr), "evidence"), provider=provider)
+
+    decision = engine.resolve(request(uid="pure-hr-missing", raw_domain="unmapped", value="medical_allergy"), ResolverContext(()), RunBudget(2))
+
+    assert decision.fallback_outcome == "not_attempted_disabled"
+    assert decision.disabled_reason == "tau_applied_component_unavailable"
+    assert decision.blocking_receipt is not None and decision.blocking_receipt.slice == "hr"
+    assert decision.llm_receipt is None and provider.calls == 0
+
+
+def test_pure_hr_top_up_uses_the_stricter_of_both_taus() -> None:
+    benign = CalibrationSlice(50, (50, 0, 0, 0, 0, 0, 0, 0, 0, 0), ((0.0, 1.0, 0.8),), 0.8)
+    hr = CalibrationSlice(30, (0, 0, 0, 0, 0, 30, 0, 0, 0, 0), ((0.0, 0.5, 0.5), (0.5, 1.0, 0.6)), 0.5)
+    manifest = dataclasses.replace(valid_manifest(), slices={"benign": benign, "hr": hr})
+    provider = FakeProvider(FallbackSuggestion("fact:medical_allergy", 0.5, (TransportAttempt("ok", 1),)))
+    engine = ResolverEngine(ResolverConfig(True, 20, manifest, canonical_manifest_hash(manifest), "evidence"), provider=provider)
+
+    decision = engine.resolve(request(uid="pure-hr-max-tau", raw_domain="unmapped", value="medical_allergy"), ResolverContext(()), RunBudget(2))
+
+    assert hr.tau < decision.llm_receipt.calibrated_confidence < benign.tau  # type: ignore[union-attr]
+    assert decision.fallback_outcome == "low_confidence"
 
 
 @pytest.mark.parametrize(

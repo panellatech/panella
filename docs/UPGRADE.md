@@ -62,6 +62,10 @@ panella init --verify
 If either check fails, do not keep serving on the new version — go to
 [Restore from backup](#restore-from-backup-the-rollback-story).
 
+## Resolver c2 contract upgrade
+
+`CalibrationManifest`, `VersionStamp`, and `BlockingReceipt` now carry required resolver binding fields. Positional constructors that predate those fields will fail at their construction sites; update callers to pass the complete current contract. Recreate any resolver gate ticket with the new `config_hash` before it is consumed. Older manifests fail closed when `blocking_rules_hash` or a required schema key is absent, so generate and verify a fresh manifest rather than editing an old one in place.
+
 ## 10.67.1 → 11.x: majors are a deliberate migration, not a hand bump
 
 The store contract (the SQLite schema, the tag/metadata shape the facade reads) is **pinned** — see

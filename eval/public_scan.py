@@ -40,6 +40,8 @@ _METRIC_NAMES = (
     r"recall@\d+",
     r"QA-acc(?:uracy)?",
     r"key_correctness",
+    r"det_miss_recall",
+    r"det_anchor_mrr",
 )
 
 # Unquoted key, code/log-line style: name followed by `:` or `=` then a digit. Checked against

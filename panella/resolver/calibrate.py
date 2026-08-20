@@ -131,8 +131,11 @@ def manifest_dict(manifest: CalibrationManifest) -> dict[str, Any]:
 def build_manifest(
     *, model_id: str, prompt_template_hash: str, fitted_on_evidence_hash: str, fitted_on_git_commit: str,
     fitted_on_goldset_hashes: tuple[str, ...] | list[str], slices: Mapping[str, CalibrationSlice | None],
-    calibration_version: str = "k1-calibration-v1", registry_hash: str | None = None,
-    normalizer_hash: str | None = None, blocking_hash: str | None = None, resolver_code_version: str = RESOLVER_CODE_VERSION,
+    calibration_version: str = "k1-calibration-v1",
+    registry_hash: str | None = None,  # test-only override; production binds the live registry hash.
+    normalizer_hash: str | None = None,  # test-only override; production binds the live normalizer hash.
+    blocking_hash: str | None = None,  # test-only override; production binds the live blocking hash.
+    resolver_code_version: str = RESOLVER_CODE_VERSION,  # test-only override; production binds the live resolver version.
 ) -> tuple[CalibrationManifest, str]:
     registry = load_registry()
     actual_slices: dict[str, CalibrationSlice] = {}
@@ -180,8 +183,16 @@ def load_manifest(path: Path | str) -> tuple[CalibrationManifest, str]:
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError("cannot parse calibration manifest") from exc
     required = {"calibration_version", "model_id", "prompt_template_hash", "registry_hash", "normalizer_rules_hash", "blocking_rules_hash", "resolver_code_version", "fitted_on_goldset_hashes", "fitted_on_evidence_hash", "fitted_on_git_commit", "slices", "manifest_hash"}
-    if not isinstance(document, dict) or set(document) != required:
-        raise ValueError("manifest has an invalid schema")
+    if not isinstance(document, dict):
+        raise ValueError("manifest has an invalid schema: document must be an object")
+    observed = set(document)
+    if observed != required:
+        missing = sorted(required - observed)
+        unexpected = sorted(observed - required)
+        raise ValueError(
+            f"manifest has an invalid schema: missing_keys={missing}; "
+            f"unexpected_keys={unexpected}; schema_delta={sorted(observed ^ required)}"
+        )
     try:
         raw_slices = document["slices"]
         if not isinstance(raw_slices, dict) or set(raw_slices) != {"benign", "hr"}:

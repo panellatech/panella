@@ -24,6 +24,7 @@ from .types import (
     ResolverConfig,
     ResolverContext,
     RiskEvidence,
+    LLM_LEGS_RESERVED,
     RunBudget,
     TransportAttempt,
     VersionStamp,
@@ -321,7 +322,7 @@ class ResolverEngine:
                 request, budget, risk_evidence, "not_attempted_disabled", guard_fired=guard_fired,
                 disabled_reason="global_disabled",
             )
-        if budget.max_calls - budget.calls_made < 2:
+        if budget.max_calls - budget.calls_made < LLM_LEGS_RESERVED:
             return self._abstain(request, budget, risk_evidence, "not_attempted_budget_exhausted", guard_fired=guard_fired)
 
         blocking = assemble_blocking(

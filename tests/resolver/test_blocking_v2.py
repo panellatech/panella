@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 
 import pytest
 import yaml
 
+from panella.resolver import blocking
 from panella.resolver.blocking import (
     BLOCKING_RULES_HASH,
-    CHOICE_SET_K,
     MAX_FORCED,
     THETA,
+    V2_INSTRUMENT_SEED_K,
     assemble_blocking,
     blocking_v1_operative_rules_canonical,
     blocking_v1_operative_rules_hash,
@@ -37,10 +39,26 @@ def test_reference_vectors_and_canonical_hash_sensitivity() -> None:
     assert blocking_v2_instrument_rules_hash_for(8, (3, 20)) != blocking_v2_instrument_rules_hash_for(12, (3, 20))
     assert blocking_v2_instrument_rules_hash_for(8, (3, 20)) != blocking_v2_instrument_rules_hash_for(8, (1, 5))
     assert blocking_v1_operative_rules_hash() == BLOCKING_RULES_HASH
-    assert blocking_v1_operative_rules_hash() != blocking_v2_instrument_rules_hash_for(CHOICE_SET_K, THETA)
-    assert blocking_v1_operative_rules_canonical() == ('{"blocking_terms":false,"candidate_surfaces":["raw_domain","value","evidence_text"],"choice_set_k":8,"eligibility":"score>0","forced_prefix":true,"max_forced":8,"ordering":["score desc","slot_id asc"],"scoring":"v1-operative","slice_rule":"hr iff risk.any or choice-set contains high_risk","token_filter":"resolver_normalize-only","trigram":false,"weights":[3,2,1]}')
-    assert blocking_v1_operative_rules_hash() == "7f1d3f106109b24710a54b1374f4b3b27dac65bd9d574a229fa8dac76f1ff993"
+    assert blocking_v1_operative_rules_hash() != blocking_v2_instrument_rules_hash_for(V2_INSTRUMENT_SEED_K, THETA)
+    assert json.loads(blocking_v1_operative_rules_canonical()) == {
+        "choice_set": {"limit": {"base": 8, "subtract": "forced_count"}, "ranked": {"eligible": "score_gt_zero", "order": ["score_desc", "slot_id_asc"]}},
+        "forced": {"deduplicate": True, "order": "slot_id_asc", "prefix": True, "sources": ["risk_matched_hr_slot_ids", "guarded_target_id"]},
+        "overflow": {"if_forced_count_gt": 8, "result": {"choice_set": "empty", "receipt_forced_ids": "forced"}},
+        "scoring": {"candidate_surfaces": ["raw_domain", "value", "evidence_text"], "eligibility": "score_gt_zero", "weights": [3, 2, 1]},
+        "slice": {"hr_if_any": ["risk_evidence_any", "choice_set_has_high_risk"]},
+        "tokens": {"blocking_terms": False, "normalizer": "resolver_normalize", "split": "underscore", "stopwords": False, "trigram": False},
+    }
     assert blocking_v2_instrument_rules_hash_for(8, (3, 20)) == "17e37dcc4c10d2f2cc86a5bdf1a7a3f38c2af7b4be9cbc3bf1d82bafcedfedc4"
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    (("V1_CHOICE_SET_K", 7), ("MAX_FORCED", 7), ("V1_WEIGHTS", (4, 2, 1))),
+)
+def test_v1_operative_canonical_is_sensitive_to_live_constants(monkeypatch, name: str, value: object) -> None:
+    original = blocking_v1_operative_rules_canonical()
+    monkeypatch.setattr(blocking, name, value)
+    assert blocking_v1_operative_rules_canonical() != original
 
 
 def test_v1_default_locks_original_surface_scoring_and_ordering() -> None:

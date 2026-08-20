@@ -14,9 +14,10 @@ from .registry import RegistrySlot, SlotRegistry
 from .types import BlockingReceipt, ResolveRequest, RiskEvidence, SlotView
 
 V1_CHOICE_SET_K = 8
-CHOICE_SET_K = 8  # v2-instrument sweep seed — NOT a production setting.
+V2_INSTRUMENT_SEED_K = 8  # v2-instrument sweep seed — NOT a production setting.
 THETA = (3, 20)  # sweep seed — NOT frozen; chief freezes via follow-up commit after the K1-c §4.4 sweep (selection evidence required)
-MAX_FORCED = 8  # frozen; sole overflow anchor (E2); decoupled from CHOICE_SET_K
+MAX_FORCED = 8  # frozen; sole overflow anchor (E2); decoupled from V2_INSTRUMENT_SEED_K
+V1_WEIGHTS = (3, 2, 1)
 
 
 def blocking_v2_instrument_rules_canonical(k: int, theta: tuple[int, int]) -> str:
@@ -30,7 +31,40 @@ def blocking_v2_instrument_rules_hash_for(k: int, theta: tuple[int, int]) -> str
 
 def blocking_v1_operative_rules_canonical() -> str:
     """Return the canonical description of the production v1 blocker."""
-    return json.dumps({"scoring": "v1-operative", "choice_set_k": 8, "max_forced": 8, "candidate_surfaces": ["raw_domain", "value", "evidence_text"], "weights": [3, 2, 1], "token_filter": "resolver_normalize-only", "blocking_terms": False, "trigram": False, "eligibility": "score>0", "ordering": ["score desc", "slot_id asc"], "forced_prefix": True, "slice_rule": "hr iff risk.any or choice-set contains high_risk"}, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return json.dumps(
+        {
+            "choice_set": {
+                "limit": {"base": V1_CHOICE_SET_K, "subtract": "forced_count"},
+                "ranked": {"eligible": "score_gt_zero", "order": ["score_desc", "slot_id_asc"]},
+            },
+            "forced": {
+                "deduplicate": True,
+                "order": "slot_id_asc",
+                "prefix": True,
+                "sources": ["risk_matched_hr_slot_ids", "guarded_target_id"],
+            },
+            "overflow": {
+                "if_forced_count_gt": MAX_FORCED,
+                "result": {"choice_set": "empty", "receipt_forced_ids": "forced"},
+            },
+            "scoring": {
+                "candidate_surfaces": ["raw_domain", "value", "evidence_text"],
+                "eligibility": "score_gt_zero",
+                "weights": list(V1_WEIGHTS),
+            },
+            "slice": {"hr_if_any": ["risk_evidence_any", "choice_set_has_high_risk"]},
+            "tokens": {
+                "blocking_terms": False,
+                "normalizer": "resolver_normalize",
+                "split": "underscore",
+                "stopwords": False,
+                "trigram": False,
+            },
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
 
 
 def blocking_v1_operative_rules_hash() -> str:
@@ -58,9 +92,9 @@ def _slot_score(slot: RegistrySlot, candidate_tokens: set[str]) -> int:
     alias_tokens = set().union(*(_tokens(alias) for alias in slot.aliases)) if slot.aliases else set()
     description_tokens = _tokens(slot.description)
     return (
-        3 * len(candidate_tokens & domain_tokens)
-        + 2 * len(candidate_tokens & alias_tokens)
-        + len(candidate_tokens & description_tokens)
+        V1_WEIGHTS[0] * len(candidate_tokens & domain_tokens)
+        + V1_WEIGHTS[1] * len(candidate_tokens & alias_tokens)
+        + V1_WEIGHTS[2] * len(candidate_tokens & description_tokens)
     )
 
 

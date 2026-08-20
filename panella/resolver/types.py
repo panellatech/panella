@@ -176,8 +176,18 @@ class ResolverConfig:
             raise ValueError("manifest_hash requires a calibration manifest")
 
 
+LLM_LEGS_RESERVED = 2
+
+
 @dataclass
 class RunBudget:
+    """Per-run logical-call budget.
+
+    One budget unit is one logical LLM call per leg. Entering stage ③ requires at
+    least ``LLM_LEGS_RESERVED`` remaining units; physical transport attempts are
+    not charged here and are recorded by the c3 budget receipt.
+    """
+
     max_calls: int
     calls_made: int = 0
     seen_uids: set[str] = field(default_factory=set)

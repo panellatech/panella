@@ -11,7 +11,14 @@ import pytest
 
 from eval.goldsets import resolver_blocking_diag as diag
 from eval.goldsets.key_correctness_eval import load_items
+from panella.resolver import engine as resolver_engine
 from panella.resolver.registry import RegistrySlot, SlotRegistry
+
+
+@pytest.fixture(autouse=True)
+def _allow_hermetic_registry_in_resolver_engine(monkeypatch):
+    monkeypatch.setattr(resolver_engine, "MIN_REGISTRY_SLOTS", 1)
+    monkeypatch.setattr(resolver_engine, "PINNED_REGISTRY_HASH", "r" * 64)
 
 
 def _hash(path):
@@ -236,7 +243,7 @@ def test_core_metrics_rejects_incomplete_cohort_partition():
     }
 
     with pytest.raises(ValueError, match="cohort"):
-        diag._validate_core_metrics(metrics, expected_cardinalities={"facts": 2, "pairs": 2, "sup_pairs": 2, "negative_pairs": 1})
+        diag._validate_core_metrics(metrics, expected_cardinalities={"facts": 2, "pairs": 2, "sup_pairs": 2, "negative_pairs": 1}, expected_extraction_rows=1)
 
 
 @pytest.mark.parametrize("metric", ("migration", "overflow"))
@@ -253,7 +260,7 @@ def test_core_metrics_requires_pair_face_denominator(metric):
     metrics[metric]["d"] = 3
 
     with pytest.raises(ValueError, match="denominator"):
-        diag._validate_core_metrics(metrics, expected_cardinalities={"facts": 2, "pairs": 2, "sup_pairs": 2, "negative_pairs": 1})
+        diag._validate_core_metrics(metrics, expected_cardinalities={"facts": 2, "pairs": 2, "sup_pairs": 2, "negative_pairs": 1}, expected_extraction_rows=1)
 
 
 def test_migration_and_overflow_metrics_exclude_extraction_face():
@@ -300,6 +307,25 @@ def test_baseline_is_hermetic_and_replays_guarded_target(tmp_path):
     assert baseline["deterministic_by_uid"]["case/f1"]["retention_ledger"] is True
 
 
+def test_deterministic_map_uses_engine_not_guard_target(tmp_path, monkeypatch):
+    inputs = _inputs(tmp_path)
+    pair = json.loads(inputs.pair_goldset_path.read_text(encoding="utf-8"))
+    pair["cases"][0]["facts"][0]["probe"]["raw_domain"] = "guarded_only"
+    inputs.pair_goldset_path.write_text(json.dumps(pair), encoding="utf-8")
+    inputs = replace(inputs, pair_goldset_sha256=_hash(inputs.pair_goldset_path))
+    slot = _registry().slots[0]
+    monkeypatch.setattr(diag, "prepare_guard", lambda *_: SimpleNamespace(target=slot, method="exact", guard_fired=True))
+
+    baseline = diag.build_baseline(inputs, registry=_registry(), commit="c1", produced_by="chief", description_remediation_commit="c0")
+
+    assert baseline["deterministic_by_uid"]["case/f1"] == {
+        "slot_id": None,
+        "method": "none",
+        "guard_fired": False,
+        "retention_ledger": False,
+    }
+
+
 def test_baseline_out_cli_runs_against_v1_with_temp_output(tmp_path, monkeypatch):
     inputs = _inputs(tmp_path)
     monkeypatch.setattr(diag, "PAIR_GOLDSET", inputs.pair_goldset_path)
@@ -332,23 +358,59 @@ def test_cardinality_and_candidate_source_sid_fail_closed(tmp_path):
 def test_baseline_bundle_two_cbfd_forms_and_fail_closed_validation(tmp_path):
     inputs = _inputs(tmp_path)
     baseline = diag.build_baseline(inputs, registry=_registry(), commit="c1", produced_by="chief", description_remediation_commit="c0")
+    kwargs = {
+        "input_hashes": inputs.input_hashes(),
+        "registry_hash": "r" * 64,
+        "expected_cardinalities": inputs.expected_cardinalities,
+        "expected_extraction_rows": 1,
+        "expected_deterministic_uids": set(baseline["deterministic_by_uid"]),
+    }
     absent = _bundle(inputs, baseline)
-    assert diag._validate_baseline_bundle(absent, input_hashes=inputs.input_hashes(), registry_hash="r" * 64, expected_cardinalities=inputs.expected_cardinalities)["c1_merged"] == baseline
+    assert diag._validate_baseline_bundle(absent, **kwargs)["c1_merged"] == baseline
     present = _bundle(inputs, baseline)
     present["cbfd01c"] = {"commit": "cbfd01c", "metrics": baseline["metrics"]}
-    diag._validate_baseline_bundle(present, input_hashes=inputs.input_hashes(), registry_hash="r" * 64, expected_cardinalities=inputs.expected_cardinalities)
+    diag._validate_baseline_bundle(present, **kwargs)
     broken = _bundle(inputs, baseline)
     broken["unknown"] = True
     with pytest.raises(ValueError, match="exactly"):
-        diag._validate_baseline_bundle(broken, input_hashes=inputs.input_hashes(), registry_hash="r" * 64, expected_cardinalities=inputs.expected_cardinalities)
+        diag._validate_baseline_bundle(broken, **kwargs)
     broken = _bundle(inputs, baseline)
     broken["c1_merged"] = dict(baseline, registry_hash="wrong")
     with pytest.raises(ValueError, match="identity"):
-        diag._validate_baseline_bundle(broken, input_hashes=inputs.input_hashes(), registry_hash="r" * 64, expected_cardinalities=inputs.expected_cardinalities)
+        diag._validate_baseline_bundle(broken, **kwargs)
     broken = _bundle(inputs, baseline)
     broken["c1_merged"] = dict(baseline, metrics=dict(baseline["metrics"], negative_overlap={"n": 0, "d": 99}))
     with pytest.raises(ValueError, match="denominator"):
-        diag._validate_baseline_bundle(broken, input_hashes=inputs.input_hashes(), registry_hash="r" * 64, expected_cardinalities=inputs.expected_cardinalities)
+        diag._validate_baseline_bundle(broken, **kwargs)
+
+
+@pytest.mark.parametrize("tamper", ("extraction_denominator", "pool_cardinality", "deterministic_shape"))
+def test_baseline_bundle_rejects_new_cross_face_tampers(tmp_path, tamper):
+    inputs = _inputs(tmp_path)
+    baseline = diag.build_baseline(inputs, registry=_registry(), commit="c1", produced_by="chief", description_remediation_commit="c0")
+    broken = _bundle(inputs, baseline)
+    c1 = dict(broken["c1_merged"])
+    metrics = dict(baseline["metrics"])
+    if tamper == "extraction_denominator":
+        metrics["empty_extraction_face"] = {"n": 0, "d": 2}
+    elif tamper == "pool_cardinality":
+        metrics["pool_size_distribution"] = {"0": 1}
+    else:
+        deterministic = dict(baseline["deterministic_by_uid"])
+        deterministic.pop(next(iter(deterministic)))
+        c1["deterministic_by_uid"] = deterministic
+    c1["metrics"] = metrics
+    broken["c1_merged"] = c1
+
+    with pytest.raises(ValueError):
+        diag._validate_baseline_bundle(
+            broken,
+            input_hashes=inputs.input_hashes(),
+            registry_hash="r" * 64,
+            expected_cardinalities=inputs.expected_cardinalities,
+            expected_extraction_rows=1,
+            expected_deterministic_uids=set(baseline["deterministic_by_uid"]),
+        )
 
 
 def test_cross_multiplied_predicates_and_theta_order():

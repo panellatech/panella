@@ -29,7 +29,7 @@ from eval.goldsets.resolver_gate import (
 from eval.goldsets.resolver_gate import main as gate_main
 from eval.goldsets.key_correctness_eval import GoldItem
 from eval.goldsets.preference_extraction import PreferenceCandidate
-from panella.resolver.blocking import assemble_blocking
+from panella.resolver.blocking import assemble_blocking, blocking_v2_instrument_rules_hash_for
 from panella.resolver.calibrate import build_manifest, dump_manifest, fit_slice, load_manifest, verify
 from panella.resolver.engine import ResolverEngine
 from panella.resolver.fallback import FallbackProvider, render_prompt
@@ -238,6 +238,21 @@ def test_stale_registry_manifest_disables_live_engine() -> None:
     assert engine._llm_disabled_reason == "manifest_component_mismatch:registry_hash"
 
 
+def test_load_manifest_names_missing_required_key(tmp_path: Path) -> None:
+    manifest, _ = build_manifest(
+        model_id="test", prompt_template_hash="test", fitted_on_evidence_hash="evidence", fitted_on_git_commit="test",
+        fitted_on_goldset_hashes=("goldset",), slices={"benign": None, "hr": None},
+    )
+    path = tmp_path / "manifest.json"
+    dump_manifest(path, manifest)
+    document = json.loads(path.read_text(encoding="utf-8"))
+    del document["blocking_rules_hash"]
+    path.write_text(json.dumps(document), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="missing_keys=.*blocking_rules_hash"):
+        load_manifest(path)
+
+
 def test_calibration_probe_lint_rejects_expected_domain_ngram() -> None:
     document = _live_test_probe_document()
     probe = document["probes"][40]
@@ -287,7 +302,7 @@ def test_live_test_probe_document_passes_generator_sweep() -> None:
     _sweep(_live_test_probe_document())
 
 
-@pytest.mark.parametrize("tamper", ["sample", "mapping", "tau", "swapped_evidence", "component_hash", "duplicate_uid", "coverage_gap"])
+@pytest.mark.parametrize("tamper", ["sample", "mapping", "tau", "swapped_evidence", "component_hash", "blocking_hash", "duplicate_uid", "coverage_gap"])
 def test_calibration_verifier_rejects_each_tamper_class(tmp_path: Path, tamper: str) -> None:
     source_probe_path, probes = _write_live_test_probes(tmp_path)
     evidence, manifest_path = run(probes, provider=fake_provider(probes), git_commit="test", evidence_path=tmp_path / "evidence.jsonl", manifest_path=tmp_path / "manifest.json", probe_path=source_probe_path)
@@ -299,7 +314,7 @@ def test_calibration_verifier_rejects_each_tamper_class(tmp_path: Path, tamper: 
         row["raw_confidence"] = 0.0 if tamper == "sample" else 0.5
         rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
         evidence.write_text("\n".join(rows) + "\n", encoding="utf-8")
-    elif tamper in {"mapping", "tau", "component_hash"}:
+    elif tamper in {"mapping", "tau", "component_hash", "blocking_hash"}:
         manifest, _ = load_manifest(manifest_path)
         if tamper == "mapping":
             benign = replace(manifest.slices["benign"], mapping=((0.0, 1.0, 0.5),), tau=0.5)
@@ -307,8 +322,10 @@ def test_calibration_verifier_rejects_each_tamper_class(tmp_path: Path, tamper: 
         elif tamper == "tau":
             benign = replace(manifest.slices["benign"], tau=0.5)
             manifest = replace(manifest, slices={**manifest.slices, "benign": benign})
-        else:
+        elif tamper == "component_hash":
             manifest = replace(manifest, registry_hash="0" * 64)
+        else:
+            manifest = replace(manifest, blocking_rules_hash=blocking_v2_instrument_rules_hash_for(8, (3, 20)))
         dump_manifest(manifest_path, manifest)
     elif tamper == "duplicate_uid":
         altered = json.loads(probe_path.read_text(encoding="utf-8"))
