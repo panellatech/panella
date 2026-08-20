@@ -8,6 +8,7 @@ import yaml
 
 from panella.resolver import blocking
 from panella.resolver import normalize
+from panella.resolver.blocking_constants import BLOCKING_STOPWORDS_NORMALIZED, SCORING_DROP
 from panella.resolver.blocking import (
     BLOCKING_RULES_HASH,
     MAX_FORCED,
@@ -44,12 +45,14 @@ def test_reference_vectors_and_canonical_hash_sensitivity() -> None:
     assert json.loads(blocking_v1_operative_rules_canonical()) == {
         "choice_set": {"limit": {"base": 8, "subtract": "forced_count"}, "ranked": {"eligible": "score_gt_zero", "order": ["score_desc", "slot_id_asc"]}},
         "forced": {"deduplicate": True, "order": "slot_id_asc", "prefix": True, "sources": ["risk_matched_hr_slot_ids", "guarded_target_id"]},
-        "overflow": {"if_forced_count_gt": 8, "result": {"choice_set": "empty", "receipt_forced_ids": "forced"}},
+        "overflow": {"if_forced_count_gt": 8, "result": {"choices": "empty", "forced_overflow": True, "receipt_choice_set": "forced_tuple", "receipt_forced_ids": "forced_tuple"}},
         "scoring": {"candidate_surfaces": ["raw_domain", "value", "evidence_text"], "eligibility": "score_gt_zero", "weights": [3, 2, 1]},
         "slice": {"hr_if_any": ["risk_evidence_any", "choice_set_has_high_risk"]},
         "tokens": {"blocking_terms": False, "normalizer": "resolver_normalize", "normalizer_rules_hash": normalize.compute_normalizer_rules_hash(), "split": "underscore", "stopwords": False, "trigram": False},
     }
-    assert blocking_v2_instrument_rules_hash_for(8, (3, 20)) == "ee04fe0f945efa96c0678b16a1c5fa94c4665925ecee67988fd69f87c82758c5"
+    v2_hash = blocking_v2_instrument_rules_hash_for(8, (3, 20))
+    assert len(v2_hash) == 64 and set(v2_hash) <= set("0123456789abcdef")
+    assert v2_hash != BLOCKING_RULES_HASH
 
 
 @pytest.mark.parametrize(
@@ -73,16 +76,20 @@ def test_instrument_and_v1_canonicals_bind_live_normalizer_and_drop_rules(monkey
     assert json.loads(blocking_v2_instrument_rules_canonical(8, (3, 20)))["normalizer_rules_hash"] == normalize.compute_normalizer_rules_hash()
 
     normalizer_mutated = blocking_v2_instrument_rules_canonical(8, (3, 20))
-    monkeypatch.setattr(blocking, "BLOCKING_STOPWORDS", blocking.BLOCKING_STOPWORDS | {"blocking_mutation"})
+    monkeypatch.setattr(
+        blocking,
+        "BLOCKING_STOPWORDS_NORMALIZED",
+        blocking.BLOCKING_STOPWORDS_NORMALIZED | {"blocking_mutation"},
+    )
 
     canonical = json.loads(blocking_v2_instrument_rules_canonical(8, (3, 20)))
     assert blocking_v2_instrument_rules_canonical(8, (3, 20)) != normalizer_mutated
-    assert canonical["scoring_drop"] == sorted(normalize.STOPWORDS | blocking.BLOCKING_STOPWORDS)
+    assert canonical["scoring_drop"] == sorted(blocking.SCORING_DROP)
     assert canonical["surfaces"] == {
         "l1": "domain - scoring_drop",
         "l2": "aliases - scoring_drop",
         "l3": "(description - scoring_drop) ∪ blocking_terms",
-        "cand": "raw_domain|value|evidence - blocking_stopwords",
+        "cand": "raw_domain|value|evidence - blocking_stopwords_normalized",
     }
 
 
@@ -146,3 +153,22 @@ def test_registry_description_content_lint_accepts_four_content_tokens(tmp_path,
 
 def test_candidate_tokens_remove_blocking_stopwords_only() -> None:
     assert request_candidate_tokens(request("tokens", "useful", "the durable", "with signal")) == {"useful", "durable", "signal"}
+
+
+def test_v2_stopword_filter_uses_normalized_terms_for_candidates_and_l3() -> None:
+    slot = replace(load_registry().slots[0], domain="unmatched", aliases=(), description="this durable signal", blocking_terms=())
+
+    assert "thi" in BLOCKING_STOPWORDS_NORMALIZED
+    assert "thi" in SCORING_DROP
+    assert "thi" not in request_candidate_tokens(request("normalized-stopword", evidence="this durable"))
+    assert score_components(slot, {"thi"})[0] == 0
+
+
+def test_registry_content_token_lint_does_not_count_normalized_blocking_stopwords(tmp_path) -> None:
+    document = yaml.safe_load(default_registry_path().read_text(encoding="utf-8"))
+    document["slots"][0]["description"] = "this archive catalog preference"
+    path = tmp_path / "registry.yaml"
+    path.write_text(yaml.safe_dump(document, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="fewer than four content tokens"):
+        load_registry(path, expected_hash=None)

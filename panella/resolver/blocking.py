@@ -9,7 +9,7 @@ from fractions import Fraction
 from typing import Literal
 
 from . import normalize
-from .blocking_constants import BLOCKING_STOPWORDS
+from .blocking_constants import BLOCKING_STOPWORDS_NORMALIZED, SCORING_DROP
 from .normalize import resolver_normalize
 from .registry import RegistrySlot, SlotRegistry
 from .types import BlockingReceipt, ResolveRequest, RiskEvidence, SlotView
@@ -30,13 +30,13 @@ def blocking_v2_instrument_rules_canonical(k: int, theta: tuple[int, int]) -> st
             "theta": list(theta),
             "weights": [3, 2, 1],
             "normalizer_rules_hash": normalize.compute_normalizer_rules_hash(),
-            "blocking_stopwords": sorted(BLOCKING_STOPWORDS),
+            "blocking_stopwords": sorted(BLOCKING_STOPWORDS_NORMALIZED),
             "scoring_drop": sorted(_scoring_drop()),
             "surfaces": {
                 "l1": "domain - scoring_drop",
                 "l2": "aliases - scoring_drop",
                 "l3": "(description - scoring_drop) ∪ blocking_terms",
-                "cand": "raw_domain|value|evidence - blocking_stopwords",
+                "cand": "raw_domain|value|evidence - blocking_stopwords_normalized",
             },
             "trigram": {"n": 3, "framing": "^$"},
         },
@@ -66,7 +66,12 @@ def blocking_v1_operative_rules_canonical() -> str:
             },
             "overflow": {
                 "if_forced_count_gt": MAX_FORCED,
-                "result": {"choice_set": "empty", "receipt_forced_ids": "forced"},
+                "result": {
+                    "choices": "empty",
+                    "forced_overflow": True,
+                    "receipt_choice_set": "forced_tuple",
+                    "receipt_forced_ids": "forced_tuple",
+                },
             },
             "scoring": {
                 "candidate_surfaces": ["raw_domain", "value", "evidence_text"],
@@ -110,7 +115,7 @@ def _tokens(value: str) -> set[str]:
 
 def _scoring_drop() -> frozenset[str]:
     """Return the live v2 scoring vocabulary excluded after normalization."""
-    return frozenset(normalize.STOPWORDS) | BLOCKING_STOPWORDS
+    return SCORING_DROP
 
 
 def _slot_score(slot: RegistrySlot, candidate_tokens: set[str]) -> int:
@@ -127,7 +132,9 @@ def _slot_score(slot: RegistrySlot, candidate_tokens: set[str]) -> int:
 
 def request_candidate_tokens(request: ResolveRequest) -> set[str]:
     """Return normalized three-surface candidate tokens with blocking words removed."""
-    return (_tokens(request.raw_domain) | _tokens(request.value) | _tokens(request.evidence_text)) - BLOCKING_STOPWORDS
+    return (
+        _tokens(request.raw_domain) | _tokens(request.value) | _tokens(request.evidence_text)
+    ) - BLOCKING_STOPWORDS_NORMALIZED
 
 
 def _grams(tokens: set[str]) -> set[str]:

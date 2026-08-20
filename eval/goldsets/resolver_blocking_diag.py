@@ -26,6 +26,9 @@ ROOT = Path(__file__).resolve().parents[2]
 PAIR_GOLDSET = ROOT / "eval/goldsets/supersede_v1.json"
 PAIR_GOLDSET_SHA256 = "b932fd97cfa6d63fdf027bb799094939b18d00be8d8f807cc90c9a96c92303fe"
 LEDGER_PATH = ROOT / "tests/resolver/fixtures/retention_ledger_v1.json"
+EXTRACTION_SOURCE_ITEMS_SHA256 = "9f297210b14eea6425e1b3e1423dac5a750d6fbce0ceec64ce061f8ff0b8a7cb"
+EXTRACTION_SOURCE_FIXTURE_SHA256 = "8f6d63936a79ca175c5cad5bf5b689db723624f18b312271d1a175fa426497ca"
+RETENTION_LEDGER_SHA256 = "89813b7e39f32dd53dcc55c12f36e86d4637c5399baaeaa372d42f2fb3733ffe"
 OUT_DIR = ROOT / "eval/out"
 # Chief adds a pre-registered artifact digest here before asking this script to consume it.
 CANDIDATE_HASH_ALLOWLIST: frozenset[str] = frozenset({
@@ -35,6 +38,11 @@ CANDIDATE_HASH_ALLOWLIST: frozenset[str] = frozenset({
 EXTRACTION_SOURCES = {
     "source_items": ROOT / "eval/goldsets/fixtures/extraction_goldset_v1.json",
     "source_fixture": ROOT / "eval/goldsets/fixtures/continuity_set_v1.json",
+}
+
+_EXTRACTION_SOURCE_SHA256 = {
+    "source_items": EXTRACTION_SOURCE_ITEMS_SHA256,
+    "source_fixture": EXTRACTION_SOURCE_FIXTURE_SHA256,
 }
 
 
@@ -74,8 +82,11 @@ def _load_candidates(path: Path) -> dict[str, list[dict[str, Any]]]:
     if value.get("n_items") != len(candidates):
         raise ValueError("candidate item count does not match the declared n_items")
     for source_key, source_path in EXTRACTION_SOURCES.items():
+        expected_hash = _EXTRACTION_SOURCE_SHA256[source_key]
+        if _sha256(source_path) != expected_hash:
+            raise ValueError(f"pinned {source_key} hash does not match its production source")
         declared = value.get(source_key)
-        if not isinstance(declared, dict) or declared.get("sha256") != _sha256(source_path):
+        if not isinstance(declared, dict) or declared.get("sha256") != expected_hash:
             raise ValueError(f"candidate artifact {source_key} hash does not match the pinned source")
     if any(not isinstance(rows, list) for rows in candidates.values()):
         raise ValueError("candidate rows must be lists")
@@ -158,7 +169,7 @@ def _run_pair() -> tuple[dict[str, Any], list[dict[str, Any]]]:
             classes[category] += 1
             if pair.get("label") != "supersede":
                 negative_sets.append((set(choice_sets[first_key]), set(choice_sets[second_key])))
-    ledger = json.loads(LEDGER_PATH.read_text(encoding="utf-8"))
+    ledger = _load_json(LEDGER_PATH, label="retention ledger", expected_hash=RETENTION_LEDGER_SHA256)
     retention = _retention_report(
         ledger,
         {
@@ -674,7 +685,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.sweep_out is not None:
         if args.candidates is None or args.baseline_bundle is None or args.baseline_bundle_sha256 is None or not args.commit:
             raise SystemExit("--sweep-out requires --candidates, --baseline-bundle, --baseline-bundle-sha256, and --commit")
-        inputs = DiagnosticInputs(PAIR_GOLDSET, PAIR_GOLDSET_SHA256, args.candidates, CANDIDATE_HASH_ALLOWLIST, EXTRACTION_SOURCES["source_items"], _sha256(EXTRACTION_SOURCES["source_items"]), EXTRACTION_SOURCES["source_fixture"], _sha256(EXTRACTION_SOURCES["source_fixture"]), LEDGER_PATH, _sha256(LEDGER_PATH), args.sweep_out.parent, _PRODUCTION_CARDINALITIES)
+        inputs = DiagnosticInputs(PAIR_GOLDSET, PAIR_GOLDSET_SHA256, args.candidates, CANDIDATE_HASH_ALLOWLIST, EXTRACTION_SOURCES["source_items"], EXTRACTION_SOURCE_ITEMS_SHA256, EXTRACTION_SOURCES["source_fixture"], EXTRACTION_SOURCE_FIXTURE_SHA256, LEDGER_PATH, RETENTION_LEDGER_SHA256, args.sweep_out.parent, _PRODUCTION_CARDINALITIES)
         raw_bundle = args.baseline_bundle.read_bytes()
         actual_bundle_sha256 = hashlib.sha256(raw_bundle).hexdigest()
         if actual_bundle_sha256 != args.baseline_bundle_sha256:
@@ -702,7 +713,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if passed else 1
     if args.candidates is None or not all((args.produced_by, args.commit, args.description_remediation_commit)):
         raise SystemExit("--baseline-out requires --candidates, --produced-by, --commit, and --description-remediation-commit")
-    inputs = DiagnosticInputs(PAIR_GOLDSET, PAIR_GOLDSET_SHA256, args.candidates, CANDIDATE_HASH_ALLOWLIST, EXTRACTION_SOURCES["source_items"], _sha256(EXTRACTION_SOURCES["source_items"]), EXTRACTION_SOURCES["source_fixture"], _sha256(EXTRACTION_SOURCES["source_fixture"]), LEDGER_PATH, _sha256(LEDGER_PATH), args.baseline_out.parent, _PRODUCTION_CARDINALITIES)
+    inputs = DiagnosticInputs(PAIR_GOLDSET, PAIR_GOLDSET_SHA256, args.candidates, CANDIDATE_HASH_ALLOWLIST, EXTRACTION_SOURCES["source_items"], EXTRACTION_SOURCE_ITEMS_SHA256, EXTRACTION_SOURCES["source_fixture"], EXTRACTION_SOURCE_FIXTURE_SHA256, LEDGER_PATH, RETENTION_LEDGER_SHA256, args.baseline_out.parent, _PRODUCTION_CARDINALITIES)
     baseline = build_baseline(inputs, commit=args.commit, produced_by=args.produced_by, description_remediation_commit=args.description_remediation_commit)
     args.baseline_out.write_text(json.dumps({"c1_merged": baseline}, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
     print(json.dumps({"output": str(args.baseline_out)}, separators=(",", ":")))

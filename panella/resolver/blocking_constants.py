@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .normalize import STOPWORDS as NORMALIZE_STOPWORDS
+from .normalize import STOPWORDS as NORMALIZE_STOPWORDS, resolver_normalize
 
 BLOCKING_STOPWORDS = frozenset({
     "i", "me", "we", "us", "you", "they", "he", "she", "it", "is", "am", "are", "was", "were",
@@ -18,4 +18,6 @@ BLOCKING_STOPWORDS = frozenset({
     "said", "tell", "tells", "told", "know", "knows", "knew", "think", "thinks", "thought",
 })
 
-SCORING_DROP = frozenset(NORMALIZE_STOPWORDS) | BLOCKING_STOPWORDS
+BLOCKING_STOPWORDS_NORMALIZED = frozenset(filter(None, (resolver_normalize(w) for w in BLOCKING_STOPWORDS)))
+
+SCORING_DROP = frozenset(NORMALIZE_STOPWORDS) | BLOCKING_STOPWORDS_NORMALIZED

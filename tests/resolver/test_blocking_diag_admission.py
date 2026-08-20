@@ -43,6 +43,12 @@ def _allow(monkeypatch, path):
     monkeypatch.setattr(diag, "CANDIDATE_HASH_ALLOWLIST", frozenset({diag._sha256(path)}))
 
 
+def _pin_injected_production_sources(monkeypatch, inputs):
+    monkeypatch.setattr(diag, "EXTRACTION_SOURCE_ITEMS_SHA256", inputs.extraction_source_items_sha256)
+    monkeypatch.setattr(diag, "EXTRACTION_SOURCE_FIXTURE_SHA256", inputs.extraction_source_fixture_sha256)
+    monkeypatch.setattr(diag, "RETENTION_LEDGER_SHA256", inputs.retention_ledger_sha256)
+
+
 def test_admission_accepts_allowlisted_artifact(tmp_path, monkeypatch):
     path = _fake_artifact(tmp_path)
     _allow(monkeypatch, path)
@@ -103,6 +109,12 @@ def test_admission_rejects_duplicate_json_keys(tmp_path, monkeypatch):
     _allow(monkeypatch, path)
     with pytest.raises(ValueError, match="duplicate keys"):
         diag._load_candidates(path)
+
+
+def test_production_source_hashes_are_literal_pins() -> None:
+    assert diag._sha256(diag.EXTRACTION_SOURCES["source_items"]) == diag.EXTRACTION_SOURCE_ITEMS_SHA256
+    assert diag._sha256(diag.EXTRACTION_SOURCES["source_fixture"]) == diag.EXTRACTION_SOURCE_FIXTURE_SHA256
+    assert diag._sha256(diag.LEDGER_PATH) == diag.RETENTION_LEDGER_SHA256
 
 
 @pytest.mark.parametrize(
@@ -332,6 +344,7 @@ def test_baseline_out_cli_runs_against_v1_with_temp_output(tmp_path, monkeypatch
     monkeypatch.setattr(diag, "PAIR_GOLDSET_SHA256", inputs.pair_goldset_sha256)
     monkeypatch.setattr(diag, "EXTRACTION_SOURCES", {"source_items": inputs.extraction_source_items_path, "source_fixture": inputs.extraction_source_fixture_path})
     monkeypatch.setattr(diag, "LEDGER_PATH", inputs.retention_ledger_path)
+    _pin_injected_production_sources(monkeypatch, inputs)
     monkeypatch.setattr(diag, "CANDIDATE_HASH_ALLOWLIST", inputs.candidate_allowlist)
     monkeypatch.setattr(diag, "_PRODUCTION_CARDINALITIES", dict(inputs.expected_cardinalities))
     monkeypatch.setattr(diag, "load_registry", _registry)
@@ -345,6 +358,7 @@ def _configure_sweep_cli(monkeypatch, inputs):
     monkeypatch.setattr(diag, "PAIR_GOLDSET_SHA256", inputs.pair_goldset_sha256)
     monkeypatch.setattr(diag, "EXTRACTION_SOURCES", {"source_items": inputs.extraction_source_items_path, "source_fixture": inputs.extraction_source_fixture_path})
     monkeypatch.setattr(diag, "LEDGER_PATH", inputs.retention_ledger_path)
+    _pin_injected_production_sources(monkeypatch, inputs)
     monkeypatch.setattr(diag, "CANDIDATE_HASH_ALLOWLIST", inputs.candidate_allowlist)
     monkeypatch.setattr(diag, "_PRODUCTION_CARDINALITIES", dict(inputs.expected_cardinalities))
     monkeypatch.setattr(diag, "load_registry", _registry)
