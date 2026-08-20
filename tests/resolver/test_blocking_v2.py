@@ -7,6 +7,7 @@ import pytest
 import yaml
 
 from panella.resolver import blocking
+from panella.resolver import normalize
 from panella.resolver.blocking import (
     BLOCKING_RULES_HASH,
     MAX_FORCED,
@@ -46,9 +47,9 @@ def test_reference_vectors_and_canonical_hash_sensitivity() -> None:
         "overflow": {"if_forced_count_gt": 8, "result": {"choice_set": "empty", "receipt_forced_ids": "forced"}},
         "scoring": {"candidate_surfaces": ["raw_domain", "value", "evidence_text"], "eligibility": "score_gt_zero", "weights": [3, 2, 1]},
         "slice": {"hr_if_any": ["risk_evidence_any", "choice_set_has_high_risk"]},
-        "tokens": {"blocking_terms": False, "normalizer": "resolver_normalize", "split": "underscore", "stopwords": False, "trigram": False},
+        "tokens": {"blocking_terms": False, "normalizer": "resolver_normalize", "normalizer_rules_hash": normalize.compute_normalizer_rules_hash(), "split": "underscore", "stopwords": False, "trigram": False},
     }
-    assert blocking_v2_instrument_rules_hash_for(8, (3, 20)) == "17e37dcc4c10d2f2cc86a5bdf1a7a3f38c2af7b4be9cbc3bf1d82bafcedfedc4"
+    assert blocking_v2_instrument_rules_hash_for(8, (3, 20)) == "ee04fe0f945efa96c0678b16a1c5fa94c4665925ecee67988fd69f87c82758c5"
 
 
 @pytest.mark.parametrize(
@@ -59,6 +60,30 @@ def test_v1_operative_canonical_is_sensitive_to_live_constants(monkeypatch, name
     original = blocking_v1_operative_rules_canonical()
     monkeypatch.setattr(blocking, name, value)
     assert blocking_v1_operative_rules_canonical() != original
+
+
+def test_instrument_and_v1_canonicals_bind_live_normalizer_and_drop_rules(monkeypatch) -> None:
+    v2_original = blocking_v2_instrument_rules_canonical(8, (3, 20))
+    v1_original = blocking_v1_operative_rules_canonical()
+
+    monkeypatch.setattr(normalize, "STOPWORDS", normalize.STOPWORDS | {"normalizer_mutation"})
+
+    assert blocking_v2_instrument_rules_canonical(8, (3, 20)) != v2_original
+    assert blocking_v1_operative_rules_canonical() != v1_original
+    assert json.loads(blocking_v2_instrument_rules_canonical(8, (3, 20)))["normalizer_rules_hash"] == normalize.compute_normalizer_rules_hash()
+
+    normalizer_mutated = blocking_v2_instrument_rules_canonical(8, (3, 20))
+    monkeypatch.setattr(blocking, "BLOCKING_STOPWORDS", blocking.BLOCKING_STOPWORDS | {"blocking_mutation"})
+
+    canonical = json.loads(blocking_v2_instrument_rules_canonical(8, (3, 20)))
+    assert blocking_v2_instrument_rules_canonical(8, (3, 20)) != normalizer_mutated
+    assert canonical["scoring_drop"] == sorted(normalize.STOPWORDS | blocking.BLOCKING_STOPWORDS)
+    assert canonical["surfaces"] == {
+        "l1": "domain - scoring_drop",
+        "l2": "aliases - scoring_drop",
+        "l3": "(description - scoring_drop) ∪ blocking_terms",
+        "cand": "raw_domain|value|evidence - blocking_stopwords",
+    }
 
 
 def test_v1_default_locks_original_surface_scoring_and_ordering() -> None:

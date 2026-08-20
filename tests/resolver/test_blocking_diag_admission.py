@@ -340,6 +340,82 @@ def test_baseline_out_cli_runs_against_v1_with_temp_output(tmp_path, monkeypatch
     assert set(json.loads(output.read_text(encoding="utf-8"))) == {"c1_merged"}
 
 
+def _configure_sweep_cli(monkeypatch, inputs):
+    monkeypatch.setattr(diag, "PAIR_GOLDSET", inputs.pair_goldset_path)
+    monkeypatch.setattr(diag, "PAIR_GOLDSET_SHA256", inputs.pair_goldset_sha256)
+    monkeypatch.setattr(diag, "EXTRACTION_SOURCES", {"source_items": inputs.extraction_source_items_path, "source_fixture": inputs.extraction_source_fixture_path})
+    monkeypatch.setattr(diag, "LEDGER_PATH", inputs.retention_ledger_path)
+    monkeypatch.setattr(diag, "CANDIDATE_HASH_ALLOWLIST", inputs.candidate_allowlist)
+    monkeypatch.setattr(diag, "_PRODUCTION_CARDINALITIES", dict(inputs.expected_cardinalities))
+    monkeypatch.setattr(diag, "load_registry", _registry)
+
+
+def _sweep_args(inputs, bundle_path, output_path, bundle_hash):
+    return [
+        "--candidates", str(inputs.candidate_path),
+        "--baseline-bundle", str(bundle_path),
+        "--baseline-bundle-sha256", bundle_hash,
+        "--sweep-out", str(output_path),
+        "--commit", "c2",
+    ]
+
+
+def test_sweep_cli_rejects_baseline_bundle_sha_mismatch(tmp_path, monkeypatch):
+    inputs = _inputs(tmp_path)
+    _configure_sweep_cli(monkeypatch, inputs)
+    baseline = diag.build_baseline(inputs, registry=_registry(), commit="c1", produced_by="chief", description_remediation_commit="c0")
+    bundle_path = tmp_path / "bundle.json"
+    bundle_path.write_text(json.dumps(_bundle(inputs, baseline)), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"expected=000000000000 actual=[0-9a-f]{12}"):
+        diag.main(_sweep_args(inputs, bundle_path, tmp_path / "sweep.json", "0" * 64))
+
+
+def test_sweep_cli_rejects_metrics_that_do_not_recompute(tmp_path, monkeypatch):
+    inputs = _inputs(tmp_path)
+    _configure_sweep_cli(monkeypatch, inputs)
+    baseline = diag.build_baseline(inputs, registry=_registry(), commit="c1", produced_by="chief", description_remediation_commit="c0")
+    bundle = _bundle(inputs, baseline)
+    bundle["c1_merged"] = dict(baseline, metrics=dict(baseline["metrics"], negative_overlap={"n": 0, "d": 1}))
+    bundle_path = tmp_path / "bundle.json"
+    bundle_path.write_text(json.dumps(bundle), encoding="utf-8")
+    bundle_hash = _hash(bundle_path)
+
+    with pytest.raises(ValueError, match="metrics differ at negative_overlap"):
+        diag.main(_sweep_args(inputs, bundle_path, tmp_path / "sweep.json", bundle_hash))
+
+
+def test_sweep_cli_rejects_deterministic_map_that_does_not_recompute(tmp_path, monkeypatch):
+    inputs = _inputs(tmp_path)
+    _configure_sweep_cli(monkeypatch, inputs)
+    baseline = diag.build_baseline(inputs, registry=_registry(), commit="c1", produced_by="chief", description_remediation_commit="c0")
+    deterministic = dict(baseline["deterministic_by_uid"])
+    deterministic["case/f1"] = dict(deterministic["case/f1"], retention_ledger=False)
+    bundle_path = tmp_path / "bundle.json"
+    bundle_path.write_text(json.dumps(_bundle(inputs, dict(baseline, deterministic_by_uid=deterministic))), encoding="utf-8")
+    bundle_hash = _hash(bundle_path)
+
+    with pytest.raises(ValueError, match=r"deterministic map differs at case/f1.retention_ledger"):
+        diag.main(_sweep_args(inputs, bundle_path, tmp_path / "sweep.json", bundle_hash))
+
+
+def test_sweep_cli_recomputes_baseline_and_writes_v2b_sweep_3(tmp_path, monkeypatch):
+    inputs = _inputs(tmp_path)
+    _configure_sweep_cli(monkeypatch, inputs)
+    baseline = diag.build_baseline(inputs, registry=_registry(), commit="c1", produced_by="chief", description_remediation_commit="c0")
+    bundle_path = tmp_path / "bundle.json"
+    bundle_path.write_text(json.dumps(_bundle(inputs, baseline)), encoding="utf-8")
+    bundle_hash = _hash(bundle_path)
+    output = tmp_path / "sweep.json"
+
+    assert diag.main(_sweep_args(inputs, bundle_path, output, bundle_hash)) == 0
+
+    document = json.loads(output.read_text(encoding="utf-8"))
+    assert document["schema_version"] == "v2b-sweep-3"
+    assert document["baseline_recomputed"] is True
+    assert document["baseline_bundle_sha256"] == bundle_hash
+
+
 def test_cardinality_and_candidate_source_sid_fail_closed(tmp_path):
     inputs = _inputs(tmp_path)
     with pytest.raises(ValueError, match="cardinality"):
@@ -432,8 +508,9 @@ def test_selection_schema_failure_order_tie_break_and_infeasible_cell(tmp_path):
     impossible = _cell(pollution=(0, 0), predicates={"negative_overlap_ok": True, "migration_ok": True, "overflow_ok": True, "pollution_ok": False, "det_zero_delta_ok": True, "feasible": False})
     assert diag.select_grid([impossible])[0] is None
     document = diag.sweep_document(baseline_bundle={"c1_merged": {}}, baseline_bundle_sha256="a" * 64, input_hashes={name: "b" * 64 for name in diag._INPUT_HASH_KEYS}, cells=[failed, lower_theta, higher_theta], produced_at_commit="c2")
-    assert set(document) == {"schema_version", "v1_operative_rules_hash", "produced_at_commit", "baseline_bundle_sha256", "input_hashes", "cells", "selected_grid", "selection_trace"}
-    assert document["schema_version"] == "v2b-sweep-2"
+    assert set(document) == {"schema_version", "v1_operative_rules_hash", "produced_at_commit", "baseline_recomputed", "baseline_bundle_sha256", "input_hashes", "cells", "selected_grid", "selection_trace"}
+    assert document["schema_version"] == "v2b-sweep-3"
+    assert document["baseline_recomputed"] is True
     assert document["v1_operative_rules_hash"] == diag.blocking_v1_operative_rules_hash()
     assert set(document["cells"][0]) == {"k", "theta", "v2_instrument_rules_hash", "metrics", "predicates"}
     assert document["cells"][0]["v2_instrument_rules_hash"] == diag.blocking_v2_instrument_rules_hash_for(8, (3, 20))

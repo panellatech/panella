@@ -486,6 +486,20 @@ def _validate_baseline_bundle(bundle: Any, *, input_hashes: Mapping[str, str], r
     return dict(bundle)
 
 
+def _assert_baseline_recomputed(bundle: Mapping[str, Any], recomputed: Mapping[str, Any]) -> None:
+    """Refuse a sweep unless its v1 provenance record matches a fresh engine run."""
+    c1 = bundle["c1_merged"]
+    for name in _CORE_METRIC_KEYS:
+        if c1["metrics"][name] != recomputed["metrics"][name]:
+            raise ValueError(f"baseline bundle c1_merged metrics differ at {name}")
+    for uid in sorted(recomputed["deterministic_by_uid"]):
+        expected = recomputed["deterministic_by_uid"][uid]
+        actual = c1["deterministic_by_uid"][uid]
+        for field in ("slot_id", "method", "guard_fired", "retention_ledger"):
+            if actual[field] != expected[field]:
+                raise ValueError(f"baseline bundle c1_merged deterministic map differs at {uid}.{field}")
+
+
 def build_baseline(
     inputs: DiagnosticInputs, *, registry: SlotRegistry | None = None, commit: str, produced_by: str, description_remediation_commit: str
 ) -> dict[str, Any]:
@@ -571,6 +585,8 @@ def select_grid(cells: list[dict[str, Any]]) -> tuple[dict[str, int | tuple[int,
 
 def sweep_document(*, baseline_bundle: Mapping[str, Any], baseline_bundle_sha256: str, input_hashes: Mapping[str, str], cells: list[dict[str, Any]], produced_at_commit: str) -> dict[str, Any]:
     """Materialize the frozen v2b schema from already measured hermetic or chief-run cells."""
+    if not isinstance(baseline_bundle_sha256, str) or len(baseline_bundle_sha256) != 64 or any(char not in "0123456789abcdef" for char in baseline_bundle_sha256):
+        raise ValueError("sweep baseline bundle SHA-256 is invalid")
     for cell in cells:
         k, theta = cell.get("k"), cell.get("theta")
         if not isinstance(k, int) or isinstance(k, bool) or not isinstance(theta, list) or len(theta) != 2:
@@ -579,7 +595,7 @@ def sweep_document(*, baseline_bundle: Mapping[str, Any], baseline_bundle_sha256
         if cell.get("v2_instrument_rules_hash") != expected_hash:
             raise ValueError("sweep cell v2 instrument rules hash does not match its grid")
     selected, trace = select_grid(cells)
-    return {"schema_version": "v2b-sweep-2", "v1_operative_rules_hash": blocking_v1_operative_rules_hash(), "produced_at_commit": produced_at_commit, "baseline_bundle_sha256": baseline_bundle_sha256, "input_hashes": dict(input_hashes), "cells": sorted(cells, key=lambda cell: (cell["k"], _theta_sort_key(tuple(cell["theta"])))), "selected_grid": selected, "selection_trace": trace}
+    return {"schema_version": "v2b-sweep-3", "v1_operative_rules_hash": blocking_v1_operative_rules_hash(), "produced_at_commit": produced_at_commit, "baseline_recomputed": True, "baseline_bundle_sha256": baseline_bundle_sha256, "input_hashes": dict(input_hashes), "cells": sorted(cells, key=lambda cell: (cell["k"], _theta_sort_key(tuple(cell["theta"])))), "selected_grid": selected, "selection_trace": trace}
 
 
 def build_sweep_cells(inputs: DiagnosticInputs, baseline_bundle: Mapping[str, Any], *, registry: SlotRegistry | None = None) -> list[dict[str, Any]]:
@@ -600,11 +616,17 @@ def build_sweep_cells(inputs: DiagnosticInputs, baseline_bundle: Mapping[str, An
     source_uids = {item.item_id for item in load_items(inputs.extraction_source_items_path, inputs.extraction_source_fixture_path)}
     if set(candidates) != source_uids:
         raise ValueError("candidate item set is not an exact bijection to the pinned source items")
-    ledger_cases = {item.get("request_uid"): item for item in ledger["cases"] if isinstance(item, Mapping) and isinstance(item.get("request_uid"), str)}
     extraction_requests = [_request_from_candidate(uid, index, row) for uid, rows in candidates.items() for index, row in enumerate(rows)]
     observed = {"facts": len(pair_requests), "pairs": len(pairs), "sup_pairs": sum(pair.get("label") == "supersede" for pair in pairs), "negative_pairs": sum(pair.get("label") != "supersede" for pair in pairs)}
     _require_cardinalities(observed, inputs.expected_cardinalities)
-    deterministic_by_uid = _run_deterministic_by_uid([*pair_requests, *extraction_requests], live_registry, ledger_cases)
+    recomputed = build_baseline(
+        inputs,
+        registry=live_registry,
+        commit="sweep-recompute",
+        produced_by="sweep",
+        description_remediation_commit="sweep-recompute",
+    )
+    deterministic_by_uid = recomputed["deterministic_by_uid"]
     bundle = _validate_baseline_bundle(
         baseline_bundle,
         input_hashes=inputs.input_hashes(),
@@ -613,6 +635,7 @@ def build_sweep_cells(inputs: DiagnosticInputs, baseline_bundle: Mapping[str, An
         expected_extraction_rows=len(extraction_requests),
         expected_deterministic_uids=set(deterministic_by_uid),
     )
+    _assert_baseline_recomputed(bundle, recomputed)
     cells: list[dict[str, Any]] = []
     for k in (8, 12, 16):
         for theta in sorted(((3, 20), (1, 5), (3, 10)), key=_theta_sort_key):
@@ -642,19 +665,26 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--candidates", type=Path)
     parser.add_argument("--baseline-out", type=Path)
     parser.add_argument("--baseline-bundle", type=Path)
+    parser.add_argument("--baseline-bundle-sha256")
     parser.add_argument("--sweep-out", type=Path)
     parser.add_argument("--produced-by")
     parser.add_argument("--commit")
     parser.add_argument("--description-remediation-commit")
     args = parser.parse_args(argv)
     if args.sweep_out is not None:
-        if args.candidates is None or args.baseline_bundle is None or not args.commit:
-            raise SystemExit("--sweep-out requires --candidates, --baseline-bundle, and --commit")
+        if args.candidates is None or args.baseline_bundle is None or args.baseline_bundle_sha256 is None or not args.commit:
+            raise SystemExit("--sweep-out requires --candidates, --baseline-bundle, --baseline-bundle-sha256, and --commit")
         inputs = DiagnosticInputs(PAIR_GOLDSET, PAIR_GOLDSET_SHA256, args.candidates, CANDIDATE_HASH_ALLOWLIST, EXTRACTION_SOURCES["source_items"], _sha256(EXTRACTION_SOURCES["source_items"]), EXTRACTION_SOURCES["source_fixture"], _sha256(EXTRACTION_SOURCES["source_fixture"]), LEDGER_PATH, _sha256(LEDGER_PATH), args.sweep_out.parent, _PRODUCTION_CARDINALITIES)
         raw_bundle = args.baseline_bundle.read_bytes()
+        actual_bundle_sha256 = hashlib.sha256(raw_bundle).hexdigest()
+        if actual_bundle_sha256 != args.baseline_bundle_sha256:
+            raise ValueError(
+                "baseline bundle SHA-256 mismatch: "
+                f"expected={args.baseline_bundle_sha256[:12]} actual={actual_bundle_sha256[:12]}"
+            )
         bundle = json.loads(raw_bundle)
         cells = build_sweep_cells(inputs, bundle)
-        document = sweep_document(baseline_bundle=bundle, baseline_bundle_sha256=hashlib.sha256(raw_bundle).hexdigest(), input_hashes=inputs.input_hashes(), cells=cells, produced_at_commit=args.commit)
+        document = sweep_document(baseline_bundle=bundle, baseline_bundle_sha256=actual_bundle_sha256, input_hashes=inputs.input_hashes(), cells=cells, produced_at_commit=args.commit)
         args.sweep_out.write_text(json.dumps(document, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
         print(json.dumps({"output": str(args.sweep_out), "selected_grid": document["selected_grid"]}, separators=(",", ":")))
         return 0 if document["selected_grid"] is not None else 1

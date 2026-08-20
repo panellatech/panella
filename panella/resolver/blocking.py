@@ -8,7 +8,8 @@ from dataclasses import dataclass
 from fractions import Fraction
 from typing import Literal
 
-from .blocking_constants import BLOCKING_STOPWORDS, SCORING_DROP
+from . import normalize
+from .blocking_constants import BLOCKING_STOPWORDS
 from .normalize import resolver_normalize
 from .registry import RegistrySlot, SlotRegistry
 from .types import BlockingReceipt, ResolveRequest, RiskEvidence, SlotView
@@ -22,7 +23,27 @@ V1_WEIGHTS = (3, 2, 1)
 
 def blocking_v2_instrument_rules_canonical(k: int, theta: tuple[int, int]) -> str:
     """Return the frozen content-addressed blocking-rules representation."""
-    return json.dumps({"choice_set_k": k, "max_forced": MAX_FORCED, "theta": list(theta), "weights": [3, 2, 1], "blocking_stopwords": sorted(BLOCKING_STOPWORDS), "trigram": {"n": 3, "framing": "^$"}}, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return json.dumps(
+        {
+            "choice_set_k": k,
+            "max_forced": MAX_FORCED,
+            "theta": list(theta),
+            "weights": [3, 2, 1],
+            "normalizer_rules_hash": normalize.compute_normalizer_rules_hash(),
+            "blocking_stopwords": sorted(BLOCKING_STOPWORDS),
+            "scoring_drop": sorted(_scoring_drop()),
+            "surfaces": {
+                "l1": "domain - scoring_drop",
+                "l2": "aliases - scoring_drop",
+                "l3": "(description - scoring_drop) ∪ blocking_terms",
+                "cand": "raw_domain|value|evidence - blocking_stopwords",
+            },
+            "trigram": {"n": 3, "framing": "^$"},
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
 
 
 def blocking_v2_instrument_rules_hash_for(k: int, theta: tuple[int, int]) -> str:
@@ -56,6 +77,7 @@ def blocking_v1_operative_rules_canonical() -> str:
             "tokens": {
                 "blocking_terms": False,
                 "normalizer": "resolver_normalize",
+                "normalizer_rules_hash": normalize.compute_normalizer_rules_hash(),
                 "split": "underscore",
                 "stopwords": False,
                 "trigram": False,
@@ -86,6 +108,11 @@ def _tokens(value: str) -> set[str]:
     return set(filter(None, resolver_normalize(value).split("_")))
 
 
+def _scoring_drop() -> frozenset[str]:
+    """Return the live v2 scoring vocabulary excluded after normalization."""
+    return frozenset(normalize.STOPWORDS) | BLOCKING_STOPWORDS
+
+
 def _slot_score(slot: RegistrySlot, candidate_tokens: set[str]) -> int:
     """Return the original v1 3/2/1 surface-overlap score."""
     domain_tokens = _tokens(slot.domain)
@@ -109,9 +136,10 @@ def _grams(tokens: set[str]) -> set[str]:
 
 def score_components(slot: RegistrySlot, cand_tokens: set[str]) -> tuple[int, int, int]:
     """Return ``(A, b_num, b_den)`` for already filtering-free candidate tokens."""
-    l1 = _tokens(slot.domain) - SCORING_DROP
-    l2 = set().union(*(_tokens(alias) for alias in slot.aliases)) - SCORING_DROP if slot.aliases else set()
-    l3 = (_tokens(slot.description) - SCORING_DROP) | set(slot.blocking_terms)
+    scoring_drop = _scoring_drop()
+    l1 = _tokens(slot.domain) - scoring_drop
+    l2 = set().union(*(_tokens(alias) for alias in slot.aliases)) - scoring_drop if slot.aliases else set()
+    l3 = (_tokens(slot.description) - scoring_drop) | set(slot.blocking_terms)
     a = 3 * len(cand_tokens & l1) + 2 * len(cand_tokens & l2) + len(cand_tokens & l3)
     cand_grams, slot_grams = _grams(cand_tokens), _grams(l1 | l2 | l3)
     denominator = len(cand_grams) + len(slot_grams)
